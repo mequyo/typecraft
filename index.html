@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:ital,wght@0,300..900;1,300..900&display=swap"
+    rel="stylesheet">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>minecraft</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      width: 100vw;
+      font-family: "Rubik Mono One", monospace;
+      font-weight: 100;
+      font-style: normal;
+    }
+
+    #stats {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      border-radius: 5px;
+      color: white;
+      background: rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 5px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stat {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    #crosshair {
+      position: absolute;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #minimap_wrapper {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 20px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(10px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #minimap_wrapper>div {
+      position: absolute;
+      color: white;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="stats">
+    <div class="stat">time:<span id="time">0:00:00</span></div>
+    <div class="stat">cpu:<span id="cpu">---</span></div>
+    <div class="stat">gpu:<span id="gpu">---</span></div>
+    <div class="stat">position:<span id="position">(0, 0, 0)</span></div>
+    <div class="stat">direction:<span id="direction">(0, 0, 0)</span></div>
+    <div class="stat">speed:<span id="speed">0 m/s</span></div>
+    <div class="stat">looking at:<span id="lookat">nothing</span></div>
+    <div class="stat">creative: <span id="creative">on</span></div>
+    <div class="stat">vertices:<span id="vertices">0 / 0 (0%)</span></div>
+    <div class="stat">fov:<span id="fov">90° / 0.5 pi</span></div>
+    <div class="stat">rendered / loaded chunks:<span id="chunks">0 / 0</span></div>
+    <div class="stat">chunks memory:<span id="memory">0 mb</span></div>
+    <div class="stat">chunk generation:<span id="chunk-generation">0</span></div>
+  </div>
+
+  <div id="crosshair">
+    <div style="width: 30px; height: 3px; background-color: white; position: absolute;"></div>
+    <div style="height: 30px; width: 3px; background-color: white; position: absolute;"></div>
+  </div>
+
+  <div id="minimap_wrapper">
+    <canvas id="minimap" style="width: 512px; height: 512px;"></canvas>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
+</html>
