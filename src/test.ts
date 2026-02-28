@@ -135,3 +135,9 @@ class GBuffer {
   }
 }*/
 
+
+
+// Entities are numbers
+// Components are "objects" in the sense that they have e.g. xyz but they are interleaved
+// Systems query for multiple components
+// Avoid creating objects
