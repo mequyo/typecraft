@@ -45,7 +45,7 @@ new Stats("#creative", state => state.player.creative ? "on" : "off");
 new Stats("#vertices", state => {
   let vertices = 0;
 
-  for (const chunk of state.world.chunks.values()) {
+  for (const chunk of state.world.chunks.values) {
     for (let face = 0; face < 6; face += 1) {
       vertices += chunk.allocations[face].size;
     }

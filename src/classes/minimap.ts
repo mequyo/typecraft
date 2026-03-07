@@ -3,6 +3,7 @@ import { Chunk } from "../chunk";
 import { CHUNK_SIZE, MINIMAP_INITIAL_ZOOM, MINIMAP_RENDER_SIZE, MINIMAP_UI_SIZE } from "../constants";
 import { Player } from "../player";
 import { Triple } from "./triple";
+import { SlotMap } from "./slot-map";
 
 export class Minimap {
   private canvas: HTMLCanvasElement
@@ -35,7 +36,7 @@ export class Minimap {
   }
 
 
-  async render(chunks: Map<number, Chunk>, player: Player) {
+  async render(chunks: SlotMap<number, Chunk>, player: Player) {
     const center = MINIMAP_RENDER_SIZE / 2;
     this.context.fillStyle = "black";
     this.context.fillRect(0, 0, this.canvas.width, this.canvas.height)
@@ -50,8 +51,7 @@ export class Minimap {
 
     const array3D = new Triple<number, Chunk>();
 
-    Array
-      .from(chunks.values())
+    chunks.values
       .filter(c => c.blockamount != 0 && c.offset[0] > minCX && c.offset[0] < maxCX && c.offset[2] > minCZ && c.offset[2] < maxCZ)
       .forEach(c => array3D.set(c.offset[0], c.offset[2], c.offset[1], c));
 

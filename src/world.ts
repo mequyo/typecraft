@@ -12,8 +12,8 @@ import { ORIENTATION } from "./mesh";
 import { vec3ToLocalChunk } from "./lib";
 import { BlockRegistry } from "./registries/block-registry";
 import { SoundRegistry } from "./registries/sound-registry";
-import { generateBlocksCompute } from "./test";
 import { Allocation } from "./classes/arena-buffer";
+import { SlotMap } from "./classes/slot-map";
 
 
 
@@ -31,7 +31,8 @@ type DamagedBlock = {
 
 
 export class World {
-  public chunks = new Map<number, Chunk>()
+  //public chunks = new Map<number, Chunk>()
+  public chunks = new SlotMap<number, Chunk>();
   public heightmap: Pair<number, number> // [x, z] => height
   public blockmap: Pair<number, number> // [x, z] => blockID
   public workers: Worker[] = []
@@ -228,7 +229,7 @@ export class World {
     ].map(p => p.map(x => x / Math.hypot(p[0], p[1], p[2])));
 
     // Check each chunk against the frustum
-    for (const chunk of this.chunks.values()) {
+    for (const chunk of this.chunks.values) {
       if (chunk.blockamount == 0) continue;
 
       const aabb = chunk.AABB;

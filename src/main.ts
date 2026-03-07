@@ -30,6 +30,7 @@ import { DESTROY_PIPELINE } from "./pipeline-descriptors/destroy-pipeline";
 import { OUTLINE_PIPELINE } from "./pipeline-descriptors/outline-pipeline";
 import { ChunkBlocksComputePipeline } from "./pipeline-descriptors/chunk-blocks-compute-pipeline";
 import { Chunk } from "./chunk";
+import "./test"
 
 window.onload = main;
 
@@ -37,6 +38,10 @@ window.onload = main;
 
 type Devices = { canvas: HTMLCanvasElement, context: GPUCanvasContext, adapter: GPUAdapter, device: GPUDevice, audio: AudioContext }
 async function initDevices(): Promise<Devices> {
+
+
+
+
   const canvas = document.createElement("canvas");
   document.body.appendChild(canvas);
 
