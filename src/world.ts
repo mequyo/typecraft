@@ -8,12 +8,13 @@ import { mat4, Vec3, vec3 } from "wgpu-matrix";
 import { State } from "./state";
 import { BlockStateRegistry } from "./registries/blockstate-registry";
 import { AIR } from "./registries/blocks";
-import { ORIENTATION } from "./mesh";
+import { ORIENTATION, SPHERE_OFFSETS } from "./mesh";
 import { vec3ToLocalChunk } from "./lib";
 import { BlockRegistry } from "./registries/block-registry";
 import { SoundRegistry } from "./registries/sound-registry";
 import { Allocation } from "./classes/arena-buffer";
 import { SlotMap } from "./classes/slot-map";
+import { Player } from "./player";
 
 
 
@@ -118,6 +119,21 @@ export class World {
     out[2] = (key & 1023) - 512;
   }
 
+
+  // Queues chunks around the player
+  queueChunks(player: Player, state: State) {
+    const playerChunkPos = vec3.floor(vec3.divScalar(player.position, CHUNK_SIZE));
+
+    for (let i = 0; i < SPHERE_OFFSETS.length; i += 1) {
+      const chunkpos = vec3.add(playerChunkPos, SPHERE_OFFSETS[i]);
+
+      this.queueChunk(state.device, chunkpos, state.time.seconds, state.minimap.zoom, state);
+    }
+
+    this.generateChunk(state.device, state.time.seconds, state);
+
+    // TODO Dequeue chunks that are too far away
+  }
 
 
   queueChunk(device: GPUDevice, offset: Vec3, time: number, zoom: number, state: State) {

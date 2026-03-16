@@ -6,6 +6,8 @@ import { Player } from "./player"
 import { World } from "./world"
 import { ChunkBlocksComputePipeline } from "./pipeline-descriptors/chunk-blocks-compute-pipeline"
 import { InputSystem } from "./input-system"
+import { PhysicsSystem } from "./physics-system"
+import { PlayerSystem } from "./player-system"
 
 
 
@@ -47,4 +49,5 @@ export type State = {
 
 
   input: InputSystem
+  physics: PhysicsSystem
 }

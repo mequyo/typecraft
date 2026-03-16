@@ -1,12 +1,11 @@
-import { CAMERA_HEIGHT, CHUNK_SIZE, GRAVITY, GROUND_FRICTION, JUMP_FORCE, MAX_HORIZONTAL_VELOCITY, MINIMAP_MAX_ZOOM, MINIMAP_MIN_ZOOM, PLAYER_BASE_SPEED, PLAYER_HEIGHT, PLAYER_REACH, PLAYER_WIDTH, RENDER_DISTANCE } from "./constants";
-import { collides, dda, vec3ToLocalChunk } from "./lib";
+import { MINIMAP_MAX_ZOOM, MINIMAP_MIN_ZOOM } from "./constants";
 import { vec3 } from "wgpu-matrix";
 import { State } from "./state";
 import { Stats } from "./classes/stats";
 import { BlockStateRegistry } from "./registries/blockstate-registry";
-import { AIR, OAK_SLAB } from "./registries/blocks";
-import { SPHERE_OFFSETS } from "./mesh";
+import { OAK_SLAB } from "./registries/blocks";
 import { MOUSE } from "./input-system";
+import { PlayerSystem } from "./player-system";
 
 
 /**
@@ -21,23 +20,10 @@ export async function update(timestamp: DOMHighResTimeStamp, state: State) {
   state.world.seconds += state.time.dt.cpu;
   state.time.last = now;
 
-  const context = state.context;
-  const device = state.device;
   const player = state.player;
   const dt = state.time.dt.cpu;
 
-  // Generate chunks within the vicinity of the player
-  const playerChunkPos = vec3.floor(vec3.divScalar(player.position, CHUNK_SIZE));
-
-  for (let i = 0; i < SPHERE_OFFSETS.length; i += 1) {
-    const chunkpos = vec3.add(playerChunkPos, SPHERE_OFFSETS[i]);
-
-    state.world.queueChunk(device, chunkpos, state.time.seconds, state.minimap.zoom, state);
-  }
-
-  state.world.generateChunk(device, state.time.seconds, state);
-
-  // TODO Dequeue chunks that are too far away
+  state.world.queueChunks(state.player, state); // Queues chunks around the player and generates one each tick
 
 
 
@@ -63,112 +49,11 @@ export async function update(timestamp: DOMHighResTimeStamp, state: State) {
 
   // ========================= MOVEMENT ===============================================================================
 
-  const ground_friction_per_second = Math.pow(GROUND_FRICTION, 1 / dt);
-
-  let move_dir = vec3.create(0, 0, 0);
-  if (state.input.keys["w"]) move_dir = vec3.add(move_dir, vec3.create(player.direction[0], 0, player.direction[2]));
-  if (state.input.keys["s"]) move_dir = vec3.sub(move_dir, vec3.create(player.direction[0], 0, player.direction[2]));
-  if (state.input.keys["d"]) move_dir = vec3.add(move_dir, vec3.create(player.right[0], 0, player.right[2]));
-  if (state.input.keys["a"]) move_dir = vec3.sub(move_dir, vec3.create(player.right[0], 0, player.right[2]));
-  move_dir = vec3.normalize(move_dir);
-
-  // Horizontal velocity update
-  player.velocity = vec3.addScaled(player.velocity, move_dir, PLAYER_BASE_SPEED);// player.velocity.add(move_dir.mul(PLAYER_BASE_SPEED));
-
-  if (player.creative) {
-    // Go down if control is pressed and up if space is pressed
-    if (state.input.keys[" "]) player.velocity[1] -= JUMP_FORCE * dt * GRAVITY[1];
-    if (state.input.keys["control"]) player.velocity[1] += JUMP_FORCE * dt * GRAVITY[1];
-  } else {
-    // Apply gravity and jump if space is pressed
-    player.velocity = vec3.addScaled(player.velocity, GRAVITY, dt);
-
-    if (state.input.keys[" "] && player.grounded) player.velocity[1] += JUMP_FORCE;
-  }
-
-  // Apply friction TODO less movement in air
-  const friction_factor = Math.pow(ground_friction_per_second, dt);
-  player.velocity[0] *= friction_factor;
-  player.velocity[2] *= friction_factor;
-  if (player.creative) player.velocity[1] *= friction_factor;
-
-  // Clamp horizontal velocity
-  const speed = vec3.length(vec3.create(player.velocity[0], 0, player.velocity[2]));
-  //const speed = player.velocity.horizontal().norm();
-  if (speed > MAX_HORIZONTAL_VELOCITY) {
-    player.velocity[0] *= MAX_HORIZONTAL_VELOCITY / speed;
-    player.velocity[2] *= MAX_HORIZONTAL_VELOCITY / speed;
-  }
-
-  // Stepwise axis resolution
-  let collision = null;
-
-  player.grounded = false;
-  player.position[1] += player.velocity[1] * dt;
-  collision = collides(player.position, state.world);
-  if (collision) {
-    if (player.velocity[1] > 0) {
-      player.position[1] = collision[1] - PLAYER_HEIGHT + CAMERA_HEIGHT - 0.001;
-    } else {
-      player.position[1] = collision[1] + 1 + CAMERA_HEIGHT + 0.001;
-      player.grounded = true;
-    }
-    player.velocity[1] = 0;
-  }
-
-  player.position[0] += player.velocity[0] * dt;
-  collision = collides(player.position, state.world);
-  if (collision) {
-    if (player.velocity[0] > 0) {
-      player.position[0] = collision[0] - PLAYER_WIDTH / 2 - 0.001;
-    } else {
-      player.position[0] = collision[0] + 1 + PLAYER_WIDTH / 2 + 0.001;
-    }
-    player.velocity[0] = 0;
-  }
-
-  player.position[2] += player.velocity[2] * dt;
-  collision = collides(player.position, state.world);
-  if (collision) {
-    if (player.velocity[2] > 0) {
-      player.position[2] = collision[2] - PLAYER_WIDTH / 2 - 0.001;
-    } else {
-      player.position[2] = collision[2] + 1 + PLAYER_WIDTH / 2 + 0.001;
-    }
-    player.velocity[2] = 0;
-  }
+  state.physics.tick(state.input, state.player, dt, state.world);
 
 
 
-
-
-
-  // Update chunk position of player
-
-
-  // ========================== LOOK AT
-
-  // TODO some blocks arent full blocks
-  state.player.lookat = null;
-  const positions = dda(player.eye, player.direction, PLAYER_REACH);
-
-  for (const hit of positions) {
-    const { pos, face } = hit;
-    const offset = vec3.floor(vec3.divScalar(pos, CHUNK_SIZE)); // chunk location
-    const chunk = state.world.getChunk(offset);
-
-    if (!chunk) continue;
-
-    const local = vec3ToLocalChunk(pos); // TODO replace with addScalar
-    const blockstate = chunk.get(local[0], local[1], local[2]);
-
-    if (BlockStateRegistry.decode(blockstate).block == AIR.ID) continue;
-
-    state.player.lookat = pos;
-    state.player.placeoffset = face;
-    break;
-  }
-
+  PlayerSystem.updateLookat(state.player, state.world);
 
 
   // damage block if lookat and left click
@@ -177,13 +62,26 @@ export async function update(timestamp: DOMHighResTimeStamp, state: State) {
   }
 
 
+  // RENDER
+  await render(state);
+
+  Stats.update(state);
+  state.input.flush();
+
+  requestAnimationFrame(timestamp => update(timestamp, state));
+}
+
+
+
+async function render(state: State) {
+  const context = state.context;
+  const device = state.device;
+
+  // MINIMAP
   await state.minimap.render(state.world.chunks, state.player);
 
-
-
+  // RENDER PIPELINES
   for (const pipeline of state.pipelines) pipeline.update(state);
-
-  // UPDATE BIND GROUPS IF NEEDED
 
   const passdescriptor: GPURenderPassDescriptor = {
     label: "Renderpass",
@@ -203,9 +101,6 @@ export async function update(timestamp: DOMHighResTimeStamp, state: State) {
     }
   };
 
-
-  // CREATE RENDER PASS
-
   const encoder = device.createCommandEncoder({ label: "Command Encoder" });
   const pass = encoder.beginRenderPass(passdescriptor);
 
@@ -221,23 +116,9 @@ export async function update(timestamp: DOMHighResTimeStamp, state: State) {
   device.queue.submit([encoder.finish()]);
 
   device.queue.onSubmittedWorkDone().then(() => {
-    const end = performance.now();
-    state.time.dt.gpu = (end - start) / 1000;
-    state.performance.gpu.push((end - start) / 1000);
+    // TODO find a way to reliably calculate GPU times
+    //const end = performance.now();
+    //state.time.dt.gpu = (end - start) / 1000;
+    //state.performance.gpu.push((end - start) / 1000);
   });
-
-
-  // COMPUTE TEST
-  if (Math.random() > 0.995) {
-    //state.compute.dispatch(device);
-  }
-
-
-
-  Stats.update(state);
-
-  state.input.flush();
-
-  const start = performance.now();
-  requestAnimationFrame(timestamp => update(timestamp, state));
 }

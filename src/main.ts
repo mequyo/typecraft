@@ -32,6 +32,8 @@ import { ChunkBlocksComputePipeline } from "./pipeline-descriptors/chunk-blocks-
 import { Chunk } from "./chunk";
 import "./test"
 import { InputSystem } from "./input-system";
+import { PhysicsSystem } from "./physics-system";
+import { PlayerSystem } from "./player-system";
 
 window.onload = main;
 
@@ -161,6 +163,7 @@ async function main() {
     compute: new ChunkBlocksComputePipeline(device),
 
     input: new InputSystem(canvas),
+    physics: new PhysicsSystem(),
   }
 
   Chunk.chunkBuffer = state.chunkBuffer;
