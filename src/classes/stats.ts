@@ -44,16 +44,16 @@ new Stats("#speed", state => vec3.length(state.player.velocity).toFixed(1) + " m
 new Stats("#creative", state => state.player.creative ? "on" : "off");
 new Stats("#vertices", state => {
   let vertices = 0;
+  const chunks = state.world.chunks.values;
 
-  for (const chunk of state.world.chunks.values) {
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
     for (let face = 0; face < 6; face += 1) {
       vertices += chunk.allocations[face].size;
     }
   }
 
   vertices /= BYTES_PER_VERTEX;
-
-  //const vertices = Array.from(state.world.chunks.values()).reduce((sum, chunk) => sum + chunk.allocations[0].size, 0) / BYTES_PER_VERTEX;
 
   return `${vertices.toLocaleString()} (${(vertices / state.world.chunks.size).toFixed(0)} per chunk)`;
 }, 1);

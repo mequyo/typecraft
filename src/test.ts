@@ -90,5 +90,9 @@ export function generateBlocksCompute(device: GPUDevice, size: number, world: Wo
 
 
 
-
-
+// Terrain generation
+// Deleting chunks that are out of reach
+// Inventory
+// Block drops
+// Registry rework / StartEvents (block registration, item registration, recipe registration)
+// Debugging

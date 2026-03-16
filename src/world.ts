@@ -229,7 +229,11 @@ export class World {
     ].map(p => p.map(x => x / Math.hypot(p[0], p[1], p[2])));
 
     // Check each chunk against the frustum
-    for (const chunk of this.chunks.values) {
+    const chunks = this.chunks;
+
+    for (let i = 0; i < chunks.size; i++) {
+      const chunk = chunks.values[i];
+
       if (chunk.blockamount == 0) continue;
 
       const aabb = chunk.AABB;

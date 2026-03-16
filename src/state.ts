@@ -5,6 +5,7 @@ import { RenderPipeline } from "./render-pipeline"
 import { Player } from "./player"
 import { World } from "./world"
 import { ChunkBlocksComputePipeline } from "./pipeline-descriptors/chunk-blocks-compute-pipeline"
+import { InputSystem } from "./input-system"
 
 
 
@@ -17,8 +18,6 @@ export type State = {
 
   depthTexture: GPUTexture
 
-  keys: Record<string, boolean>
-  mouse: { left: boolean, right: boolean, middle: boolean }
   time: {
     last: number
     dt: { cpu: number, gpu: number },
@@ -43,4 +42,9 @@ export type State = {
   pipelines: RenderPipeline[]
 
   compute: ChunkBlocksComputePipeline
+
+
+
+
+  input: InputSystem
 }

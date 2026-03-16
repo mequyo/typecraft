@@ -52,7 +52,7 @@ export const BUFFER_MIN_SIZE = 64;
 
 // DATABASE
 export const DATABASE_VERSION = 3;
-export const AMOUNT_CHUNK_WORKERS = navigator.hardwareConcurrency - 2;
+export const AMOUNT_CHUNK_WORKERS = navigator.hardwareConcurrency - 3;
 
 // SOUND
 export const MINING_SOUND_INTERVAL = 200; // ms

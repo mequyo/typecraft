@@ -25,7 +25,6 @@ const MESH_BUFFERS: Sixtuple<Uint32Array> = [
 ];
 
 
-
 self.onmessage = async (e: MessageEvent<WorkerMessageIn>) => {
   const { offset } = e.data;
 

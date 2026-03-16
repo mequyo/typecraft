@@ -1,18 +1,19 @@
-import { CAMERA_HEIGHT, CHUNK_SIZE, GRAVITY, GROUND_FRICTION, JUMP_FORCE, MAX_HORIZONTAL_VELOCITY, PLAYER_BASE_SPEED, PLAYER_HEIGHT, PLAYER_REACH, PLAYER_WIDTH, RENDER_DISTANCE } from "./constants";
+import { CAMERA_HEIGHT, CHUNK_SIZE, GRAVITY, GROUND_FRICTION, JUMP_FORCE, MAX_HORIZONTAL_VELOCITY, MINIMAP_MAX_ZOOM, MINIMAP_MIN_ZOOM, PLAYER_BASE_SPEED, PLAYER_HEIGHT, PLAYER_REACH, PLAYER_WIDTH, RENDER_DISTANCE } from "./constants";
 import { collides, dda, vec3ToLocalChunk } from "./lib";
 import { vec3 } from "wgpu-matrix";
 import { State } from "./state";
 import { Stats } from "./classes/stats";
 import { BlockStateRegistry } from "./registries/blockstate-registry";
-import { AIR } from "./registries/blocks";
+import { AIR, OAK_SLAB } from "./registries/blocks";
 import { SPHERE_OFFSETS } from "./mesh";
+import { MOUSE } from "./input-system";
 
 
 /**
  * This function gets called every frame, updates state and renders it.
  * @param state State of the game that holds all information
  */
-export async function update(state: State) {
+export async function update(timestamp: DOMHighResTimeStamp, state: State) {
   const now = performance.now();
   state.time.dt.cpu = (now - state.time.last) / 1000;
   state.performance.cpu.push((now - state.time.last) / 1000);
@@ -38,15 +39,37 @@ export async function update(state: State) {
 
   // TODO Dequeue chunks that are too far away
 
+
+
+  if (state.input.keypresses["c"]) state.player.creative = !state.player.creative;
+
+  if (state.input.keypresses["+"] && state.minimap.zoom < MINIMAP_MAX_ZOOM) {
+    state.minimap.zoom *= 2;
+  }
+
+  if (state.input.keypresses["-"] && state.minimap.zoom > MINIMAP_MIN_ZOOM) {
+    state.minimap.zoom /= 2;
+  }
+
+
+
+  state.player.tick(state.input);// CAMERA MOVEMENT
+
+  // PLACE BLOOK IF RIGHT CLICKED
+  if (state.input.mouse.clicked[MOUSE.RIGHT] && player.lookat) {
+    const position = vec3.sub(player.lookat, state.player.placeoffset);
+    state.world.addBlock(position, BlockStateRegistry.encode(OAK_SLAB.ID, Math.floor(Math.random() * 24))); // TODO actually set orientation based on viewing direction
+  }
+
   // ========================= MOVEMENT ===============================================================================
 
   const ground_friction_per_second = Math.pow(GROUND_FRICTION, 1 / dt);
 
   let move_dir = vec3.create(0, 0, 0);
-  if (state.keys["w"]) move_dir = vec3.add(move_dir, vec3.create(player.direction[0], 0, player.direction[2]));
-  if (state.keys["s"]) move_dir = vec3.sub(move_dir, vec3.create(player.direction[0], 0, player.direction[2]));
-  if (state.keys["d"]) move_dir = vec3.add(move_dir, vec3.create(player.right[0], 0, player.right[2]));
-  if (state.keys["a"]) move_dir = vec3.sub(move_dir, vec3.create(player.right[0], 0, player.right[2]));
+  if (state.input.keys["w"]) move_dir = vec3.add(move_dir, vec3.create(player.direction[0], 0, player.direction[2]));
+  if (state.input.keys["s"]) move_dir = vec3.sub(move_dir, vec3.create(player.direction[0], 0, player.direction[2]));
+  if (state.input.keys["d"]) move_dir = vec3.add(move_dir, vec3.create(player.right[0], 0, player.right[2]));
+  if (state.input.keys["a"]) move_dir = vec3.sub(move_dir, vec3.create(player.right[0], 0, player.right[2]));
   move_dir = vec3.normalize(move_dir);
 
   // Horizontal velocity update
@@ -54,13 +77,13 @@ export async function update(state: State) {
 
   if (player.creative) {
     // Go down if control is pressed and up if space is pressed
-    if (state.keys[" "]) player.velocity[1] -= JUMP_FORCE * dt * GRAVITY[1];
-    if (state.keys["control"]) player.velocity[1] += JUMP_FORCE * dt * GRAVITY[1];
+    if (state.input.keys[" "]) player.velocity[1] -= JUMP_FORCE * dt * GRAVITY[1];
+    if (state.input.keys["control"]) player.velocity[1] += JUMP_FORCE * dt * GRAVITY[1];
   } else {
     // Apply gravity and jump if space is pressed
     player.velocity = vec3.addScaled(player.velocity, GRAVITY, dt);
 
-    if (state.keys[" "] && player.grounded) player.velocity[1] += JUMP_FORCE;
+    if (state.input.keys[" "] && player.grounded) player.velocity[1] += JUMP_FORCE;
   }
 
   // Apply friction TODO less movement in air
@@ -116,12 +139,9 @@ export async function update(state: State) {
   }
 
 
-  // Zooming like a spyglass
-  if (state.keys["z"]) {
-    state.player.fov = Math.PI / 10
-  } else {
-    state.player.fov = Math.PI / 2
-  }
+
+
+
 
   // Update chunk position of player
 
@@ -150,14 +170,9 @@ export async function update(state: State) {
   }
 
 
-  //if (Math.random() > 0.996) {
-  //  state.compute.dispatch(state.compute, new Float32Array([CHUNK_SIZE, 0, 0, 0]));
-  // }
-
-
 
   // damage block if lookat and left click
-  if (!state.player.creative && state.mouse.left && player.lookat) {
+  if (!state.player.creative && state.input.mouse.buttons[MOUSE.LEFT] && player.lookat) {
     state.world.damageBlock(player.lookat[0], player.lookat[1], player.lookat[2], dt);
   }
 
@@ -168,10 +183,7 @@ export async function update(state: State) {
 
   for (const pipeline of state.pipelines) pipeline.update(state);
 
-
   // UPDATE BIND GROUPS IF NEEDED
-  //Object.values(state.pipelines).forEach(pipe => pipe.updateBuffers());
-
 
   const passdescriptor: GPURenderPassDescriptor = {
     label: "Renderpass",
@@ -224,6 +236,8 @@ export async function update(state: State) {
 
   Stats.update(state);
 
+  state.input.flush();
+
   const start = performance.now();
-  requestAnimationFrame(() => update(state));
+  requestAnimationFrame(timestamp => update(timestamp, state));
 }

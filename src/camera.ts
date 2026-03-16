@@ -1,5 +1,6 @@
 import { mat4, Mat4, vec3, Vec3 } from "wgpu-matrix";
 import { CAMERA_HEIGHT, PLAYER_HEIGHT, PLAYER_WIDTH } from "./constants";
+import { InputSystem } from "./input-system";
 
 export type CameraDescriptor = {
   canvas: HTMLCanvasElement
@@ -28,6 +29,7 @@ export class Camera {
   public yaw: number
   public pitch: number
   public right: Vec3
+  public zoom: boolean
 
   constructor(descriptor: CameraDescriptor) {
     this.canvas = descriptor.canvas;
@@ -44,17 +46,27 @@ export class Camera {
     this.yaw = Math.atan2(this.direction[0], this.direction[2]);
     this.pitch = Math.asin(-this.direction[1]);
     this.right = vec3.create(Math.sin(this.yaw - Math.PI / 2), 0, Math.cos(this.yaw - Math.PI / 2));
+    this.zoom = false;
+  }
 
-    window.addEventListener("mousemove", e => {
-      if (!this.active || document.pointerLockElement != this.canvas) return;
+  tick(input: InputSystem) {
+    if (!this.active || document.pointerLockElement != this.canvas) return;
 
-      const limit = Math.PI / 2 - 0.001; // 90°
-      this.yaw -= e.movementX * this.sensitivity;
-      this.pitch -= e.movementY * this.sensitivity;
-      this.pitch = Math.max(-limit, Math.min(limit, this.pitch));
-      this.direction = vec3.normalize(vec3.create(Math.cos(this.pitch) * Math.sin(this.yaw), Math.sin(this.pitch), Math.cos(this.pitch) * Math.cos(this.yaw)));
-      this.right = vec3.normalize(vec3.cross(this.direction, this.up));
-    });
+    const limit = Math.PI / 2 - 0.001; // 90°
+    this.yaw -= input.mouse.dx * this.sensitivity;
+    this.pitch -= input.mouse.dy * this.sensitivity;
+    this.pitch = Math.max(-limit, Math.min(limit, this.pitch));
+    this.direction = vec3.normalize(vec3.create(Math.cos(this.pitch) * Math.sin(this.yaw), Math.sin(this.pitch), Math.cos(this.pitch) * Math.cos(this.yaw)));
+    this.right = vec3.normalize(vec3.cross(this.direction, this.up));
+
+    this.fov = Math.clamp(Math.PI / 180, this.fov + input.mouse.wheel / 100 / 180 * Math.PI, 2 * Math.PI); // Clamp between 1° and 360°
+
+    // Zooming like a spyglass
+    const z = input.keys["z"] == true;
+    if (this.zoom != z) {
+      this.zoom = z;
+      this.fov *= z ? 0.5 : 2;
+    }
   }
 
   get projection(): Mat4 {

@@ -31,6 +31,7 @@ import { OUTLINE_PIPELINE } from "./pipeline-descriptors/outline-pipeline";
 import { ChunkBlocksComputePipeline } from "./pipeline-descriptors/chunk-blocks-compute-pipeline";
 import { Chunk } from "./chunk";
 import "./test"
+import { InputSystem } from "./input-system";
 
 window.onload = main;
 
@@ -124,11 +125,11 @@ async function main() {
   const minimap_arrow = await createImageBitmap(await loadImage("/ui/minimap-arrow.png"));
 
 
+
   // CREATE STATE
   const state: State = {
     canvas, context, adapter, device, depthTexture, audio,
-    keys: {},
-    mouse: { left: false, right: false, middle: false },
+
     time: {
       last: 0,
       dt: { cpu: 0.01, gpu: 0.01 },
@@ -158,68 +159,13 @@ async function main() {
     ],
 
     compute: new ChunkBlocksComputePipeline(device),
+
+    input: new InputSystem(canvas),
   }
 
   Chunk.chunkBuffer = state.chunkBuffer;
 
   // LISTENERS
-  // TODO even when deleting blocks in creative, sounds should play
-  window.addEventListener("keydown", e => state.keys[e.key.toLowerCase()] = true);
-  window.addEventListener("keyup", e => state.keys[e.key.toLowerCase()] = false);
-  window.addEventListener("contextmenu", e => e.preventDefault());
-  window.addEventListener("blur", _ => Object.keys(state.keys).forEach(k => state.keys[k] = false));
-  window.addEventListener("wheel", e => {
-    state.player.fov = Math.clamp(Math.PI / 180, state.player.fov + e.deltaY / 100 / 180 * Math.PI, 2 * Math.PI); // Clamp between 1° and 360°
-  });
-  window.addEventListener("keydown", e => {
-    e.preventDefault();
-
-    const key = e.key.toLowerCase();
-
-    if (key == "c") state.player.creative = !state.player.creative;
-
-    if (key == "+" && state.minimap.zoom < MINIMAP_MAX_ZOOM) {
-      state.minimap.zoom *= 2;
-    }
-
-    if (key == "-" && state.minimap.zoom > MINIMAP_MIN_ZOOM) {
-      state.minimap.zoom /= 2;
-    }
-  });
-  window.addEventListener("click", e => {
-    state.canvas.requestPointerLock();
-
-    // 0 LEFT, 1 MIDDLE, 2 RIGHT
-
-    if (e.button == 0 && state.player.lookat) {
-      // Looking at a block
-      const chunk = state.world.getChunk(vec3.floor(vec3.divScalar(state.player.lookat, CHUNK_SIZE)));
-
-      if (chunk) {
-        const local = vec3ToLocalChunk(state.player.lookat);
-        //chunk.set(local[0], local[1], local[2], BlockStateRegistry.encode(AIR.ID, ORIENTATION.NX_0));
-      }
-    }
-
-    if (e.button == 2 && state.player.lookat) {
-      const position = vec3.sub(state.player.lookat, state.player.placeoffset);
-      state.world.addBlock(position, BlockStateRegistry.encode(OAK_SLAB.ID, Math.floor(Math.random() * 24))); // TODO actually set orientation based on viewing direction
-    }
-  });
-  window.addEventListener("mousedown", e => {
-    switch (e.button) {
-      case 0: return state.mouse.left = true;
-      case 1: return state.mouse.middle = true;
-      case 2: return state.mouse.right = true;
-    }
-  });
-  window.addEventListener("mouseup", e => {
-    switch (e.button) {
-      case 0: return state.mouse.left = false;
-      case 1: return state.mouse.middle = false;
-      case 2: return state.mouse.right = false;
-    }
-  });
   window.onresize = () => {
     // Update canvas(es)
     canvas.width = Math.floor(window.devicePixelRatio * window.innerWidth);
@@ -250,5 +196,6 @@ async function main() {
     state.depthTexture = depthTexture;
   }
 
-  update(state);
+
+  requestAnimationFrame(timestamp => update(timestamp, state));
 }
