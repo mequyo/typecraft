@@ -45,6 +45,7 @@ export class World {
   public terraingenerator: TerrainGenerator
   public queue: WorkerMessageOut[] = []
   public damaged: Map<number, DamagedBlock>
+  public filtered: Chunk[] = []
 
 
 
@@ -230,7 +231,7 @@ export class World {
     return this.chunks.delete(this.pack(offset));
   }
 
-  getFilteredChunks(camera: Camera): Chunk[] { // TODO actually frustum cull
+  filterChunks(camera: Camera) { // TODO actually frustum cull
     const filtered: Chunk[] = [];
     const vp = mat4.multiply(camera.projection, camera.view);
 
@@ -281,6 +282,6 @@ export class World {
     }
 
     this.rendered = filtered.length;
-    return filtered;
+    this.filtered = filtered;
   }
 }

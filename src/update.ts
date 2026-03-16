@@ -24,7 +24,7 @@ export async function update(timestamp: DOMHighResTimeStamp, state: State) {
   const dt = state.time.dt.cpu;
 
   state.world.queueChunks(state.player, state); // Queues chunks around the player and generates one each tick
-
+  state.world.filterChunks(state.player);
 
 
   if (state.input.keypresses["c"]) state.player.creative = !state.player.creative;

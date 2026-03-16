@@ -10,6 +10,7 @@ import { Sixtuple } from "./types";
 
 export function createMeshes(buffers: Sixtuple<Uint32Array>, blocks: Uint16Array): Sixtuple<Uint32Array> {
   let offsets: Sixtuple<number> = [0, 0, 0, 0, 0, 0];
+  let n = vec3.create(); // Reuse
 
   for (let x = 0; x < CHUNK_SIZE; x++) {
     for (let y = 0; y < CHUNK_SIZE; y++) {
@@ -22,7 +23,7 @@ export function createMeshes(buffers: Sixtuple<Uint32Array>, blocks: Uint16Array
         if (blockID == AIR.ID) continue;
 
         const mesh = MESHES[block.meshID];
-        let n = vec3.create(); // Reusable 
+        vec3.set(0, 0, 0, n);
 
         for (let face = 0; face < 6; face += 1) {
           const localface = ORIENTATION_FACE_MAP[orientation][face];

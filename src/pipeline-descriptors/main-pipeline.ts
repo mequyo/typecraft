@@ -50,8 +50,18 @@ export const MAIN_PIPELINE = (device: GPUDevice, textureview: GPUTextureView): R
       buffer: { type: "read-only-storage" },
       resource: new DynamicBuffer(device, GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE),
       update: (state, buffer) => {
-        const filtered = state.world.getFilteredChunks(state.player);
-        const data = filtered.flatMap(c => [c.offset[0], c.offset[1], c.offset[2], c.timestamp]);
+        const filtered = state.world.filtered;
+        const data = new Float32Array(4 * filtered.length);
+
+        for (let c = 0; c < filtered.length; c++) {
+          const chunk = filtered[c];
+          const i = 4 * c;
+
+          data[i + 0] = chunk.offset[0];
+          data[i + 1] = chunk.offset[1];
+          data[i + 2] = chunk.offset[2];
+          data[i + 3] = chunk.timestamp;
+        }
 
         buffer.write(new Float32Array(data));
       },
@@ -89,7 +99,7 @@ export const MAIN_PIPELINE = (device: GPUDevice, textureview: GPUTextureView): R
     pass.setVertexBuffer(0, state.chunkBuffer.buffer);
 
 
-    const filtered = state.world.getFilteredChunks(state.player); // Removes empty and out of frustum chunks
+    const filtered = state.world.filtered; // Removes empty and out of frustum chunks
 
     // TEST multi draw
     const indirect: number[] = [];
@@ -108,14 +118,9 @@ export const MAIN_PIPELINE = (device: GPUDevice, textureview: GPUTextureView): R
 
     const drawData = new Uint32Array(indirect);
 
-    const indirectBuffer = device.createBuffer({
-      size: drawData.byteLength,
-      usage: GPUBufferUsage.INDIRECT | GPUBufferUsage.COPY_DST,
-    });
+    state.indirectBuffer.write(drawData);
 
-    device.queue.writeBuffer(indirectBuffer, 0, drawData);
-
-    // @ts-ignore
-    pass.multiDrawIndirect(indirectBuffer, 0, drawData.length / 4);
+    // @ts-ignore, only available through extension
+    pass.multiDrawIndirect(state.indirectBuffer.handle, 0, drawData.length / 4);
   },
 });

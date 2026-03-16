@@ -8,6 +8,7 @@ import { ChunkBlocksComputePipeline } from "./pipeline-descriptors/chunk-blocks-
 import { InputSystem } from "./input-system"
 import { PhysicsSystem } from "./physics-system"
 import { PlayerSystem } from "./player-system"
+import { DynamicBuffer } from "./classes/dynamic-buffer"
 
 
 
@@ -46,7 +47,7 @@ export type State = {
   compute: ChunkBlocksComputePipeline
 
 
-
+  indirectBuffer: DynamicBuffer
 
   input: InputSystem
   physics: PhysicsSystem

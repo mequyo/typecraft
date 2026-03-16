@@ -34,6 +34,7 @@ import "./test"
 import { InputSystem } from "./input-system";
 import { PhysicsSystem } from "./physics-system";
 import { PlayerSystem } from "./player-system";
+import { DynamicBuffer } from "./classes/dynamic-buffer";
 
 window.onload = main;
 
@@ -152,6 +153,8 @@ async function main() {
       gpu: new RingBuffer(100),
     },
     chunkBuffer: new ArenaBuffer(device, 2000 * 1024 * 1024, GPUBufferUsage.COPY_DST | GPUBufferUsage.VERTEX, [1 / 6, 1 / 6, 1 / 6, 1 / 6, 1 / 6, 1 / 6], 64),
+
+    indirectBuffer: new DynamicBuffer(device, GPUBufferUsage.INDIRECT | GPUBufferUsage.COPY_DST, 64),
 
     pipelines: [
       SKY_PIPELINE(device),
