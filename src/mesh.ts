@@ -394,7 +394,7 @@ const SLAB_MESH: Mesh = new Mesh(
   ]
 );
 
-const OPAQUE_CUBE_MESH: Mesh = new Mesh(
+const TRANSPARENT_CUBE_MESH: Mesh = new Mesh(
   0b000000,
   [
     new Float32Array([
@@ -450,7 +450,7 @@ const OPAQUE_CUBE_MESH: Mesh = new Mesh(
 );
 
 export type MeshID = number;
-export const MESHES = [CUBE_MESH, FENCE_MESH, SLAB_MESH, OPAQUE_CUBE_MESH] as const;
+export const MESHES = [CUBE_MESH, FENCE_MESH, SLAB_MESH, TRANSPARENT_CUBE_MESH] as const;
 export const MESH: Record<"CUBE" | "FENCE" | "SLAB" | "OPAQUE_CUBE", MeshID> = {
   CUBE: 0,
   FENCE: 1,

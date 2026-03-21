@@ -82,7 +82,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 fn fs_main(input: VertexOutput) -> @location(0) vec4f {
   var tex = textureSample(myTexture, mySampler, input.texture_uv.xy, i32(round(input.texture_uv.z)));
 
-  if (tex.a < 0.5) {
+  if (tex.a < 0.05) {
     discard;
   }
 

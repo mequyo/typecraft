@@ -35,6 +35,7 @@ import { InputSystem } from "./input-system";
 import { PhysicsSystem } from "./physics-system";
 import { PlayerSystem } from "./player-system";
 import { DynamicBuffer } from "./classes/dynamic-buffer";
+import { Profiler } from "./profiler";
 
 window.onload = main;
 
@@ -201,6 +202,7 @@ async function main() {
 
     state.depthTexture = depthTexture;
   }
+  window.setInterval(() => Profiler.log(), 10000)
 
 
   requestAnimationFrame(timestamp => update(timestamp, state));

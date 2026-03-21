@@ -90,9 +90,15 @@ export function generateBlocksCompute(device: GPUDevice, size: number, world: Wo
 
 
 
-// Terrain generation
-// Deleting chunks that are out of reach
-// Inventory
-// Block drops
-// Registry rework / StartEvents (block registration, item registration, recipe registration)
-// Debugging
+/*
+
+Blöcke:
+Meshes sind für viele Blöcke gleich, also -> MeshID + texture
+Main Pipeline bekommt: 
+
+
+Items haben alle unterschiedliche meshes, die aber alle at runtime generiert werden müssen
+
+
+
+*/

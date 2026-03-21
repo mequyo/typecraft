@@ -22,12 +22,12 @@ const MESH_BUFFERS: Sixtuple<Uint32Array> = [
 
 export class Chunk {
   public blocks: Uint16Array = new Uint16Array(CHUNK_SIZE ** 3)   // Flat Array containing all the blockstates of this chunk
-
   public dirty: boolean = false                                   // Whether the mesh needs to be rebuilt
   public offset: Vec3                                             // Chunk position in world
   public timestamp: number                                        // Timestamp of when this chunk was created
   public blockamount: number                                      // The amount of blocks in this chunk
   public AABB: { min: Vec3, max: Vec3 }                           // World min and max bounds
+  public center: Vec3
   public canvas: OffscreenCanvas                                  // Canvas to draw to
   public context: OffscreenCanvasRenderingContext2D               // Context to draw bitmap to
   public allocations: Sixtuple<Allocation>                        // Allocated space in ArenaBuffer
@@ -50,6 +50,7 @@ export class Chunk {
     const min = vec3.create(this.offset[0] * CHUNK_SIZE, this.offset[1] * CHUNK_SIZE, this.offset[2] * CHUNK_SIZE);
     const max = vec3.create(min[0] + CHUNK_SIZE, min[1] + CHUNK_SIZE, min[2] + CHUNK_SIZE);
     this.AABB = { min, max };
+    this.center = vec3.create(CHUNK_SIZE * (offset[0] + 0.5), CHUNK_SIZE * (offset[1] + 0.5), CHUNK_SIZE * (offset[2] + 0.5));
   }
 
 

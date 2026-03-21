@@ -174,3 +174,75 @@ export async function bitmapFromBlockData(blocks: Uint16Array): Promise<ImageBit
 }
 
 // `createMeshes` moved to `mesh-utils.ts` to keep this module free of canvas/bitmap imports
+
+export async function getImageData(url: string): Promise<ImageData> {
+  const bitmap = await fetch(url).then(r => r.blob()).then(createImageBitmap);
+  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+  const ctx = canvas.getContext("2d")!;
+
+  ctx.drawImage(bitmap, 0, 0);
+
+  return ctx.getImageData(0, 0, bitmap.width, bitmap.height);
+}
+
+function packVertex(x: number, y: number, z: number, r: number, g: number, b: number, a: number): [number, number] {
+  const pos = (x << 8) | (y << 4) | z;
+  const color = ((r << 24) | (g << 16) | (b << 8) | a) >>> 0;
+  return [pos, color];
+}
+
+// p0-3 are 4 corners: each is [x, y, z]
+type V3 = [number, number, number]
+type Color = [number, number, number, number]
+function pushQuad(vertices: number[], p0: V3, p1: V3, p2: V3, p3: V3, rgba: Color) {
+  // Two triangles: p0 p1 p2, p0 p2 p3
+  for (const p of [p0, p1, p2, p0, p2, p3]) {
+    const [pos, color] = packVertex(p[0], p[1], p[2], rgba[0], rgba[1], rgba[2], rgba[3]);
+    vertices.push(pos, color);
+  }
+}
+
+export async function createItemMesh(url: string): Promise<Uint32Array> {
+  const { data, width, height } = await getImageData(url);
+  const vertices: number[] = [];
+
+  const alpha = (px: number, py: number): number => {
+    if (px < 0 || py < 0 || px >= width || py >= height) return 0;
+    return data[4 * (py * width + px) + 3];
+  };
+
+  const DEPTH = 2; // thickness in "pixel units", so z goes 0..DEPTH
+
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      const i = 4 * (y * width + x);
+      const [r, g, b, a] = [data[i], data[i + 1], data[i + 2], data[i + 3]];
+
+      if (a === 0) continue;
+
+      // Front face (z = DEPTH)
+      const rgba: Color = [r, g, b, a];
+      pushQuad(vertices, [x, y, DEPTH], [x + 1, y, DEPTH], [x + 1, y + 1, DEPTH], [x, y + 1, DEPTH], rgba);
+      // Back face (z = 0)
+      pushQuad(vertices, [x + 1, y, 0], [x, y, 0], [x, y + 1, 0], [x + 1, y + 1, 0], rgba);
+
+      // Right face (+x neighbor transparent)
+      if (alpha(x + 1, y) === 0)
+        pushQuad(vertices, [x + 1, y, 0], [x + 1, y + 1, 0], [x + 1, y + 1, DEPTH], [x + 1, y, DEPTH], rgba);
+
+      // Left face (-x neighbor transparent)
+      if (alpha(x - 1, y) === 0)
+        pushQuad(vertices, [x, y, DEPTH], [x, y + 1, DEPTH], [x, y + 1, 0], [x, y, 0], rgba);
+
+      // Top face (-y neighbor transparent, y=0 is top)
+      if (alpha(x, y - 1) === 0)
+        pushQuad(vertices, [x, y, DEPTH], [x, y, 0], [x + 1, y, 0], [x + 1, y, DEPTH], rgba);
+
+      // Bottom face (+y neighbor transparent)
+      if (alpha(x, y + 1) === 0)
+        pushQuad(vertices, [x, y + 1, 0], [x, y + 1, DEPTH], [x + 1, y + 1, DEPTH], [x + 1, y + 1, 0], rgba);
+    }
+  }
+
+  return new Uint32Array(vertices);
+}
