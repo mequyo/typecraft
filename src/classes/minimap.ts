@@ -1,9 +1,11 @@
 import { vec3 } from "wgpu-matrix";
 import { Chunk } from "../chunk";
-import { CHUNK_SIZE, MINIMAP_INITIAL_ZOOM, MINIMAP_RENDER_SIZE, MINIMAP_UI_SIZE } from "../constants";
+import { CHUNK_SIZE, MINIMAP_INITIAL_ZOOM, MINIMAP_RENDER_SIZE, MINIMAP_UI_SIZE, REGION_SIZE, REGION_WIDTH_IN_CHUNKS } from "../constants";
 import { Player } from "../player";
 import { Triple } from "./triple";
 import { SlotMap } from "./slot-map";
+import { World } from "../world";
+import { Region } from "../region";
 
 export class Minimap {
   private canvas: HTMLCanvasElement
@@ -36,32 +38,19 @@ export class Minimap {
   }
 
 
-  async render(chunks: SlotMap<number, Chunk>, player: Player) {
+  async render(chunks: SlotMap<number, Chunk>, player: Player, regions: SlotMap<number, Region>) {
     const center = MINIMAP_RENDER_SIZE / 2;
+
     this.context.fillStyle = "black";
-    this.context.fillRect(0, 0, this.canvas.width, this.canvas.height)
+    this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    const chunkpos = vec3.divScalar(player.position, CHUNK_SIZE);
-    const offset = center / CHUNK_SIZE / this.zoom;
-
-    const minCX = Math.floor(chunkpos[0] - offset - 1);
-    const maxCX = Math.ceil(chunkpos[0] + offset + 1);
-    const minCZ = Math.floor(chunkpos[2] - offset - 1);
-    const maxCZ = Math.ceil(chunkpos[2] + offset + 1);
-
-    const array3D = new Triple<number, Chunk>();
-
-    chunks.values
-      .filter(c => c.blockamount != 0 && c.offset[0] > minCX && c.offset[0] < maxCX && c.offset[2] > minCZ && c.offset[2] < maxCZ)
-      .forEach(c => array3D.set(c.offset[0], c.offset[2], c.offset[1], c));
-
-    for (const [_, chunk] of array3D.entriesOrdered(undefined, (a, b) => a - b, undefined)) {
+    for (let region of regions.values) {
       this.context.drawImage(
-        chunk.canvas,
-        Math.floor(this.zoom * (chunk.offset[0] * CHUNK_SIZE - player.position[0]) + center),
-        Math.floor(this.zoom * (chunk.offset[2] * CHUNK_SIZE - player.position[2]) + center),
-        CHUNK_SIZE * this.zoom,
-        CHUNK_SIZE * this.zoom,
+        region.canvas,
+        Math.floor(this.zoom * (region.rx * REGION_SIZE - player.position[0]) + center),
+        Math.floor(this.zoom * (region.rz * REGION_SIZE - player.position[2]) + center),
+        REGION_SIZE * this.zoom,
+        REGION_SIZE * this.zoom,
       );
     }
 

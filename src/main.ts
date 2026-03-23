@@ -7,7 +7,7 @@ import "./augmentation/number";
 import "./augmentation/image";
 import "./augmentation/gpu-device";
 
-import { CHUNK_SIZE, IMAGE_SIZE, MINIMAP_MAX_ZOOM, MINIMAP_MIN_ZOOM, } from "./constants";
+import { CHUNK_SIZE, IMAGE_SIZE, MINIMAP_MAX_ZOOM, MINIMAP_MIN_ZOOM, REGION_WIDTH_IN_CHUNKS, } from "./constants";
 import { Camera } from "./camera";
 import { update } from "./update";
 import { TerrainGenerator } from "./terrain-generator";
@@ -36,6 +36,7 @@ import { PhysicsSystem } from "./physics-system";
 import { PlayerSystem } from "./player-system";
 import { DynamicBuffer } from "./classes/dynamic-buffer";
 import { Profiler } from "./profiler";
+import { Region } from "./region";
 
 window.onload = main;
 

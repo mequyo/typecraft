@@ -42,7 +42,7 @@ export class Chunk {
     this.allocations = allocations;
 
     // Bitmap
-    this.canvas = new OffscreenCanvas(CHUNK_SIZE * IMAGE_SIZE, CHUNK_SIZE * IMAGE_SIZE);
+    this.canvas = new OffscreenCanvas(CHUNK_SIZE, CHUNK_SIZE);
     this.context = this.canvas.getContext("2d")!;
     this.drawTopView();
 
@@ -68,7 +68,8 @@ export class Chunk {
           const block = BlockRegistry.get(ID);
           const texture = block.textures[ORIENTATION_FACE_MAP[orientation][FACE.PY] % block.textures.length];
 
-          this.context.drawImage(texture.bitmap!, x * IMAGE_SIZE, z * IMAGE_SIZE);
+          this.context.drawImage(texture.bitmap!, x, z, 1, 1);
+
           break;
         }
       }

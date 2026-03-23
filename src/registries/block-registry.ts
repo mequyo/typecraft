@@ -1,4 +1,4 @@
-import { MeshID } from "../mesh"
+import { FACE, MeshID } from "../mesh"
 import { Sound } from "./sound-registry"
 import { Texture } from "./texture-registry"
 
@@ -17,13 +17,15 @@ export type BlockDefinition = {
 
 export type Block = BlockDefinition & {
   ID: BlockID
+  topview: [number, number, number, number]
 }
 
 export class BlockRegistry {
   private static blocks: Block[] = []
 
   static register(definition: BlockDefinition): Block {
-    const block: Block = { ...definition, ID: this.blocks.length };
+    const topview = definition.textures[FACE.PY % definition.textures.length].average!;
+    const block: Block = { ...definition, ID: this.blocks.length, topview };
 
     this.blocks.push(block);
     return block;

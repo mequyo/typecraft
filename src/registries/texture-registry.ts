@@ -7,6 +7,7 @@ export type TextureDefinition = {
 export type Texture = TextureDefinition & {
   ID: TextureID
   bitmap?: ImageBitmap
+  average?: [number, number, number, number]
 }
 
 export class TextureRegistry {
@@ -32,6 +33,14 @@ export class TextureRegistry {
       const response = await fetch(t.url);
       const blob = await response.blob();
       const bitmap = await createImageBitmap(blob);
+      const canvas = new OffscreenCanvas(1, 1);
+      const context = canvas.getContext("2d")!;
+
+      context.drawImage(bitmap, 0, 0, 1, 1);
+
+      const data = context.getImageData(0, 0, 1, 1).data;
+
+      t.average = [data[0], data[1], data[2], data[3]];
       t.bitmap = bitmap;
     }));
   }

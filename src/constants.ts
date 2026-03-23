@@ -7,7 +7,7 @@ export const PLAYER_WIDTH = 0.6;
 export const CAMERA_HEIGHT = 1.6;
 export const PLAYER_HEIGHT = 1.8;
 export const JUMP_FORCE = 10.0;
-export const RENDER_DISTANCE = 5;
+export const RENDER_DISTANCE = 6;
 export const PLAYER_REACH = 5;
 
 // WORLD
@@ -44,6 +44,10 @@ export const MINIMAP_RENDER_SIZE = 2 * MINIMAP_UI_SIZE;
 export const MINIMAP_MIN_ZOOM = 1;
 export const MINIMAP_MAX_ZOOM = 256;
 export const MINIMAP_INITIAL_ZOOM = 1; // pixels per block
+export const MINIMAP_BLOCK_SIZE = 4;
+export const MINIMAP_CANVAS_SIZE = 512;
+export const REGION_SIZE = MINIMAP_CANVAS_SIZE / MINIMAP_BLOCK_SIZE;
+export const REGION_WIDTH_IN_CHUNKS = MINIMAP_CANVAS_SIZE / CHUNK_SIZE / MINIMAP_BLOCK_SIZE;
 
 // DYNAMIC BUFFER
 export const BUFFER_GROW_FACTOR = 1.3; // How much padding the buffer has on resize

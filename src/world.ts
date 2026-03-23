@@ -1,12 +1,12 @@
 import { Camera } from "./camera";
 import { Chunk } from "./chunk";
-import { CHUNK_SIZE, AMOUNT_CHUNK_WORKERS, RENDER_DISTANCE, MINING_SOUND_INTERVAL } from "./constants";
+import { CHUNK_SIZE, AMOUNT_CHUNK_WORKERS, RENDER_DISTANCE, MINING_SOUND_INTERVAL, MINIMAP_CANVAS_SIZE, REGION_WIDTH_IN_CHUNKS } from "./constants";
 import { TerrainGenerator } from "./terrain-generator";
 import { WorkerMessageIn, WorkerMessageOut } from "./types";
 import { Pair } from "./classes/pair";
 import { Mat4, mat4, Vec3, vec3 } from "wgpu-matrix";
 import { State } from "./state";
-import { BlockStateRegistry } from "./registries/blockstate-registry";
+import { BlockState, BlockStateRegistry } from "./registries/blockstate-registry";
 import { AIR } from "./registries/blocks";
 import { ORIENTATION, SPHERE_OFFSETS } from "./mesh";
 import { vec3ToLocalChunk } from "./lib";
@@ -15,6 +15,7 @@ import { SoundRegistry } from "./registries/sound-registry";
 import { Allocation } from "./classes/arena-buffer";
 import { SlotMap } from "./classes/slot-map";
 import { Player } from "./player";
+import { Region } from "./region";
 
 
 
@@ -32,8 +33,8 @@ type DamagedBlock = {
 
 
 export class World {
-  //public chunks = new Map<number, Chunk>()
   public chunks = new SlotMap<number, Chunk>();
+  public regions = new SlotMap<number, Region>();
   public heightmap: Pair<number, number> // [x, z] => height
   public blockmap: Pair<number, number> // [x, z] => blockID
   public workers: Worker[] = []
@@ -69,7 +70,7 @@ export class World {
 
   damageBlock(wx: number, wy: number, wz: number, dt: number) {
     const now = performance.now();
-    const key = this.pack(vec3.create(wx, wy, wz));
+    const key = World.pack(wx, wy, wz);
     const blockstate = this.getBlockState(vec3.create(wx, wy, wz));
     const blockID = BlockStateRegistry.decode(blockstate).block;
     const block = BlockRegistry.get(blockID);
@@ -108,16 +109,16 @@ export class World {
 
 
   // -512 to 512 on each axis
-  pack(o: Vec3): number {
-    return ((o[0] + 512) << 20) | ((o[1] + 512) << 10) | (o[2] + 512);
+  static pack(cx: number, cy: number, cz: number): number {
+    return ((cx + 512) << 20) | ((cy + 512) << 10) | ((cz + 512) << 0);
   }
 
 
 
-  unpack(key: number, out: [number, number, number]) {
+  static unpack(key: number, out: [number, number, number]) {
     out[0] = ((key >>> 20) & 1023) - 512;
     out[1] = ((key >>> 10) & 1023) - 512;
-    out[2] = (key & 1023) - 512;
+    out[2] = ((key >>> 0) & 1023) - 512;
   }
 
 
@@ -143,7 +144,7 @@ export class World {
     if (this.pending.size >= MAX_PENDING_REQUESTS) return;
 
     const worker = this.workers[this.worker];
-    const key = this.pack(offset);
+    const key = World.pack(offset[0], offset[1], offset[2]);
 
     if (this.pending.has(key) || this.chunks.get(key) != undefined) return; // Already generating or generated
 
@@ -168,16 +169,11 @@ export class World {
     const start = performance.now();
 
     const offset = new Float32Array(data.offset);
-    const key = this.pack(offset);
+    const key = World.pack(offset[0], offset[1], offset[2]);
     const blocks = new Uint16Array(data.blocks);
     const heightmap = new Uint8Array(data.heightmap);
     const amount = new Uint16Array(data.amount)[0] ?? 0;
     const meshes = data.meshes.map(arraybuffer => new Uint32Array(arraybuffer));
-
-
-    //generateBlocksCompute(device, CHUNK_SIZE, this, offset);
-
-    //const alloc = state.chunkBuffer.write(mesh);
 
     const allocations: [Allocation, Allocation, Allocation, Allocation, Allocation, Allocation] = [
       state.chunkBuffer.write(0, meshes[0]),
@@ -188,19 +184,22 @@ export class World {
       state.chunkBuffer.write(5, meshes[5]),
     ]
 
-    //console.log(`mesh: ${mesh.byteLength.toLocaleString()}, allocations: ${allocations.map(all => all.size).reduce((prev, curr) => prev + curr, 0).toLocaleString()}`)
-
     const chunk = new Chunk(offset, time, amount, allocations, blocks);
 
     this.chunks.set(key, chunk);
     this.pending.delete(key);
 
-    state.performance.chunk_generation.push(performance.now() - start)
+    const rkey = Region.pack(offset[0] * CHUNK_SIZE, offset[2] * CHUNK_SIZE);
+    const region = this.regions.getOrSet(rkey, () => new Region(rkey));
+
+    region.updateChunk(chunk);
+
+    state.performance.chunk_generation.push(performance.now() - start);
   }
 
 
   getChunk(offset: Vec3): Chunk | undefined {
-    return this.chunks.get(this.pack(offset));
+    return this.chunks.get(World.pack(offset[0], offset[1], offset[2]));
   }
 
   addBlock(worldpos: Vec3, block: number): boolean {
@@ -225,7 +224,7 @@ export class World {
   }
 
   deleteChunk(offset: Vec3): boolean {
-    return this.chunks.delete(this.pack(offset));
+    return this.chunks.delete(World.pack(offset[0], offset[1], offset[2]));
   }
 
   filterChunks(camera: Camera) {

@@ -1,0 +1,79 @@
+import { vec3 } from "wgpu-matrix";
+import { Chunk } from "./chunk";
+import { CHUNK_SIZE, MINIMAP_BLOCK_SIZE, MINIMAP_CANVAS_SIZE, REGION_SIZE } from "./constants";
+import { FACE, ORIENTATION_FACE_MAP } from "./mesh";
+import { BlockRegistry } from "./registries/block-registry";
+import { AIR } from "./registries/blocks";
+import { BlockStateRegistry } from "./registries/blockstate-registry";
+
+
+
+export class Region {
+  public rx: number
+  public rz: number
+  public wx: number
+  public wz: number
+  public canvas = new OffscreenCanvas(MINIMAP_CANVAS_SIZE, MINIMAP_CANVAS_SIZE);
+  private context = this.canvas.getContext("2d")!;
+  private heightmap = new Int16Array(REGION_SIZE * REGION_SIZE).fill(-32768);
+
+  public constructor(rkey: number) {
+    const rxrz: [number, number] = [0, 0];
+    Region.unpack(rkey, rxrz);
+    const rx = rxrz[0], rz = rxrz[1];
+    this.rx = rx;
+    this.rz = rz;
+    this.wx = rx * REGION_SIZE;
+    this.wz = rz * REGION_SIZE;
+  }
+
+  public updateBlock(wx: number, wy: number, wz: number, blockhash: number) {
+    if (wx < this.wx || wx >= this.wx + REGION_SIZE || wz < this.wz || wz >= this.wz + REGION_SIZE) return;
+
+    const lx = wx - this.wx;
+    const lz = wz - this.wz;
+    const index = lz * REGION_SIZE + lx;
+
+    if (this.heightmap[index] > wy) return;
+
+    const blockstate = BlockStateRegistry.decode(blockhash);
+    const block = BlockRegistry.get(blockstate.block);
+    const texture = block.textures[ORIENTATION_FACE_MAP[blockstate.orientation][FACE.PY] % block.textures.length];
+
+    this.context.drawImage(texture.bitmap!, lx * MINIMAP_BLOCK_SIZE, lz * MINIMAP_BLOCK_SIZE, MINIMAP_BLOCK_SIZE, MINIMAP_BLOCK_SIZE);
+    this.heightmap[index] = wy;
+  }
+
+  public updateChunk(chunk: Chunk) {
+    const offset = vec3.mulScalar(chunk.offset, CHUNK_SIZE);
+
+    for (let x = 0; x < CHUNK_SIZE; x++) {
+      for (let z = 0; z < CHUNK_SIZE; z++) {
+        for (let y = CHUNK_SIZE - 1; y >= 0; y--) {
+          const index = Chunk.pack(x, y, z);
+          const blockstate = chunk.blocks[index];
+          const block = BlockStateRegistry.decode(blockstate).block;
+
+          if (block == AIR.ID) continue;
+
+          const wx = x + offset[0];
+          const wy = y + offset[1];
+          const wz = z + offset[2];
+          this.updateBlock(wx, wy, wz, chunk.blocks[index])
+        }
+      }
+    }
+  }
+
+  public static pack(wx: number, wz: number) {
+    const rx = Math.floor(wx / REGION_SIZE);
+    const rz = Math.floor(wz / REGION_SIZE);
+
+    return ((rx + 32768) << 16) | ((rz + 32768) << 0);
+  }
+
+  public static unpack(key: number, out: [number, number]) {
+    out[0] = ((key >>> 16) & 0xFFFF) - 32768;
+    out[1] = ((key >>> 0) & 0xFFFF) - 32768;
+  }
+}

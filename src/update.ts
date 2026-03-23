@@ -96,7 +96,7 @@ async function render(state: State) {
   const device = state.device;
 
   // MINIMAP
-  await Profiler.measure("minimap", () => state.minimap.render(state.world.chunks, state.player));
+  await Profiler.measure("minimap", () => state.minimap.render(state.world.chunks, state.player, state.world.regions));
 
   // RENDER PIPELINES
 

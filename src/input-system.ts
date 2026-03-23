@@ -27,13 +27,17 @@ export class InputSystem {
 
     window.addEventListener("blur", _ => Object.keys(this.keys).forEach(key => this.keys[key] = false));
     window.addEventListener("keyup", e => this.keys[e.key.toLocaleLowerCase()] = false);
-    window.addEventListener("keydown", e => { this.keys[e.key.toLowerCase()] = true; this.keypresses[e.key.toLowerCase()] = true });
     window.addEventListener("mousedown", e => this.mouse.buttons[e.button] = true);
     window.addEventListener("mouseup", e => this.mouse.buttons[e.button] = false);
     window.addEventListener("wheel", e => this.mouse.wheel += e.deltaY);
     window.addEventListener("contextmenu", e => e.preventDefault());
     window.addEventListener("click", _ => this.requestPointerLock());
     window.addEventListener("click", e => this.mouse.clicked[e.button] = true);
+    window.addEventListener("keydown", e => {
+      e.preventDefault();
+      this.keys[e.key.toLowerCase()] = true;
+      this.keypresses[e.key.toLowerCase()] = true
+    });
     window.addEventListener("mousemove", e => {
       this.mouse.dx += e.movementX;
       this.mouse.dy += e.movementY;
