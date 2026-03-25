@@ -7,7 +7,7 @@ export const PLAYER_WIDTH = 0.6;
 export const CAMERA_HEIGHT = 1.6;
 export const PLAYER_HEIGHT = 1.8;
 export const JUMP_FORCE = 10.0;
-export const RENDER_DISTANCE = 6;
+export const RENDER_DISTANCE = 25;
 export const PLAYER_REACH = 5;
 
 // WORLD
@@ -34,8 +34,7 @@ export const WORLEY_THRESHOLD = 0.25;
 
 // USEFUL SIZES
 export const FLOATS_PER_VERTEX = 3 + 2 + 1; // xyz + uv + t
-export const BYTES_PER_VERTEX =
-  Float32Array.BYTES_PER_ELEMENT * FLOATS_PER_VERTEX;
+export const BYTES_PER_VERTEX = Float32Array.BYTES_PER_ELEMENT * FLOATS_PER_VERTEX;
 export const VERTICES_PER_FACE = FLOATS_PER_VERTEX * 6;
 
 // MINIMAP

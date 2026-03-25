@@ -2,13 +2,13 @@ import { Camera } from "./camera";
 import { Chunk } from "./chunk";
 import { CHUNK_SIZE, AMOUNT_CHUNK_WORKERS, RENDER_DISTANCE, MINING_SOUND_INTERVAL, MINIMAP_CANVAS_SIZE, REGION_WIDTH_IN_CHUNKS } from "./constants";
 import { TerrainGenerator } from "./terrain-generator";
-import { WorkerMessageIn, WorkerMessageOut } from "./types";
+import { Sixtuple, WorkerMessageIn, WorkerMessageOut } from "./types";
 import { Pair } from "./classes/pair";
 import { Mat4, mat4, Vec3, vec3 } from "wgpu-matrix";
 import { State } from "./state";
 import { BlockState, BlockStateRegistry } from "./registries/blockstate-registry";
 import { AIR } from "./registries/blocks";
-import { ORIENTATION, SPHERE_OFFSETS } from "./mesh";
+import { FACE, FACE_NORMALS, ORIENTATION, SPHERE_OFFSETS } from "./mesh";
 import { vec3ToLocalChunk } from "./lib";
 import { BlockRegistry } from "./registries/block-registry";
 import { SoundRegistry } from "./registries/sound-registry";
@@ -154,8 +154,16 @@ export class World {
       worker.removeEventListener("message", message);
     };
 
+    const neighbors: Sixtuple<Uint16Array | undefined> = [
+      this.getChunk(vec3.add(offset, FACE_NORMALS[0]))?.blocks,
+      this.getChunk(vec3.add(offset, FACE_NORMALS[1]))?.blocks,
+      this.getChunk(vec3.add(offset, FACE_NORMALS[2]))?.blocks,
+      this.getChunk(vec3.add(offset, FACE_NORMALS[3]))?.blocks,
+      this.getChunk(vec3.add(offset, FACE_NORMALS[4]))?.blocks,
+      this.getChunk(vec3.add(offset, FACE_NORMALS[5]))?.blocks,
+    ];
     worker.addEventListener("message", message);
-    worker.postMessage({ offset } as WorkerMessageIn);
+    worker.postMessage({ offset, neighbors } as WorkerMessageIn, /*[...neighbors.filter(n => n instanceof Uint16Array).map(n => n.buffer)]*/);
 
     this.pending.add(key);
     this.worker = (this.worker + 1) % this.workers.length;

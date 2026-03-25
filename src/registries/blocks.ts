@@ -313,7 +313,7 @@ export const GLASS = BlockRegistry.register({
 
 export const BLUE_GLASS = BlockRegistry.register({
   name: "blue_glass",
-  meshID: MESH.OPAQUE_CUBE,
+  meshID: MESH.CUBE,
   hardness: 3,
   sounds: {
     dig: STONE_DIG_SOUND,

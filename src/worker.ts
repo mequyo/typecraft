@@ -3,12 +3,6 @@
 import { TerrainGenerator } from "./terrain-generator";
 import { Sixtuple, WorkerMessageIn, WorkerMessageOut } from "./types";
 import { CHUNK_SIZE } from "./constants";
-import { Chunk } from "./chunk";
-import { BlockRegistry } from "./registries/block-registry";
-import { BlockStateRegistry } from "./registries/blockstate-registry";
-import { vec3 } from "wgpu-matrix";
-import { FACE_NORMALS, FACE_OPPOSITE_BIT, MESHES, ORIENTATION_FACE_MAP } from "./mesh";
-import { AIR } from "./registries/blocks";
 import { createMeshes } from "./mesh-utils";
 
 
@@ -26,12 +20,11 @@ const MESH_BUFFERS: Sixtuple<Uint32Array> = [
 
 
 self.onmessage = async (e: MessageEvent<WorkerMessageIn>) => {
-  const { offset } = e.data;
+  const { offset, neighbors } = e.data;
 
   const { blocks, heightmap, amount } = terraingen.generateBlocks(offset);
 
-
-  const meshes = createMeshes(MESH_BUFFERS, blocks);
+  const meshes = createMeshes(MESH_BUFFERS, blocks, neighbors);
 
   const amountbuffer = new Uint16Array([amount]).buffer;
 

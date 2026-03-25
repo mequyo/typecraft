@@ -4,11 +4,11 @@ import { AIR } from "./registries/blocks";
 import { vec3 } from "wgpu-matrix";
 import { Chunk } from "./chunk";
 import { BlockRegistry } from "./registries/block-registry";
-import { FACE_NORMALS, FACE_OPPOSITE_BIT, MESHES, ORIENTATION_FACE_MAP } from "./mesh";
+import { FACE, FACE_NORMALS, FACE_OPPOSITE_BIT, MESHES, ORIENTATION_FACE_MAP } from "./mesh";
 import { Sixtuple } from "./types";
 
 
-export function createMeshes(buffers: Sixtuple<Uint32Array>, blocks: Uint16Array): Sixtuple<Uint32Array> {
+export function createMeshes(buffers: Sixtuple<Uint32Array>, blocks: Uint16Array, neighbors: Sixtuple<Uint16Array>): Sixtuple<Uint32Array> {
   let offsets: Sixtuple<number> = [0, 0, 0, 0, 0, 0];
   let n = vec3.create(); // Reuse
 
@@ -32,14 +32,37 @@ export function createMeshes(buffers: Sixtuple<Uint32Array>, blocks: Uint16Array
 
           n = vec3.set(x + vec[0], y + vec[1], z + vec[2]); // Neighbor position
 
-          // TODO if out of bounds, go to world and get neighbor chunk
-          // PROBLEM worker doesn't know about the full world
-          if (n[0] < 0 || n[1] < 0 || n[2] < 0 || n[0] >= CHUNK_SIZE || n[1] >= CHUNK_SIZE || n[2] >= CHUNK_SIZE || mesh.cullingmasks[orientation] == 0) {
+          // Non-occluding e.g. fences or slabs
+          if (mesh.cullingmasks[orientation] == 0) {
             offsets[face] += mesh.writeFace(buffers[face], offsets[face], x, y, z, texture, face, orientation);
             continue;
           }
 
-          const neighbor_state = blocks[Chunk.pack(n[0], n[1], n[2])];
+
+          let neighbor_state: number = -1;
+
+          if (n[0] >= CHUNK_SIZE) {
+            neighbor_state = neighbors[FACE.PX]?.[Chunk.pack(n[0] - CHUNK_SIZE, n[1], n[2])];
+          } else if (n[0] < 0) {
+            neighbor_state = neighbors[FACE.NX]?.[Chunk.pack(n[0] + CHUNK_SIZE, n[1], n[2])];
+          } else if (n[1] >= CHUNK_SIZE) {
+            neighbor_state = neighbors[FACE.PY]?.[Chunk.pack(n[0], n[1] - CHUNK_SIZE, n[2])];
+          } else if (n[1] < 0) {
+            neighbor_state = neighbors[FACE.NY]?.[Chunk.pack(n[0], n[1] + CHUNK_SIZE, n[2])];
+          } else if (n[2] >= CHUNK_SIZE) {
+            neighbor_state = neighbors[FACE.PZ]?.[Chunk.pack(n[0], n[1], n[2] - CHUNK_SIZE)];
+          } else if (n[2] < 0) {
+            neighbor_state = neighbors[FACE.NZ]?.[Chunk.pack(n[0], n[1], n[2] + CHUNK_SIZE)];
+          } else {
+            neighbor_state = blocks[Chunk.pack(n[0], n[1], n[2])];
+          }
+
+          if (neighbor_state == -1) {
+            offsets[face] += mesh.writeFace(buffers[face], offsets[face], x, y, z, texture, face, orientation);
+            continue;
+          }
+
+          //const neighbor_state = blocks[Chunk.pack(n[0], n[1], n[2])];
           const { block: neighborBlockID, orientation: neighborOrientation } = BlockStateRegistry.decode(neighbor_state);
           const neighborBlock = BlockRegistry.get(neighborBlockID);
           const neighborMesh = MESHES[neighborBlock.meshID];
