@@ -8,7 +8,7 @@ import { FACE, FACE_NORMALS, FACE_OPPOSITE_BIT, MESHES, ORIENTATION_FACE_MAP } f
 import { Sixtuple } from "./types";
 
 
-export function createMeshes(buffers: Sixtuple<Uint32Array>, blocks: Uint16Array, neighbors: Sixtuple<Uint16Array>): Sixtuple<Uint32Array> {
+export function createMeshes(buffers: Sixtuple<Uint32Array>, blocks: Uint16Array, neighbors: Sixtuple<Uint16Array | undefined>): Sixtuple<Uint32Array> {
   let offsets: Sixtuple<number> = [0, 0, 0, 0, 0, 0];
   let n = vec3.create(); // Reuse
 
@@ -39,20 +39,20 @@ export function createMeshes(buffers: Sixtuple<Uint32Array>, blocks: Uint16Array
           }
 
 
-          let neighbor_state: number = -1;
+          let neighbor_state = -1;
 
           if (n[0] >= CHUNK_SIZE) {
-            neighbor_state = neighbors[FACE.PX]?.[Chunk.pack(n[0] - CHUNK_SIZE, n[1], n[2])];
+            neighbor_state = neighbors[FACE.PX]?.[Chunk.pack(n[0] - CHUNK_SIZE, n[1], n[2])] || -1;
           } else if (n[0] < 0) {
-            neighbor_state = neighbors[FACE.NX]?.[Chunk.pack(n[0] + CHUNK_SIZE, n[1], n[2])];
+            neighbor_state = neighbors[FACE.NX]?.[Chunk.pack(n[0] + CHUNK_SIZE, n[1], n[2])] || -1;
           } else if (n[1] >= CHUNK_SIZE) {
-            neighbor_state = neighbors[FACE.PY]?.[Chunk.pack(n[0], n[1] - CHUNK_SIZE, n[2])];
+            neighbor_state = neighbors[FACE.PY]?.[Chunk.pack(n[0], n[1] - CHUNK_SIZE, n[2])] || -1;
           } else if (n[1] < 0) {
-            neighbor_state = neighbors[FACE.NY]?.[Chunk.pack(n[0], n[1] + CHUNK_SIZE, n[2])];
+            neighbor_state = neighbors[FACE.NY]?.[Chunk.pack(n[0], n[1] + CHUNK_SIZE, n[2])] || -1;
           } else if (n[2] >= CHUNK_SIZE) {
-            neighbor_state = neighbors[FACE.PZ]?.[Chunk.pack(n[0], n[1], n[2] - CHUNK_SIZE)];
+            neighbor_state = neighbors[FACE.PZ]?.[Chunk.pack(n[0], n[1], n[2] - CHUNK_SIZE)] || -1;
           } else if (n[2] < 0) {
-            neighbor_state = neighbors[FACE.NZ]?.[Chunk.pack(n[0], n[1], n[2] + CHUNK_SIZE)];
+            neighbor_state = neighbors[FACE.NZ]?.[Chunk.pack(n[0], n[1], n[2] + CHUNK_SIZE)] || -1;
           } else {
             neighbor_state = blocks[Chunk.pack(n[0], n[1], n[2])];
           }
@@ -62,7 +62,6 @@ export function createMeshes(buffers: Sixtuple<Uint32Array>, blocks: Uint16Array
             continue;
           }
 
-          //const neighbor_state = blocks[Chunk.pack(n[0], n[1], n[2])];
           const { block: neighborBlockID, orientation: neighborOrientation } = BlockStateRegistry.decode(neighbor_state);
           const neighborBlock = BlockRegistry.get(neighborBlockID);
           const neighborMesh = MESHES[neighborBlock.meshID];

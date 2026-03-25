@@ -122,7 +122,7 @@ export class Chunk {
    * @param z The z coordinate.
    * @param blockstate The blockstate to write. Can be AIR to delete blocks.
    */
-  set(x: number, y: number, z: number, blockstate: number) {
+  set(x: number, y: number, z: number, blockstate: number, neighbors: Sixtuple<Uint16Array | undefined>) {
     const index = Chunk.pack(x, y, z);
     const oldstate = this.blocks[index];
     const curblockID = BlockStateRegistry.decode(oldstate).block;
@@ -153,7 +153,7 @@ export class Chunk {
     }
 
     // TEST update mesh
-    const meshes = createMeshes(MESH_BUFFERS, this.blocks);
+    const meshes = createMeshes(MESH_BUFFERS, this.blocks, neighbors);
 
     for (let i = 0; i < this.allocations.length; i++) {
       Chunk.chunkBuffer.free(this.allocations[i]);

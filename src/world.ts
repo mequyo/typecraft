@@ -216,8 +216,16 @@ export class World {
     if (!chunk) return false;
 
     const chunkpos = vec3ToLocalChunk(worldpos);// worldpos.mod(CHUNK_SIZE).add(CHUNK_SIZE).mod(CHUNK_SIZE);
+    const neighbors: Sixtuple<Uint16Array | undefined> = [
+      this.getChunk(vec3.add(chunkpos, FACE_NORMALS[0]))?.blocks,
+      this.getChunk(vec3.add(chunkpos, FACE_NORMALS[1]))?.blocks,
+      this.getChunk(vec3.add(chunkpos, FACE_NORMALS[2]))?.blocks,
+      this.getChunk(vec3.add(chunkpos, FACE_NORMALS[3]))?.blocks,
+      this.getChunk(vec3.add(chunkpos, FACE_NORMALS[4]))?.blocks,
+      this.getChunk(vec3.add(chunkpos, FACE_NORMALS[5]))?.blocks,
+    ];
 
-    chunk.set(chunkpos[0], chunkpos[1], chunkpos[2], block);
+    chunk.set(chunkpos[0], chunkpos[1], chunkpos[2], block, neighbors);
     return true;
   }
 
