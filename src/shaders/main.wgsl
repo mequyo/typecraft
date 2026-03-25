@@ -13,6 +13,7 @@ struct VertexOutput {
   @location(1) texture_uv: vec3<f32>,
   @location(2) player_position: vec3<f32>,
   @location(3) block_pos: vec3<f32>,
+  @location(4) delta_time: f32,
 }
 
 struct Chunk {
@@ -38,6 +39,8 @@ var<uniform> player_position: vec3<f32>;
 @group(2) @binding(3)
 var<uniform> time: f32;
 
+const FADE_IN_DURATION = 0.5;
+
 // ========================================================================================================================================
 
 @vertex
@@ -47,31 +50,24 @@ fn vs_main(input: VertexInput) -> VertexOutput {
   var chunkIndex = input.iid >> 3;
   var chunk = chunks[chunkIndex];
 
-  // Animate chunks in
-  let animation_duration = 1.0;
-  let animation_height = 20.0;
-  let t = saturate((time - chunk.time) / max(animation_duration, 1e-6));
-  let s = smoothstep(0.0, 1.0, t);
-  // Map [0;1] to [-height, 0]
-  let offset = mix(- animation_height, 0.0, s);
-
   let local_z = f32(input.xyz & 511) / 4.0;
   let local_y = f32((input.xyz >> 9) & 511) / 4.0;
   let local_x = f32((input.xyz >> 18) & 511) / 4.0;
   let world_position = round(chunk.origin * 32.0) + vec3f(local_x, local_y, local_z);
 
-  output.position = projection * view * vec4f(world_position + vec3f(0.0, offset, 0.0), 1.0);
+  output.position = projection * view * vec4f(world_position, 1.0);
   // Derive normal from face
   output.normal = FACE_NORMALS[face];
-  // unpack: high 16 bits = U, low 16 bits = V, normalize to [0,1], texture index in xyzt bits
 
+  // unpack: high 16 bits = U, low 16 bits = V, normalize to [0,1], texture index in xyzt bits
   let u8 = input.uvt & 255u;
   let v8 = (input.uvt >> 8u) & 255u;
   let tex16 = (input.uvt >> 16u) & 65535u;
-  output.texture_uv = vec3(f32(u8) / 255.0, f32(v8) / 255.0, f32(tex16));
 
+  output.texture_uv = vec3(f32(u8) / 255.0, f32(v8) / 255.0, f32(tex16));
   output.player_position = player_position;
   output.block_pos = world_position;
+  output.delta_time = clamp((time - chunk.time) / FADE_IN_DURATION, 0.0, 1.0);;
 
   return output;
 }
@@ -100,7 +96,7 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4f {
   var fogcolor = vec3f(186.0 / 255.0, 240.0 / 255.0, 255.0 / 255.0);
   var colorplusfog = mix(color, fogcolor, fogfactor);
 
-  return vec4f(colorplusfog, 1.0);
+  return vec4f(colorplusfog, input.delta_time);
 }
 
 const FACE_NORMALS = array<vec3<f32>, 6>(vec3<f32>(1, 0, 0), vec3<f32>(- 1, 0, 0), vec3<f32>(0, 1, 0), vec3<f32>(0, - 1, 0), vec3<f32>(0, 0, 1), vec3<f32>(0, 0, - 1));
