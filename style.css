@@ -1,0 +1,91 @@
+@font-face {
+    font-family: "CRIF";
+    src: url("/public/crif.woff2") format("woff2");
+}
+
+body {
+    margin: 0;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+    font-family: "CRIF", monospace;
+    font-weight: 100;
+    font-style: normal;
+}
+
+#stats {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    gap: 4px;
+    border-radius: 5px;
+    color: white;
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+}
+
+.stat {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+#crosshair {
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#minimap_wrapper {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#minimap_wrapper > div {
+    position: absolute;
+    color: white;
+}
+
+#pause-menu {
+    z-index: 10;
+    width: 100vw;
+    height: 100vh;
+    backdrop-filter: blur(10px);
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    visibility: hidden;
+}
+
+button {
+    font-family: "CRIF", monospace;
+    font-size: 24px;
+    width: 300px;
+    text-align: center;
+    border: 16px solid transparent;
+    border-image-source: url("/public/ui/button.png");
+    border-image-slice: 16 fill;
+    border-image-repeat: repeat;
+    cursor: pointer;
+}

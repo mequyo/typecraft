@@ -14,6 +14,7 @@ const crossOriginIsolationPlugin = () => ({
 });
 
 export default defineConfig({
+  logLevel: "error",
   plugins: [
     crossOriginIsolationPlugin()
   ]
