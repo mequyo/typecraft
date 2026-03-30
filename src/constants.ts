@@ -7,7 +7,7 @@ export const PLAYER_WIDTH = 0.6;
 export const CAMERA_HEIGHT = 1.6;
 export const PLAYER_HEIGHT = 1.8;
 export const JUMP_FORCE = 10.0;
-export const RENDER_DISTANCE = 5;
+export const RENDER_DISTANCE = 8;
 export const PLAYER_REACH = 5;
 
 // WORLD

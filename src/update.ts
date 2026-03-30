@@ -1,7 +1,6 @@
 import {
   MINIMAP_MAX_ZOOM,
   MINIMAP_MIN_ZOOM,
-  PROFILER_ENABLED,
 } from "./constants";
 import { vec3 } from "wgpu-matrix";
 import { State } from "./state";
@@ -14,6 +13,7 @@ import { Profiler } from "./profiler";
 
 /**
  * This function gets called every frame, updates state and renders it.
+ * @param timestamp Timestamp of the application
  * @param state State of the game that holds all information
  */
 export async function update(timestamp: DOMHighResTimeStamp, state: State) {
@@ -60,6 +60,7 @@ export async function update(timestamp: DOMHighResTimeStamp, state: State) {
   // ========================= MOVEMENT ===============================================================================
 
   Profiler.measure("physics", () => state.physics.tick(state.input, state.player, dt, state.world));
+  Profiler.measure("ui", () => state.ui.tick(state.input));
 
   PlayerSystem.updateLookat(state.player, state.world);
 

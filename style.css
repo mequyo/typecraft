@@ -68,7 +68,6 @@ body {
     z-index: 10;
     width: 100vw;
     height: 100vh;
-    backdrop-filter: blur(10px);
     position: absolute;
     display: flex;
     flex-direction: column;
@@ -78,14 +77,46 @@ body {
     visibility: hidden;
 }
 
+/* Renders a button from a 9-slice sheet where each segment is 32x32 pixels.  */
+
 button {
     font-family: "CRIF", monospace;
     font-size: 24px;
+    position: relative;
+    display: inline-block;
+    color: white;
+    z-index: 1;
+    isolation: isolate; /* prevents the multiply blend from leaking out and interacting with the dark page background */
+    height: 70px;
     width: 300px;
-    text-align: center;
-    border: 16px solid transparent;
-    border-image-source: url("/public/ui/button.png");
-    border-image-slice: 16 fill;
-    border-image-repeat: repeat;
     cursor: pointer;
+}
+
+/* Layer 1: The UI Image (Bottom) */
+button::before {
+    content: "";
+    position: absolute;
+    top: -2px; left: -2px; right: -2px; bottom: -2px;
+    border-width: 32px;
+    border-style: solid;
+    border-image-source: url("/public/ui/button.png");
+    border-image-slice: 32 fill;
+    border-image-repeat: stretch;
+    z-index: -2;
+    pointer-events: none;
+}
+
+/* Layer 2: The Color Tint (Middle) */
+button::after {
+    content: "";
+    position: absolute;
+    top: -2px; left: -2px; right: -2px; bottom: -2px;
+    background-color: green;
+    mix-blend-mode: multiply;
+    z-index: -1; /* Sits exactly between the image and your button text */
+    pointer-events: none;
+}
+
+button:hover::after {
+    background-color: darkgreen;
 }

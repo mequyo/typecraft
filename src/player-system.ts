@@ -1,4 +1,4 @@
-import { vec3, Vec3 } from "wgpu-matrix";
+import { vec3 } from "wgpu-matrix";
 import { Player } from "./player";
 import { World } from "./world";
 import { dda, vec3ToLocalChunk } from "./lib";

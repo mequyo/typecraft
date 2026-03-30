@@ -7,7 +7,7 @@ import "./augmentation/number";
 import "./augmentation/image";
 import "./augmentation/gpu-device";
 
-import { CHUNK_SIZE, IMAGE_SIZE, MINIMAP_MAX_ZOOM, MINIMAP_MIN_ZOOM, REGION_WIDTH_IN_CHUNKS, } from "./constants";
+import { IMAGE_SIZE, } from "./constants";
 import { Camera } from "./camera";
 import { update } from "./update";
 import { TerrainGenerator } from "./terrain-generator";
@@ -15,12 +15,9 @@ import { vec3 } from "wgpu-matrix";
 import { State } from "./state";
 import { World } from "./world";
 import { Player } from "./player";
-import { loadImage, vec3ToLocalChunk } from "./lib";
+import { loadImage } from "./lib";
 import { RingBuffer } from "./classes/ring-buffer";
 import { Minimap } from "./classes/minimap";
-import { BlockStateRegistry } from "./registries/blockstate-registry";
-import { AIR, OAK_SLAB } from "./registries/blocks";
-import { ORIENTATION } from "./mesh";
 import { TextureRegistry } from "./registries/texture-registry";
 import { SoundRegistry } from "./registries/sound-registry";
 import { ArenaBuffer } from "./classes/arena-buffer";
@@ -30,13 +27,11 @@ import { DESTROY_PIPELINE } from "./pipeline-descriptors/destroy-pipeline";
 import { OUTLINE_PIPELINE } from "./pipeline-descriptors/outline-pipeline";
 import { ChunkBlocksComputePipeline } from "./pipeline-descriptors/chunk-blocks-compute-pipeline";
 import { Chunk } from "./chunk";
-import "./test"
 import { InputSystem } from "./input-system";
 import { PhysicsSystem } from "./physics-system";
-import { PlayerSystem } from "./player-system";
 import { DynamicBuffer } from "./classes/dynamic-buffer";
 import { Profiler } from "./profiler";
-import { Region } from "./region";
+import {UISystem} from "./ui-system.ts";
 
 window.onload = main;
 
@@ -169,6 +164,7 @@ async function main() {
 
     input: new InputSystem(canvas),
     physics: new PhysicsSystem(),
+    ui: new UISystem(),
   }
 
   Chunk.chunkBuffer = state.chunkBuffer;
