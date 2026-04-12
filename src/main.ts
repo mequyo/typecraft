@@ -7,42 +7,40 @@ import "./augmentation/number";
 import "./augmentation/image";
 import "./augmentation/gpu-device";
 
-import { IMAGE_SIZE, } from "./constants";
-import { Camera } from "./camera";
-import { update } from "./update";
-import { TerrainGenerator } from "./terrain-generator";
-import { vec3 } from "wgpu-matrix";
-import { State } from "./state";
-import { World } from "./world";
-import { Player } from "./player";
-import { loadImage } from "./lib";
-import { RingBuffer } from "./classes/ring-buffer";
-import { Minimap } from "./classes/minimap";
-import { TextureRegistry } from "./registries/texture-registry";
-import { SoundRegistry } from "./registries/sound-registry";
-import { ArenaBuffer } from "./classes/arena-buffer";
-import { MAIN_PIPELINE } from "./pipeline-descriptors/main-pipeline";
-import { SKY_PIPELINE } from "./pipeline-descriptors/sky-pipeline";
+import { ChunkBlocksComputePipeline } from "./pipeline-descriptors/chunk-blocks-compute-pipeline";
 import { DESTROY_PIPELINE } from "./pipeline-descriptors/destroy-pipeline";
 import { OUTLINE_PIPELINE } from "./pipeline-descriptors/outline-pipeline";
-import { ChunkBlocksComputePipeline } from "./pipeline-descriptors/chunk-blocks-compute-pipeline";
-import { Chunk } from "./chunk";
-import { InputSystem } from "./input-system";
-import { PhysicsSystem } from "./physics-system";
+import { MAIN_PIPELINE } from "./pipeline-descriptors/main-pipeline";
+import { SKY_PIPELINE } from "./pipeline-descriptors/sky-pipeline";
+import { TextureRegistry } from "./registries/texture-registry";
+import { SoundRegistry } from "./registries/sound-registry";
 import { DynamicBuffer } from "./classes/dynamic-buffer";
+import { TerrainGenerator } from "./terrain-generator";
+import { ArenaBuffer } from "./classes/arena-buffer";
+import { RingBuffer } from "./classes/ring-buffer";
+import { PhysicsSystem } from "./physics-system";
+import { InputSystem } from "./input-system";
+import { Minimap } from "./classes/minimap";
+import { IMAGE_SIZE, } from "./constants";
+import { UISystem } from "./ui-system.ts";
 import { Profiler } from "./profiler";
-import {UISystem} from "./ui-system.ts";
+import { Devices } from "./types.ts";
+import { vec3 } from "wgpu-matrix";
+import { Camera } from "./camera";
+import { update } from "./update";
+import { Player } from "./player";
+import { loadImage } from "./lib";
+import { State } from "./state";
+import { World } from "./world";
+import { Chunk } from "./chunk";
+
+
 
 window.onload = main;
 
 
 
-type Devices = { canvas: HTMLCanvasElement, context: GPUCanvasContext, adapter: GPUAdapter, device: GPUDevice, audio: AudioContext }
 async function initDevices(): Promise<Devices> {
-
-
-
-
   const canvas = document.createElement("canvas");
   document.body.appendChild(canvas);
 
@@ -60,6 +58,7 @@ async function initDevices(): Promise<Devices> {
     // @ts-ignore
     requiredFeatures: ["chromium-experimental-multi-draw-indirect"],
   });
+
   if (!device) throw new Error("Could not request GPU device.");
 
   context.configure({
@@ -127,6 +126,11 @@ async function main() {
 
 
   // CREATE STATE
+  const player = new Player({
+    creative: true,
+    camera: new Camera({ canvas, active: true, position: vec3.create(-0.5, 78.5, 8) }),
+  });
+
   const state: State = {
     canvas, context, adapter, device, depthTexture, audio,
 
@@ -136,10 +140,7 @@ async function main() {
       seconds: 0,
     },
     world: new World(new TerrainGenerator()),
-    player: new Player({
-      creative: true,
-      camera: new Camera({ canvas, active: true, position: vec3.create(-0.5, 78.5, 8) }),
-    }),
+    player,
 
     minimap: new Minimap(minimap_arrow),
 
@@ -164,7 +165,7 @@ async function main() {
 
     input: new InputSystem(canvas),
     physics: new PhysicsSystem(),
-    ui: new UISystem(),
+    ui: new UISystem(player),
   }
 
   Chunk.chunkBuffer = state.chunkBuffer;
@@ -181,7 +182,6 @@ async function main() {
       device,
       format: navigator.gpu.getPreferredCanvasFormat(),
       alphaMode: "opaque",
-
       //size: [canvas.width, canvas.height],
     });
 

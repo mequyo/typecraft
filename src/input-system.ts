@@ -18,7 +18,7 @@ type Mouse = {
 export class InputSystem {
   public keys: Record<string, boolean> = {};
   public keypresses: Record<string, boolean> = {};
-  private pointerlock = false;
+  public pointerlock = false;
   private canvas: HTMLCanvasElement;
   public mouse: Mouse = { buttons: [false, false, false], wheel: 0, dx: 0, dy: 0, x: 0, y: 0, clicked: [false, false, false] };
 
@@ -31,7 +31,7 @@ export class InputSystem {
     window.addEventListener("mouseup", e => this.mouse.buttons[e.button] = false);
     window.addEventListener("wheel", e => this.mouse.wheel += e.deltaY);
     window.addEventListener("contextmenu", e => e.preventDefault());
-    window.addEventListener("click", _ => this.requestPointerLock());
+    canvas.addEventListener("click", _ => this.requestPointerLock());
     window.addEventListener("click", e => this.mouse.clicked[e.button] = true);
     window.addEventListener("keydown", e => {
       e.preventDefault();
@@ -57,10 +57,8 @@ export class InputSystem {
   public requestPointerLock() {
     if (this.pointerlock) return;
 
-    this.canvas.requestPointerLock().catch(() => { });
     this.pointerlock = true;
-
-    setTimeout(() => this.pointerlock = false, 1200);
+    this.canvas.requestPointerLock().catch(() => this.pointerlock = false);
   }
 
   public exitPointerLock() {

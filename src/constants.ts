@@ -59,7 +59,7 @@ export const AMOUNT_CHUNK_WORKERS = navigator.hardwareConcurrency - 3;
 
 // SOUND
 export const MINING_SOUND_INTERVAL = 200; // ms
-export const PROFILER_ENABLED = true;
+export const PROFILER_ENABLED = false;
 
 export const WORKGROUP_SIZE = vec3.create(4, 4, 4);
 

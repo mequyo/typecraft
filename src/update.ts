@@ -60,7 +60,7 @@ export async function update(timestamp: DOMHighResTimeStamp, state: State) {
   // ========================= MOVEMENT ===============================================================================
 
   Profiler.measure("physics", () => state.physics.tick(state.input, state.player, dt, state.world));
-  Profiler.measure("ui", () => state.ui.tick(state.input));
+  Profiler.measure("ui", () => state.ui.tick(state.input, state));
 
   PlayerSystem.updateLookat(state.player, state.world);
 

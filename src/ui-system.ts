@@ -1,58 +1,86 @@
-import {InputSystem} from "./input-system.ts";
+import { InputSystem } from "./input-system.ts";
+import { Player } from "./player.ts";
+import { State } from "./state.ts";
 
-type MENU = "pause-menu" | "inventory-menu" | "chest-menu";
 
 export class UISystem {
-    private stack: MENU[] = [];
-    private blur: HTMLDivElement;
 
-    public constructor() {
-        this.blur = document.createElement("div");
-        this.blur.style = "width: 100vw; height: 100vh; backdrop-filter: blur(10px); position: absolute; visibility: hidden;"
-        document.body.appendChild(this.blur);
-    }
+  public constructor(player: Player) {
+    window.addEventListener("hand-pickup", e => {
+      const data = e.detail;
 
-    // Handles input and, depending on context, opens a menu or not
-    public tick(input: InputSystem) {
-        if (input.keypresses["p"]) {
-            this.stack.includes("pause-menu") ? this.closeMenu("pause-menu") : this.openMenu("pause-menu");
+      if (data.menu == "inventory") {
+        const [row, col] = data.slot;
+        const itemstack = player.inventory[row][col];
+
+        if (!itemstack) return;
+
+        if (data.mode == "all") {
+          player.hand = [...itemstack]; // Put whole stack into hand
+          player.inventory[row][col] = null;
+        } else {
+          player.hand = [Math.ceil(itemstack[0] / 2), itemstack[1]];
+          const remain = Math.floor(itemstack[0] / 2);
+          player.inventory[row][col] = remain == 0 ? null : [remain, itemstack[1]];
         }
-    }
 
-    private openMenu(menu: MENU) {
-        if (this.stack[this.stack.length - 1] == menu) return;
+        window.dispatchEvent(new CustomEvent("ui-update", { detail: { inventory: player.inventory, hand: player.hand } }));
+      }
+    });
 
-        this.stack.push(menu);
 
-        const element = document.getElementById(menu);
+    window.addEventListener("hand-drop", e => {
+      const data = e.detail;
 
-        if (!element) throw new Error(`Menu ${menu} not found`);
+      if (data.menu == "inventory" && player.hand) {
+        const [row, col] = data.slot;
+        const itemstack = player.inventory[row][col];
 
-        element.style.visibility = "visible";
-        element.style.zIndex = this.stack.length.toString() + 1;
-        this.blur.style.visibility = "visible";
-    }
-
-    public closeMenu(menu?: MENU) {
-        if (menu == undefined || this.stack.length == 0) return;
-
-        this.stack.pop();
-
-        const element = document.getElementById(menu);
-
-        if (!element) throw new Error(`Menu ${menu} not found`);
-
-        element.style.visibility = "hidden";
-        element.style.zIndex = "0";
-
-        if (this.stack.length == 0) this.blur.style.visibility = "hidden";
-    }
-
-    public closeAll() {
-        const menus = [...this.stack];
-
-        for (let i = 0; i < menus.length; i++) {
-            this.closeMenu(menus[i]);
+        // TODO only stack up to STACK_SIZE
+        if (!itemstack) {
+          if (data.mode == "all") {
+            player.inventory[row][col] = [...player.hand]; // Drop all into empty slot
+            player.hand = null;
+          } else if (data.mode == "one") {
+            player.inventory[row][col] = [1, player.hand[1]]; // Drop one into empty slot
+            player.hand[0] -= 1;
+          }
+        } else if (itemstack[1] == player.hand[1]) {
+          if (data.mode == "all") {
+            player.inventory[row][col] = [itemstack[0] + player.hand[0], player.hand[1]]; // Stack items
+            player.hand = null;
+          } else if (data.mode == "one") {
+            player.inventory[row][col] = [itemstack[0] + 1, player.hand[1]]; // Drop one from hand into inventory
+            player.hand[0] -= 1;
+          }
+        } else if (data.mode == "all") {
+          player.inventory[row][col] = [...player.hand]; // Swap inventory item and hand item
+          player.hand = [...itemstack];
         }
+
+        if (player.hand && player.hand[0] <= 0) player.hand = null;
+
+        window.dispatchEvent(new CustomEvent("ui-update", { detail: { inventory: player.inventory, hand: player.hand } }));
+      }
+    });
+  }
+
+
+
+  // Handles input and, depending on context, opens a menu or not
+  public tick(input: InputSystem, state: State) {
+    if (input.keypresses["p"]) {
+      // TODO pause menu
+    } else if (input.keypresses["e"]) {
+      window.dispatchEvent(
+        new CustomEvent<WindowEventMap["ui-update"]["detail"]>("ui-update", {
+          detail: {
+            menu: "inventory",
+            inventory: state.player.inventory,
+            hand: state.player.hand,
+          }
+        })
+      );
     }
+  }
 }

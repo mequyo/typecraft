@@ -1,3 +1,5 @@
+import { Inventory, ItemStack, Menu } from "../types";
+
 export { };
 
 declare global {
@@ -21,5 +23,12 @@ declare global {
   interface HTMLImageElement {
     average(): [number, number, number, number]
     load(url: string): Promise<HTMLImageElement>
+  }
+
+  interface WindowEventMap {
+    "ui-update": CustomEvent<{ menu?: Menu | null, hand?: ItemStack | null, inventory?: Inventory }>
+
+    "hand-pickup": CustomEvent<{ menu: Menu, slot: [number, number], mode: "all" | "half" }>
+    "hand-drop": CustomEvent<{ menu: Menu, slot: [number, number], mode: "all" | "one" }>
   }
 }
