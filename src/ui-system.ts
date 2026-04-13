@@ -28,7 +28,6 @@ export class UISystem {
       }
     });
 
-
     window.addEventListener("hand-drop", e => {
       const data = e.detail;
 
@@ -70,7 +69,7 @@ export class UISystem {
   // Handles input and, depending on context, opens a menu or not
   public tick(input: InputSystem, state: State) {
     if (input.keypresses["p"]) {
-      // TODO pause menu
+      window.dispatchEvent(new CustomEvent<WindowEventMap["ui-update"]["detail"]>("ui-update", { detail: { menu: "pause" } }));
     } else if (input.keypresses["e"]) {
       window.dispatchEvent(
         new CustomEvent<WindowEventMap["ui-update"]["detail"]>("ui-update", {

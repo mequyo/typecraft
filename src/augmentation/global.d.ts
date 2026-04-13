@@ -1,4 +1,4 @@
-import { Inventory, ItemStack, Menu } from "../types";
+import { Inventory, ItemStack, Menu, Stats } from "../types";
 
 export { };
 
@@ -26,6 +26,7 @@ declare global {
   }
 
   interface WindowEventMap {
+    "stats": CustomEvent<Stats>
     "ui-update": CustomEvent<{ menu?: Menu | null, hand?: ItemStack | null, inventory?: Inventory }>
 
     "hand-pickup": CustomEvent<{ menu: Menu, slot: [number, number], mode: "all" | "half" }>

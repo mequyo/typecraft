@@ -1,4 +1,5 @@
 import { RingBuffer } from "./classes/ring-buffer";
+import { PROFILER_ENABLED } from "./constants";
 
 
 
@@ -11,6 +12,9 @@ export class Profiler {
   public static measure<T>(key: string, fn: () => T): T {
     const start = performance.now();
     const result = fn();
+
+    if (!PROFILER_ENABLED) return result; // Return early if profiler is disabled
+
     const time = performance.now() - start;
 
     if (!Profiler.time[key]) {
@@ -26,6 +30,8 @@ export class Profiler {
 
 
   public static log() {
+    if (!PROFILER_ENABLED) return;
+
     const dt = performance.now() - (this.last || 0);
     const seconds = dt / 1000;
     const entries = Array.from(Object.entries(this.time));

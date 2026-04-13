@@ -35,7 +35,7 @@ export class Stats {
 
 
 // Initialize all stat trackers
-new Stats("#time", state => state.time.seconds.time("hh:mm:ss"), 0.5);
+/*new Stats("#time", state => state.time.seconds.time("hh:mm:ss"), 0.5);
 new Stats("#cpu", state => `avg: ${(1 / state.performance.cpu.avg()).toFixed(0) || "---"} | lows: ${(1 / state.performance.cpu.sort((a, b) => b - a).slice(0, 5).avg()).toFixed(0) || "---"}`, 1);
 new Stats("#gpu", state => `avg: ${(1 / state.performance.gpu.avg()).toFixed(0) || "---"} | lows: ${(1 / state.performance.gpu.sort((a, b) => b - a).slice(0, 5).avg()).toFixed(0) || "---"}`, 1);
 new Stats("#position", state => state.player.position.map(val => Math.floor(val)).join(" "));
@@ -67,3 +67,4 @@ new Stats("#memory", state => {
   return `${used.memory()} / ${total.memory()} (${(used / total).percent(1)})`;
 }, 0.5);
 new Stats("#chunk-generation", state => `avg: ${state.performance.chunk_generation.avg().toFixed(1)}, max: ${state.performance.chunk_generation.reduce((max, curr) => max = Math.max(max, curr), 0).toFixed(1)}`);
+*/

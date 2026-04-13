@@ -1,16 +1,12 @@
-import { vec3 } from "wgpu-matrix";
 import { Chunk } from "../chunk";
-import { CHUNK_SIZE, MINIMAP_INITIAL_ZOOM, MINIMAP_RENDER_SIZE, MINIMAP_UI_SIZE, REGION_SIZE, REGION_WIDTH_IN_CHUNKS } from "../constants";
+import { MINIMAP_INITIAL_ZOOM, MINIMAP_RENDER_SIZE, REGION_SIZE } from "../constants";
 import { Player } from "../player";
-import { Triple } from "./triple";
 import { SlotMap } from "./slot-map";
-import { World } from "../world";
 import { Region } from "../region";
 
 export class Minimap {
   private canvas: HTMLCanvasElement
   private context: CanvasRenderingContext2D
-  private wrapper: HTMLDivElement
   public zoom: number = MINIMAP_INITIAL_ZOOM
   public arrow: ImageBitmap
 
@@ -27,13 +23,6 @@ export class Minimap {
 
     this.context = context;
     this.context.imageSmoothingEnabled = false;
-
-    const wrapper = document.querySelector<HTMLDivElement>("#minimap_wrapper");
-    if (!wrapper) throw new Error("");
-    this.wrapper = wrapper;
-    this.wrapper.style.width = MINIMAP_UI_SIZE + "px";
-    this.wrapper.style.height = MINIMAP_UI_SIZE + "px";
-
     this.arrow = arrow;
   }
 
@@ -41,7 +30,7 @@ export class Minimap {
   async render(chunks: SlotMap<number, Chunk>, player: Player, regions: SlotMap<number, Region>) {
     const center = MINIMAP_RENDER_SIZE / 2;
 
-    this.context.fillStyle = "black";
+    this.context.fillStyle = "rgba(0, 0, 0, 0)";
     this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
     for (let region of regions.values) {

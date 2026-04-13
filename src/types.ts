@@ -21,3 +21,17 @@ export type InventoryRow = [ItemStack | null, ItemStack | null, ItemStack | null
 export type Inventory = [InventoryRow, InventoryRow, InventoryRow, InventoryRow];
 
 export type Menu = "inventory" | "pause";
+
+
+export type Stats = {
+  time: number,
+  cpu: number,
+  gpu: number,
+  position: Vec3,
+  direction: Vec3,
+  lookat: Vec3,
+  speed: number,
+  vertices: { naive: number, actual: number },
+  fov: number,
+  chunks: { loaded: number, rendered: number, memoryBytes: number, generationTime: number },
+}
