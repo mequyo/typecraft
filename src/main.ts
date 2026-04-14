@@ -21,7 +21,7 @@ import { RingBuffer } from "./classes/ring-buffer";
 import { PhysicsSystem } from "./physics-system";
 import { InputSystem } from "./input-system";
 import { Minimap } from "./classes/minimap";
-import { IMAGE_SIZE, } from "./constants";
+import { BYTES_PER_VERTEX, IMAGE_SIZE, } from "./constants";
 import { UISystem } from "./ui-system.ts";
 import { Profiler } from "./profiler";
 import { Devices } from "./types.ts";
@@ -199,8 +199,51 @@ async function main() {
 
     state.depthTexture = depthTexture;
   }
-  window.setInterval(() => Profiler.log(), 10000)
 
+  window.setInterval(() => Profiler.log(), 10000);
+  window.setInterval(() => {
+    window.dispatchEvent(new CustomEvent<WindowEventMap["stats"]["detail"]>("stats", {
+      detail: {
+        time: state.time.seconds,
+        player: {
+          direction: state.player.direction,
+          position: state.player.position,
+          lookat: state.player.lookat,
+          speed: state.player.velocity,
+        },
+        cpu: {
+          averageFPS: 1 / state.performance.cpu.avg(),
+          lows: 1 / state.performance.cpu.sort((a, b) => b - a).slice(0, 5).avg(),
+        },
+        gpu: {
+          averageFPS: 1 / state.performance.gpu.avg(),
+          lows: 1 / state.performance.gpu.sort((a, b) => b - a).slice(0, 5).avg(),
+        },
+        chunks: {
+          loaded: state.world.chunks.size,
+          rendered: state.world.rendered,
+          avgGenTime: state.performance.chunk_generation.avg(),
+          memory: {
+            usedBytes: state.chunkBuffer.stats().usedBytes,
+            totalBytes: state.chunkBuffer.stats().capacityBytes,
+          },
+        },
+        vertices: (() => {
+          let vertices = 0;
+          const chunks = state.world.chunks.values;
+
+          for (let i = 0; i < chunks.length; i++) {
+            const chunk = chunks[i];
+            for (let face = 0; face < 6; face += 1) {
+              vertices += chunk.allocations[face].size;
+            }
+          }
+
+          return vertices / BYTES_PER_VERTEX;
+        })(),
+      }
+    }));
+  }, 250);
 
   requestAnimationFrame(timestamp => update(timestamp, state));
 }

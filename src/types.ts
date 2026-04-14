@@ -25,13 +25,14 @@ export type Menu = "inventory" | "pause";
 
 export type Stats = {
   time: number,
-  cpu: number,
-  gpu: number,
-  position: Vec3,
-  direction: Vec3,
-  lookat: Vec3,
-  speed: number,
-  vertices: { naive: number, actual: number },
-  fov: number,
-  chunks: { loaded: number, rendered: number, memoryBytes: number, generationTime: number },
+  cpu: { averageFPS: number, lows: number },
+  gpu: { averageFPS: number, lows: number },
+  player: {
+    position: Vec3,
+    direction: Vec3,
+    lookat: Vec3 | null,
+    speed: Vec3,
+  },
+  chunks: { loaded: number, rendered: number, memory: { usedBytes: number, totalBytes: number }, avgGenTime: number },
+  vertices: number,
 }

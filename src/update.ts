@@ -4,7 +4,6 @@ import {
 } from "./constants";
 import { vec3 } from "wgpu-matrix";
 import { State } from "./state";
-import { Stats } from "./classes/stats";
 import { BlockStateRegistry } from "./registries/blockstate-registry";
 import { OAK_SLAB } from "./registries/blocks";
 import { MOUSE } from "./input-system";
@@ -81,7 +80,9 @@ export async function update(timestamp: DOMHighResTimeStamp, state: State) {
   // RENDER
   await render(state);
 
-  Profiler.measure("stats", () => Stats.update(state));
+  // Update stats
+  
+
 
   state.input.flush();
 
@@ -140,8 +141,8 @@ async function render(state: State) {
 
   device.queue.onSubmittedWorkDone().then(() => {
     // TODO find a way to reliably calculate GPU times
-    //const end = performance.now();
-    //state.time.dt.gpu = (end - start) / 1000;
-    //state.performance.gpu.push((end - start) / 1000);
+    const end = performance.now();
+    state.time.dt.gpu = (end - start) / 1000;
+    state.performance.gpu.push((end - start) / 1000);
   });
 }
