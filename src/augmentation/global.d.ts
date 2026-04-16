@@ -26,6 +26,7 @@ declare global {
   }
 
   interface WindowEventMap {
+    "resume": CustomEvent<>
     "stats": CustomEvent<Stats>
     "ui-update": CustomEvent<{ menu?: Menu | null, hand?: ItemStack | null, inventory?: Inventory }>
 

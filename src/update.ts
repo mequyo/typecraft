@@ -77,12 +77,7 @@ export async function update(timestamp: DOMHighResTimeStamp, state: State) {
     );
   }
 
-  // RENDER
   await render(state);
-
-  // Update stats
-  
-
 
   state.input.flush();
 

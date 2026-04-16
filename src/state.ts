@@ -18,6 +18,7 @@ export type State = {
   device: GPUDevice
   adapter: GPUAdapter
   audio: AudioContext
+  paused: boolean
 
   depthTexture: GPUTexture
 

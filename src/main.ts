@@ -46,6 +46,7 @@ async function initDevices(): Promise<Devices> {
 
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
+  canvas.id = "game";
 
   const context = canvas.getContext("webgpu");
   if (!context) throw new Error("WebGPU context of canvas could not be retreived.");
@@ -131,9 +132,11 @@ async function main() {
     camera: new Camera({ canvas, active: true, position: vec3.create(-0.5, 78.5, 8) }),
   });
 
+  const input = new InputSystem(canvas);
+
   const state: State = {
     canvas, context, adapter, device, depthTexture, audio,
-
+    paused: true,
     time: {
       last: 0,
       dt: { cpu: 0.01, gpu: 0.01 },
@@ -163,9 +166,9 @@ async function main() {
 
     compute: new ChunkBlocksComputePipeline(device),
 
-    input: new InputSystem(canvas),
+    input,
     physics: new PhysicsSystem(),
-    ui: new UISystem(player),
+    ui: new UISystem(player, input),
   }
 
   Chunk.chunkBuffer = state.chunkBuffer;

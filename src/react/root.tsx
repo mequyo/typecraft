@@ -23,7 +23,7 @@ ReactDOM.createRoot(root).render(
 export function Root() {
   const [inventory, setInventory] = useState<Inventory | null>(null);
   const [hand, setHand] = useState<ItemStack | null>(null);
-  const [menu, setMenu] = useState<Menu | null>(null);
+  const [menu, setMenu] = useState<Menu | null>("pause");
   const handref = useRef<HTMLDivElement>(null);
 
   const click = (button: MOUSE.LEFT | MOUSE.RIGHT, menu: Menu, row: number, col: number) => {
@@ -39,7 +39,7 @@ export function Root() {
   useEffect(() => {
     const update = (e: CustomEvent<{ menu?: Menu | null, hand?: ItemStack | null, inventory?: Inventory }>) => {
       const m = e.detail.menu, h = e.detail.hand, i = e.detail.inventory;
-      if (m !== undefined) setMenu(prev => prev == m ? null : m);
+      if (m !== undefined) setMenu(m);
       if (h !== undefined) setHand(h == null ? null : [...h]);
       if (i !== undefined) setInventory(i == null ? null : [...i]);
     };

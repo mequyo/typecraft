@@ -1,11 +1,17 @@
 import { InputSystem } from "./input-system.ts";
 import { Player } from "./player.ts";
 import { State } from "./state.ts";
+import { Inventory, ItemStack, Menu } from "./types.ts";
 
 
 export class UISystem {
+  private menu: Menu | null = "pause";
 
-  public constructor(player: Player) {
+  public constructor(player: Player, input: InputSystem) {
+    window.addEventListener("resume", _ => {
+      this.setMenu("set", null, input);
+    });
+
     window.addEventListener("hand-pickup", e => {
       const data = e.detail;
 
@@ -65,21 +71,32 @@ export class UISystem {
   }
 
 
-
   // Handles input and, depending on context, opens a menu or not
   public tick(input: InputSystem, state: State) {
-    if (input.keypresses["p"]) {
-      window.dispatchEvent(new CustomEvent<WindowEventMap["ui-update"]["detail"]>("ui-update", { detail: { menu: "pause" } }));
+    if (input.keypresses["esc"]) {
+      this.setMenu("set", "pause", input);
+
+    } else if (input.keypresses["p"]) {
+      this.setMenu("toggle", "pause", input);
+
     } else if (input.keypresses["e"]) {
-      window.dispatchEvent(
-        new CustomEvent<WindowEventMap["ui-update"]["detail"]>("ui-update", {
-          detail: {
-            menu: "inventory",
-            inventory: state.player.inventory,
-            hand: state.player.hand,
-          }
-        })
-      );
+      this.setMenu("toggle", "inventory", input, { inventory: state.player.inventory, hand: state.player.hand });
     }
+  }
+
+
+  private setMenu(mode: "set" | "toggle", menu: Menu | null, input: InputSystem, updateInventory?: { inventory: Inventory, hand: ItemStack | null }) {
+    this.menu = mode == "set" ? menu : (this.menu == menu ? null : menu);
+    this.menu == null ? input.requestPointerLock() : input.exitPointerLock();
+
+    window.dispatchEvent(
+      new CustomEvent<WindowEventMap["ui-update"]["detail"]>("ui-update", {
+        detail: {
+          menu: this.menu,
+          inventory: updateInventory?.inventory,
+          hand: updateInventory?.hand,
+        }
+      })
+    );
   }
 }
