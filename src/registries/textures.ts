@@ -54,14 +54,14 @@ export const STONE_TEXTURE = TextureRegistry.register({ url: "/blocks/stone.png"
 export const TUFF_TEXTURE = TextureRegistry.register({ url: "/blocks/tuff.png" });
 
 export const DESTROY_STAGE_TEXTURES = [
-  TextureRegistry.register({ url: "/blocks/destroy_stage_0.png" }),
-  TextureRegistry.register({ url: "/blocks/destroy_stage_1.png" }),
-  TextureRegistry.register({ url: "/blocks/destroy_stage_2.png" }),
-  TextureRegistry.register({ url: "/blocks/destroy_stage_3.png" }),
-  TextureRegistry.register({ url: "/blocks/destroy_stage_4.png" }),
-  TextureRegistry.register({ url: "/blocks/destroy_stage_5.png" }),
-  TextureRegistry.register({ url: "/blocks/destroy_stage_6.png" }),
-  TextureRegistry.register({ url: "/blocks/destroy_stage_7.png" }),
-  TextureRegistry.register({ url: "/blocks/destroy_stage_8.png" }),
-  TextureRegistry.register({ url: "/blocks/destroy_stage_9.png" }),
+  TextureRegistry.register({ url: "/ui/destroy_stage_0.png" }),
+  TextureRegistry.register({ url: "/ui/destroy_stage_1.png" }),
+  TextureRegistry.register({ url: "/ui/destroy_stage_2.png" }),
+  TextureRegistry.register({ url: "/ui/destroy_stage_3.png" }),
+  TextureRegistry.register({ url: "/ui/destroy_stage_4.png" }),
+  TextureRegistry.register({ url: "/ui/destroy_stage_5.png" }),
+  TextureRegistry.register({ url: "/ui/destroy_stage_6.png" }),
+  TextureRegistry.register({ url: "/ui/destroy_stage_7.png" }),
+  TextureRegistry.register({ url: "/ui/destroy_stage_8.png" }),
+  TextureRegistry.register({ url: "/ui/destroy_stage_9.png" }),
 ]
