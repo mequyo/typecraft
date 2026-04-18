@@ -6,9 +6,8 @@ import { AIR } from "./registries/blocks";
 import { vec3, Vec3 } from "wgpu-matrix";
 import { Chunk } from "./chunk";
 import { BlockRegistry } from "./registries/block-registry";
-import { FACE, FACE_NORMALS, FACE_OPPOSITE_BIT, MESHES, ORIENTATION_FACE_MAP } from "./mesh";
-import { createMeshes } from "./mesh-utils";
-import { Sixtuple } from "./types";
+import { FACE, ORIENTATION_FACE_MAP } from "./mesh";
+
 
 
 export function collides(pos: Vec3, world: World): Vec3 | null {
@@ -173,8 +172,6 @@ export async function bitmapFromBlockData(blocks: Uint16Array): Promise<ImageBit
   return await createImageBitmap(canvas);
 }
 
-// `createMeshes` moved to `mesh-utils.ts` to keep this module free of canvas/bitmap imports
-
 export async function getImageData(url: string): Promise<ImageData> {
   const bitmap = await fetch(url).then(r => r.blob()).then(createImageBitmap);
   const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
@@ -245,4 +242,54 @@ export async function createItemMesh(url: string): Promise<Uint32Array> {
   }
 
   return new Uint32Array(vertices);
+}
+
+export async function renderIsometricBlock(canvas: OffscreenCanvas, ctx: OffscreenCanvasRenderingContext2D, source: HTMLImageElement, size = 128): Promise<HTMLImageElement> {
+  // 1. Reset and Prepare Canvas
+  canvas.width = size;
+  canvas.height = size;
+
+  // Clear previous contents and reset any existing transforms
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, size, size);
+  ctx.imageSmoothingEnabled = false;
+
+  // 2. Constants for projection
+  const cx = size / 2;
+  const cy = size / 2;
+  const S = size / 2;
+  const f = S / source.width;
+
+  // 4. Render Faces
+
+  // --- TOP FACE ---
+  ctx.setTransform(-f, f / 2, f, f / 2, cx, cy - S);
+  ctx.drawImage(source, 0, 0);
+
+  // --- LEFT FACE ---
+  ctx.setTransform(f, f / 2, 0, f, cx - S, cy - S / 2);
+  ctx.drawImage(source, 0, 0);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+  ctx.fillRect(0, 0, source.width, source.height);
+
+  // --- RIGHT FACE ---
+  ctx.setTransform(f, -f / 2, 0, f, cx, cy);
+  ctx.drawImage(source, 0, 0);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+  ctx.fillRect(0, 0, source.width, source.height);
+
+  // Export Logic for OffscreenCanvas
+  const blob = await canvas.convertToBlob({ type: 'image/png' });
+  const url = URL.createObjectURL(blob);
+
+  return new Promise((resolve, reject) => {
+    const result = new Image();
+    result.onload = () => {
+      // Clean up the object URL to prevent memory leaks
+      URL.revokeObjectURL(url);
+      resolve(result);
+    };
+    result.onerror = reject;
+    result.src = url;
+  });
 }

@@ -10,15 +10,6 @@ import { Hand } from "./hand";
 import { Minimap } from "./minimap";
 import { StatsUI } from "./stats-ui";
 
-// React entry point
-const root = document.createElement("div");
-document.body.appendChild(root);
-ReactDOM.createRoot(root).render(
-  <React.StrictMode>
-    <Root />
-  </React.StrictMode>
-);
-
 
 export function Root() {
   const [inventory, setInventory] = useState<Inventory | null>(null);

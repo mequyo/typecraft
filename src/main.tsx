@@ -1,39 +1,37 @@
-import "./registries/textures"
-import "./registries/blocks"
+import "./augmentation/array.ts";
+import "./augmentation/math.ts";
+import "./augmentation/number.ts";
+import "./augmentation/gpu-device.ts";
 
-import "./augmentation/array";
-import "./augmentation/math";
-import "./augmentation/number";
-import "./augmentation/image";
-import "./augmentation/gpu-device";
-
-import { ChunkBlocksComputePipeline } from "./pipeline-descriptors/chunk-blocks-compute-pipeline";
-import { DESTROY_PIPELINE } from "./pipeline-descriptors/destroy-pipeline";
-import { OUTLINE_PIPELINE } from "./pipeline-descriptors/outline-pipeline";
-import { MAIN_PIPELINE } from "./pipeline-descriptors/main-pipeline";
-import { SKY_PIPELINE } from "./pipeline-descriptors/sky-pipeline";
-import { TextureRegistry } from "./registries/texture-registry";
-import { SoundRegistry } from "./registries/sound-registry";
-import { DynamicBuffer } from "./classes/dynamic-buffer";
-import { TerrainGenerator } from "./terrain-generator";
-import { ArenaBuffer } from "./classes/arena-buffer";
-import { RingBuffer } from "./classes/ring-buffer";
-import { PhysicsSystem } from "./physics-system";
-import { InputSystem } from "./input-system";
-import { Minimap } from "./classes/minimap";
-import { BYTES_PER_VERTEX, IMAGE_SIZE, } from "./constants";
+import { ChunkBlocksComputePipeline } from "./pipeline-descriptors/chunk-blocks-compute-pipeline.ts";
+import { DESTROY_PIPELINE } from "./pipeline-descriptors/destroy-pipeline.ts";
+import { OUTLINE_PIPELINE } from "./pipeline-descriptors/outline-pipeline.ts";
+import { MAIN_PIPELINE } from "./pipeline-descriptors/main-pipeline.ts";
+import { SKY_PIPELINE } from "./pipeline-descriptors/sky-pipeline.ts";
+import { TextureRegistry } from "./registries/texture-registry.ts";
+import { SoundRegistry } from "./registries/sound-registry.ts";
+import { DynamicBuffer } from "./classes/dynamic-buffer.ts";
+import { TerrainGenerator } from "./terrain-generator.ts";
+import { ArenaBuffer } from "./classes/arena-buffer.ts";
+import { RingBuffer } from "./classes/ring-buffer.ts";
+import { PhysicsSystem } from "./physics-system.ts";
+import { InputSystem } from "./input-system.ts";
+import { Minimap } from "./classes/minimap.ts";
+import { BYTES_PER_VERTEX, IMAGE_SIZE, } from "./constants.ts";
 import { UISystem } from "./ui-system.ts";
-import { Profiler } from "./profiler";
+import { Profiler } from "./profiler.ts";
 import { Devices } from "./types.ts";
 import { vec3 } from "wgpu-matrix";
-import { Camera } from "./camera";
-import { update } from "./update";
-import { Player } from "./player";
-import { loadImage } from "./lib";
-import { State } from "./state";
-import { World } from "./world";
-import { Chunk } from "./chunk";
-
+import { Camera } from "./camera.ts";
+import { update } from "./update.ts";
+import { Player } from "./player.ts";
+import { loadImage } from "./lib.ts";
+import { State } from "./state.ts";
+import { World } from "./world.ts";
+import { Chunk } from "./chunk.ts";
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { Root } from "./react/root.tsx";
 
 
 window.onload = main;
@@ -98,6 +96,16 @@ async function createTextureArray(device: GPUDevice, width: number, height: numb
 
 
 async function main() {
+  // TODO pass registries
+  const root = document.createElement("div");
+  document.body.appendChild(root);
+  ReactDOM.createRoot(root).render(
+    <React.StrictMode>
+      <Root />
+    </React.StrictMode>
+  );
+
+  
   const { canvas, context, adapter, device, audio } = await initDevices();
 
   await TextureRegistry.awaitImages();
@@ -124,6 +132,7 @@ async function main() {
 
   const minimap_arrow = await createImageBitmap(await loadImage("/ui/minimap-arrow.png"));
 
+  
 
 
   // CREATE STATE
@@ -202,6 +211,7 @@ async function main() {
 
     state.depthTexture = depthTexture;
   }
+
 
   window.setInterval(() => Profiler.log(), 10000);
   window.setInterval(() => {
