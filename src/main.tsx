@@ -1,7 +1,6 @@
 import "./augmentation/array.ts";
 import "./augmentation/math.ts";
 import "./augmentation/number.ts";
-import "./augmentation/gpu-device.ts";
 
 import { ChunkBlocksComputePipeline } from "./pipeline-descriptors/chunk-blocks-compute-pipeline.ts";
 import { DESTROY_PIPELINE } from "./pipeline-descriptors/destroy-pipeline.ts";
@@ -13,7 +12,6 @@ import { SoundRegistry } from "./registries/sound-registry.ts";
 import { DynamicBuffer } from "./classes/dynamic-buffer.ts";
 import { TerrainGenerator } from "./terrain-generator.ts";
 import { ArenaBuffer } from "./classes/arena-buffer.ts";
-import { RingBuffer } from "./classes/ring-buffer.ts";
 import { PhysicsSystem } from "./physics-system.ts";
 import { InputSystem } from "./input-system.ts";
 import { Minimap } from "./classes/minimap.ts";
@@ -105,7 +103,7 @@ async function main() {
     </React.StrictMode>
   );
 
-  
+
   const { canvas, context, adapter, device, audio } = await initDevices();
 
   await TextureRegistry.awaitImages();
@@ -156,12 +154,6 @@ async function main() {
 
     minimap: new Minimap(minimap_arrow),
 
-    performance: {
-      chunk_generation: new RingBuffer(200),
-      chunk_meshing: new RingBuffer(100),
-      cpu: new RingBuffer(100),
-      gpu: new RingBuffer(100),
-    },
     chunkBuffer: new ArenaBuffer(device, 2000 * 1024 * 1024, GPUBufferUsage.COPY_DST | GPUBufferUsage.VERTEX, [1 / 6, 1 / 6, 1 / 6, 1 / 6, 1 / 6, 1 / 6], 64),
 
     indirectBuffer: new DynamicBuffer(device, GPUBufferUsage.INDIRECT | GPUBufferUsage.COPY_DST, 64),
@@ -175,6 +167,7 @@ async function main() {
 
     compute: new ChunkBlocksComputePipeline(device),
 
+    profiler: new Profiler(),
     input,
     physics: new PhysicsSystem(),
     ui: new UISystem(player, input),
@@ -212,9 +205,8 @@ async function main() {
     state.depthTexture = depthTexture;
   }
 
-
-  window.setInterval(() => Profiler.log(), 10000);
   window.setInterval(() => {
+    const prf = state.profiler;
     window.dispatchEvent(new CustomEvent<WindowEventMap["stats"]["detail"]>("stats", {
       detail: {
         time: state.time.seconds,
@@ -225,17 +217,17 @@ async function main() {
           speed: state.player.velocity,
         },
         cpu: {
-          averageFPS: 1 / state.performance.cpu.avg(),
-          lows: 1 / state.performance.cpu.sort((a, b) => b - a).slice(0, 5).avg(),
+          averageFPS: 1 / prf.performance("cpu frame time").average(),
+          lows: 1 / prf.performance("cpu frame time").max(5),
         },
         gpu: {
-          averageFPS: 1 / state.performance.gpu.avg(),
-          lows: 1 / state.performance.gpu.sort((a, b) => b - a).slice(0, 5).avg(),
+          averageFPS: 1 / prf.performance("gpu frame time").average(),
+          lows: 1 / prf.performance("gpu frame time").max(5),
         },
         chunks: {
           loaded: state.world.chunks.size,
           rendered: state.world.rendered,
-          avgGenTime: state.performance.chunk_generation.avg(),
+          avgGenTime: prf.performance("chunk generation").average(),
           memory: {
             usedBytes: state.chunkBuffer.stats().usedBytes,
             totalBytes: state.chunkBuffer.stats().capacityBytes,

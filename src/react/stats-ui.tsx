@@ -21,8 +21,8 @@ export function StatsUI() {
       style={{ background: "rgba(255, 255, 255, 0.3)", border: "3px solid rgba(255, 255, 255, 0.3)" }}
     >
       <span>TIME: {stats?.time.time("hh:mm:ss") || "00:00:00"}</span>
-      <span>CPU: {stats?.cpu.averageFPS.toFixed() || "-"} avg, {stats?.cpu.lows.toFixed() || "-"} low</span>
-      <span>GPU: {stats?.gpu.averageFPS.toFixed() || "-"} avg, {stats?.gpu.lows.toFixed() || "-"} lows</span>
+      <span>CPU FPS: {stats?.cpu.averageFPS.toFixed() || "-"} avg, {stats?.cpu.lows.toFixed() || "-"} lows</span>
+      <span>GPU FPS: {stats?.gpu.averageFPS.toFixed() || "-"} avg, {stats?.gpu.lows.toFixed() || "-"} lows</span>
 
       <span>POSITION: {stats?.player.position.map(p => Math.floor(p)).join(" ") || "-"}</span>
       <span>DIRECTION: {stats?.player.direction.map(p => Math.floor(p)).join(" ") || "-"}</span>

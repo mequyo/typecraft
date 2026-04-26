@@ -8,7 +8,7 @@ import { BlockStateRegistry } from "./registries/blockstate-registry";
 import { OAK_SLAB } from "./registries/blocks";
 import { MOUSE } from "./input-system";
 import { PlayerSystem } from "./player-system";
-import { Profiler } from "./profiler";
+
 
 /**
  * This function gets called every frame, updates state and renders it.
@@ -18,9 +18,10 @@ import { Profiler } from "./profiler";
 export async function update(timestamp: DOMHighResTimeStamp, state: State) {
   let start = performance.now();
 
+  const prof = state.profiler;
   const now = performance.now();
   state.time.dt.cpu = (now - state.time.last) / 1000;
-  state.performance.cpu.push((now - state.time.last) / 1000);
+  prof.add("cpu frame time", (now - state.time.last) / 1000); // Tied to monitor refresh rate, can't exceed monitor Hertz
   state.time.seconds += state.time.dt.cpu;
   state.world.seconds += state.time.dt.cpu;
   state.time.last = now;
@@ -31,7 +32,7 @@ export async function update(timestamp: DOMHighResTimeStamp, state: State) {
   state.world.queueChunks(state.player, state); // Queues chunks around the player and generates one each tick
 
 
-  Profiler.measure("chunk culling", () => state.world.filterChunks(state.player));
+  prof.measure("chunk culling", () => state.world.filterChunks(state.player));
 
 
   if (state.input.keypresses["c"])
@@ -58,8 +59,8 @@ export async function update(timestamp: DOMHighResTimeStamp, state: State) {
 
   // ========================= MOVEMENT ===============================================================================
 
-  Profiler.measure("physics", () => state.physics.tick(state.input, state.player, dt, state.world));
-  Profiler.measure("ui", () => state.ui.tick(state.input, state));
+  prof.measure("physics", () => state.physics.tick(state.input, state.player, dt, state.world));
+  prof.measure("ui", () => state.ui.tick(state.input, state));
 
   PlayerSystem.updateLookat(state.player, state.world);
 
@@ -81,6 +82,7 @@ export async function update(timestamp: DOMHighResTimeStamp, state: State) {
 
   state.input.flush();
 
+  
   requestAnimationFrame((timestamp) => update(timestamp, state));
 }
 
@@ -89,15 +91,16 @@ export async function update(timestamp: DOMHighResTimeStamp, state: State) {
 async function render(state: State) {
   let start = performance.now();
 
+  const prof = state.profiler;
   const context = state.context;
   const device = state.device;
 
   // MINIMAP
-  await Profiler.measure("minimap", () => state.minimap.render(state.world.chunks, state.player, state.world.regions));
+  await prof.measure("minimap", () => state.minimap.render(state.world.chunks, state.player, state.world.regions));
 
   // RENDER PIPELINES
 
-  Profiler.measure("pipeline updates", () => { for (const pipeline of state.pipelines) pipeline.update(state) });
+  prof.measure("pipeline updates", () => { for (const pipeline of state.pipelines) pipeline.update(state) });
 
 
   const passdescriptor: GPURenderPassDescriptor = {
@@ -124,11 +127,11 @@ async function render(state: State) {
   pass.setViewport(0, 0, state.canvas.width, state.canvas.height, 0, 1);
 
   // DRAW ALL PIPELINES
-  Profiler.measure("pipeline draw", () => {
+  prof.measure("pipeline draw", () => {
     for (let i = 0; i < state.pipelines.length; i++) {
       state.pipelines[i].draw(pass, state.pipelines[i], state);
     }
-  })
+  });
 
   // FINISH WORK
   pass.end();
@@ -138,6 +141,6 @@ async function render(state: State) {
     // TODO find a way to reliably calculate GPU times
     const end = performance.now();
     state.time.dt.gpu = (end - start) / 1000;
-    state.performance.gpu.push((end - start) / 1000);
+    prof.add("gpu frame time", (end - start) / 1000);
   });
 }

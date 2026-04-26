@@ -9,6 +9,7 @@ import { InputSystem } from "./input-system"
 import { PhysicsSystem } from "./physics-system"
 import { DynamicBuffer } from "./classes/dynamic-buffer"
 import {UISystem} from "./ui-system.ts";
+import { Profiler } from "./profiler.ts"
 
 
 
@@ -33,13 +34,6 @@ export type State = {
 
   minimap: Minimap
 
-  performance: {
-    cpu: RingBuffer
-    gpu: RingBuffer
-    chunk_meshing: RingBuffer
-    chunk_generation: RingBuffer
-  }
-
   // TEST FOR NOW
   chunkBuffer: ArenaBuffer
 
@@ -50,6 +44,7 @@ export type State = {
 
   indirectBuffer: DynamicBuffer
 
+  profiler: Profiler
   input: InputSystem
   physics: PhysicsSystem
   ui: UISystem

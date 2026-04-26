@@ -29,7 +29,7 @@ export const NOISE_SCALE = 1 / 512; // Controls the zoom level of the base noise
 export const NOISE_OCTAVES = 4; // Number of layers of noise to sum together for fractal detail
 export const NOISE_PERSISTENCE = 0.5; // Controls how much amplitude decreases for each subsequent octave
 export const NOISE_LACUNARITY = Math.E; // Controls how much the frequency increases per octave
-export const NOISE_SEED = 0.7486437534857;
+export const NOISE_SEED = 123;
 export const WORLEY_THRESHOLD = 0.25;
 
 // USEFUL SIZES
