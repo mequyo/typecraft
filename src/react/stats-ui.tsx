@@ -29,6 +29,7 @@ export function StatsUI() {
       <span>DIRECTION: {stats?.player.direction.map(p => Math.floor(p)).join(" ") || "-"}</span>
       <span>LOOKING AT: {stats?.player.lookat?.map(p => Math.floor(p)).join(" ") || "nothing"}</span>
       <span>SPEED: {stats?.player.speed.reduce((prev, acc) => prev + acc, 0).toFixed(1) || "-"} m/s</span>
+      <span>BIOME: {stats?.player.biome || "don't know"}</span>
 
       <span>CHUNKS: {chunksQueued} queued, {chunksLoaded} loaded, {chunksRendered} rendered ({Math.floor(100 * chunksRendered / chunksLoaded)}%)</span>
       <span>MEMORY: {mem.used.memory("MB")} / {mem.total.memory("MB")} ({(100 * mem.used / mem.total).toFixed(1)}%)</span>

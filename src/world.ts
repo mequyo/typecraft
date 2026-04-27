@@ -207,7 +207,7 @@ export class World {
 
       region.updateChunk(chunk);
 
-      //state.performance.chunk_generation.push(performance.now() - start);
+      state.profiler.add("chunk generation", performance.now() - start);
     }
   }
 

@@ -36,20 +36,20 @@ import { Chunk } from "./chunk";
 
 // ── Noise tuning ───────────────────────────────────────────────────────────────
 const DOMAIN_WARP_SCALE = 0.015;
-const DOMAIN_WARP_AMP   = 14;
+const DOMAIN_WARP_AMP = 14;
 
-const CONTINENT_SCALE   = 0.004; // large landmasses
+const CONTINENT_SCALE = 0.004; // large landmasses
 const CONTINENT_OCTAVES = 3;
 
-const EROSION_SCALE     = 0.012; // valleys / river channels
-const EROSION_OCTAVES   = 4;
+const EROSION_SCALE = 0.012; // valleys / river channels
+const EROSION_OCTAVES = 4;
 
-const BIOME_SCALE       = 0.003; // smooth biome field
-const BIOME_OCTAVES     = 2;
+const BIOME_SCALE = 0.003; // smooth biome field
+const BIOME_OCTAVES = 2;
 
-const STRATA_WARP       = 14;
-const SEA_LEVEL         = TERRAIN_HEIGHT - 10;
-const SLOPE_DELTA       = 2;     // world-space sample distance for gradient
+const STRATA_WARP = 14;
+const SEA_LEVEL = TERRAIN_HEIGHT - 10;
+const SLOPE_DELTA = 2;     // world-space sample distance for gradient
 
 // ── Strata layer ───────────────────────────────────────────────────────────────
 type StrataLayer = {
@@ -77,7 +77,7 @@ type BiomeDef = {
 // Margins around thresholds create smooth transition zones where every
 // terrain property (height, amplitude, erosion, strata palette) is interpolated.
 const BIOME_THRESHOLDS = [0.33, 0.43, 0.54, 0.65];
-const BIOME_MARGIN     = 0.05;
+const BIOME_MARGIN = 0.05;
 
 const BIOMES: BiomeDef[] = [
   // 0 ─ Ocean ─────────────────────────────────────────────────────────────────
@@ -268,6 +268,15 @@ export class TerrainGenerator {
       }
     }
     return { a: BIOMES[0], b: BIOMES[0], t: 0 };
+  }
+
+  public getBiome(wx: number, wz: number): string {
+    wx = Math.floor(wx);
+    wz = Math.floor(wz);
+    const [warpedX, warpedZ] = this.domainWarp(wx, wz);
+    const field = this.biomeField(warpedX, warpedZ);
+    const blend = this.getBiomeBlend(field);
+    return `${Math.round(100 * blend.t)}% ${blend.a.name} | ${Math.round(100 - 100 * blend.t)}% ${blend.b.name}`;
   }
 
   // Evaluate the full surface for a single world column.

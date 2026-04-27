@@ -215,6 +215,7 @@ async function main() {
           position: state.player.position,
           lookat: state.player.lookat,
           speed: state.player.velocity,
+          biome: state.world.terraingenerator.getBiome(state.player.position[0], state.player.position[2]),
         },
         cpu: {
           averageFPS: 1 / prf.performance("cpu frame time").average(),

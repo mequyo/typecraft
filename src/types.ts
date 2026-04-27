@@ -33,6 +33,7 @@ export type Stats = {
     direction: Vec3,
     lookat: Vec3 | null,
     speed: Vec3,
+    biome: string,
   },
   chunks: { loaded: number, rendered: number, queued: number, memory: { usedBytes: number, totalBytes: number }, avgGenTime: number },
   vertices: number,
