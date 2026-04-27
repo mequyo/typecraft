@@ -44,7 +44,8 @@ export class World {
   public seconds: number
   public chunkHeightmap: Pair<number, Chunk>
   public terraingenerator: TerrainGenerator
-  public queue: WorkerMessageOut[] = []
+  public queue = new Map<number, WorkerMessageOut>()
+  public pendingOrder: number[] = []
   public damaged: Map<number, DamagedBlock>
   public filtered: Chunk[] = [];
   private vp: Mat4 = mat4.create();
@@ -149,7 +150,7 @@ export class World {
     if (this.pending.has(key) || this.chunks.get(key) != undefined) return; // Already generating or generated
 
     const message = (e: MessageEvent<WorkerMessageOut>) => {
-      this.queue.push(e.data);
+      this.queue.set(e.data.key, e.data);
 
       worker.removeEventListener("message", message);
     };
@@ -166,43 +167,48 @@ export class World {
     worker.postMessage({ offset, neighbors } as WorkerMessageIn, /*[...neighbors.filter(n => n instanceof Uint16Array).map(n => n.buffer)]*/);
 
     this.pending.add(key);
+    this.pendingOrder.push(key);
     this.worker = (this.worker + 1) % this.workers.length;
   }
 
   generateChunk(device: GPUDevice, time: number, state: State) {
-    const data = this.queue.pop();
+    while (this.pendingOrder.length > 0) {
+      const key = this.pendingOrder[0];
+      const data = this.queue.get(key);
+      if (!data) break;
 
-    if (!data) return;
+      this.pendingOrder.shift();
+      this.queue.delete(key);
 
-    const start = performance.now();
+      const start = performance.now();
 
-    const offset = new Float32Array(data.offset);
-    const key = World.pack(offset[0], offset[1], offset[2]);
-    const blocks = new Uint16Array(data.blocks);
-    const heightmap = new Uint8Array(data.heightmap);
-    const amount = new Uint16Array(data.amount)[0] ?? 0;
-    const meshes = data.meshes.map(arraybuffer => new Uint32Array(arraybuffer));
+      const offset = new Float32Array(data.offset);
+      const blocks = new Uint16Array(data.blocks);
+      const heightmap = new Uint8Array(data.heightmap);
+      const amount = new Uint16Array(data.amount)[0] ?? 0;
+      const meshes = data.meshes.map(arraybuffer => new Uint32Array(arraybuffer));
 
-    const allocations: [Allocation, Allocation, Allocation, Allocation, Allocation, Allocation] = [
-      state.chunkBuffer.write(0, meshes[0]),
-      state.chunkBuffer.write(1, meshes[1]),
-      state.chunkBuffer.write(2, meshes[2]),
-      state.chunkBuffer.write(3, meshes[3]),
-      state.chunkBuffer.write(4, meshes[4]),
-      state.chunkBuffer.write(5, meshes[5]),
-    ]
+      const allocations: [Allocation, Allocation, Allocation, Allocation, Allocation, Allocation] = [
+        state.chunkBuffer.write(0, meshes[0]),
+        state.chunkBuffer.write(1, meshes[1]),
+        state.chunkBuffer.write(2, meshes[2]),
+        state.chunkBuffer.write(3, meshes[3]),
+        state.chunkBuffer.write(4, meshes[4]),
+        state.chunkBuffer.write(5, meshes[5]),
+      ]
 
-    const chunk = new Chunk(offset, time, amount, allocations, blocks);
+      const chunk = new Chunk(offset, time, amount, allocations, blocks);
 
-    this.chunks.set(key, chunk);
-    this.pending.delete(key);
+      this.chunks.set(key, chunk);
+      this.pending.delete(key);
 
-    const rkey = Region.pack(offset[0] * CHUNK_SIZE, offset[2] * CHUNK_SIZE);
-    const region = this.regions.getOrSet(rkey, () => new Region(rkey));
+      const rkey = Region.pack(offset[0] * CHUNK_SIZE, offset[2] * CHUNK_SIZE);
+      const region = this.regions.getOrSet(rkey, () => new Region(rkey));
 
-    region.updateChunk(chunk);
+      region.updateChunk(chunk);
 
-    //state.performance.chunk_generation.push(performance.now() - start);
+      //state.performance.chunk_generation.push(performance.now() - start);
+    }
   }
 
 

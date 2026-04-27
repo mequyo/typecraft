@@ -3,6 +3,7 @@ import type { Vec3 } from "wgpu-matrix"
 export type WorkerMessageIn = { offset: Vec3, neighbors: Sixtuple<Uint16Array | undefined> }
 export type WorkerMessageOut = {
   offset: ArrayBuffer,
+  key: number,
   blocks: ArrayBuffer,
   heightmap: ArrayBuffer,
   bitmap: ImageBitmap,
@@ -33,6 +34,6 @@ export type Stats = {
     lookat: Vec3 | null,
     speed: Vec3,
   },
-  chunks: { loaded: number, rendered: number, memory: { usedBytes: number, totalBytes: number }, avgGenTime: number },
+  chunks: { loaded: number, rendered: number, queued: number, memory: { usedBytes: number, totalBytes: number }, avgGenTime: number },
   vertices: number,
 }

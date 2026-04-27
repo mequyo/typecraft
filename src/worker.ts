@@ -28,8 +28,10 @@ self.onmessage = async (e: MessageEvent<WorkerMessageIn>) => {
 
   const amountbuffer = new Uint16Array([amount]).buffer;
 
+  const key = ((Math.round(offset[0]) + 512) << 20) | ((Math.round(offset[1]) + 512) << 10) | ((Math.round(offset[2]) + 512) << 0);
+
   self.postMessage(
-    { offset: offset.buffer, blocks: blocks.buffer, heightmap: heightmap.buffer, amount: amountbuffer, meshes: meshes.map(mesh => mesh.buffer) } as WorkerMessageOut,
+    { offset: offset.buffer, key, blocks: blocks.buffer, heightmap: heightmap.buffer, amount: amountbuffer, meshes: meshes.map(mesh => mesh.buffer) } as WorkerMessageOut,
     [offset.buffer, blocks.buffer, heightmap.buffer, amountbuffer, ...meshes.map(m => m.buffer)],
   );
 };

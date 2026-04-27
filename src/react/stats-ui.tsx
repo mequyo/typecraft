@@ -11,6 +11,7 @@ export function StatsUI() {
     return window.removeEventListener("stats", _ => update);
   });
 
+  const chunksQueued = stats?.chunks.queued || 0;
   const chunksLoaded = stats?.chunks.loaded || 0;
   const chunksRendered = stats?.chunks.rendered || 0;
   const mem = { used: stats?.chunks.memory.usedBytes || 0, total: stats?.chunks.memory.totalBytes || 0 }
@@ -29,7 +30,7 @@ export function StatsUI() {
       <span>LOOKING AT: {stats?.player.lookat?.map(p => Math.floor(p)).join(" ") || "nothing"}</span>
       <span>SPEED: {stats?.player.speed.reduce((prev, acc) => prev + acc, 0).toFixed(1) || "-"} m/s</span>
 
-      <span>CHUNKS: {chunksLoaded} loaded, {chunksRendered} rendered ({Math.floor(100 * chunksRendered / chunksLoaded)}%)</span>
+      <span>CHUNKS: {chunksQueued} queued, {chunksLoaded} loaded, {chunksRendered} rendered ({Math.floor(100 * chunksRendered / chunksLoaded)}%)</span>
       <span>MEMORY: {mem.used.memory("MB")} / {mem.total.memory("MB")} ({(100 * mem.used / mem.total).toFixed(1)}%)</span>
       <span>GENERATION TIME: {stats?.chunks.avgGenTime.toFixed(1) || 0} ms</span>
     </div>

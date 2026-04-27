@@ -227,6 +227,7 @@ async function main() {
         chunks: {
           loaded: state.world.chunks.size,
           rendered: state.world.rendered,
+          queued: state.world.queue.size,
           avgGenTime: prf.performance("chunk generation").average(),
           memory: {
             usedBytes: state.chunkBuffer.stats().usedBytes,
