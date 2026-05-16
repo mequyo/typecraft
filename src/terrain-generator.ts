@@ -28,6 +28,8 @@ import {
   SNOW,
   STONE,
   TUFF,
+  OAK_SLAB,
+  OAK_FENCE,
 } from "./registries/blocks";
 import { BlockStateRegistry } from "./registries/blockstate-registry";
 import { Simplex2D } from "./classes/simplex2D";
@@ -49,26 +51,26 @@ const BIOME_OCTAVES = 2;
 
 const STRATA_WARP = 14;
 const SEA_LEVEL = TERRAIN_HEIGHT - 10;
-const SLOPE_DELTA = 2;     // world-space sample distance for gradient
+const SLOPE_DELTA = 2; // world-space sample distance for gradient
 
 // ── Strata layer ───────────────────────────────────────────────────────────────
 type StrataLayer = {
   block: Block;
   minDepth?: number;
   maxDepth?: number;
-  strataHz?: number;   // sine cycles across TERRAIN_HEIGHT
-  strataAmp?: number;  // fraction of band occupied by this block [0,1]
+  strataHz?: number; // sine cycles across TERRAIN_HEIGHT
+  strataAmp?: number; // fraction of band occupied by this block [0,1]
 };
 
 // ── Biome definition ───────────────────────────────────────────────────────────
 type BiomeDef = {
   name: string;
-  baseHeight: number;        // average surface y
-  amplitude: number;         // fbm variation
-  erosionStrength: number;   // how aggressively the erosion mask cuts (0..1)
+  baseHeight: number; // average surface y
+  amplitude: number; // fbm variation
+  erosionStrength: number; // how aggressively the erosion mask cuts (0..1)
   continentalFactor: number; // how much continent noise boosts height (0..2)
-  surfaceBlock: Block;       // top block on gentle ground
-  steepBlock: Block;         // top block on cliffs
+  surfaceBlock: Block; // top block on gentle ground
+  steepBlock: Block; // top block on cliffs
   strata: StrataLayer[];
 };
 
@@ -109,7 +111,13 @@ const BIOMES: BiomeDef[] = [
     strata: [
       { block: RED_SAND, maxDepth: 0, strataHz: 6, strataAmp: 0.35 },
       { block: SAND, maxDepth: 3 },
-      { block: RED_SAND, minDepth: 2, maxDepth: 6, strataHz: 8, strataAmp: 0.45 },
+      {
+        block: RED_SAND,
+        minDepth: 2,
+        maxDepth: 6,
+        strataHz: 8,
+        strataAmp: 0.45,
+      },
       { block: SANDSTONE, minDepth: 4 },
     ],
   },
@@ -146,9 +154,21 @@ const BIOMES: BiomeDef[] = [
       { block: SNOW, maxDepth: 0 },
       { block: GRAVEL, maxDepth: 1, strataHz: 8, strataAmp: 0.25 },
       { block: STONE, minDepth: 1, maxDepth: 12 },
-      { block: TUFF, minDepth: 3, maxDepth: 14, strataHz: 14, strataAmp: 0.40 },
-      { block: COBBLESTONE, minDepth: 6, maxDepth: 20, strataHz: 10, strataAmp: 0.30 },
-      { block: GRANITE, minDepth: 10, maxDepth: 30, strataHz: 7, strataAmp: 0.35 },
+      { block: TUFF, minDepth: 3, maxDepth: 14, strataHz: 14, strataAmp: 0.4 },
+      {
+        block: COBBLESTONE,
+        minDepth: 6,
+        maxDepth: 20,
+        strataHz: 10,
+        strataAmp: 0.3,
+      },
+      {
+        block: GRANITE,
+        minDepth: 10,
+        maxDepth: 30,
+        strataHz: 7,
+        strataAmp: 0.35,
+      },
       { block: DEEPSLATE, minDepth: 24 },
     ],
   },
@@ -192,30 +212,31 @@ export class TerrainGenerator {
   private strataSimplex = new Simplex2D(NOISE_SEED ^ 0xdeadbeef);
 
   // Standard FBM in [0,1]
-  private fbm(
-    wx: number,
-    wz: number,
-    octaves: number,
-    scale: number
-  ): number {
-    let amp = 1, freq = scale, val = 0, max = 0;
+  private fbm(wx: number, wz: number, octaves: number, scale: number): number {
+    let amp = 1,
+      freq = scale,
+      val = 0,
+      max = 0;
     for (let i = 0; i < octaves; i++) {
       val += this.simplex.noise(wx * freq, wz * freq) * amp;
       max += amp;
       amp *= NOISE_PERSISTENCE;
       freq *= NOISE_LACUNARITY;
     }
-    return (val / max);
+    return val / max;
   }
 
   // Domain warp: distort sample coordinates before feeding them to the main FBM
   private domainWarp(wx: number, wz: number): [number, number] {
-    const dx = this.simplex.noise(wx * DOMAIN_WARP_SCALE + 17.1, wz * DOMAIN_WARP_SCALE + 31.7);
-    const dz = this.simplex.noise(wx * DOMAIN_WARP_SCALE + 53.3, wz * DOMAIN_WARP_SCALE + 11.9);
-    return [
-      wx + dx * DOMAIN_WARP_AMP,
-      wz + dz * DOMAIN_WARP_AMP,
-    ];
+    const dx = this.simplex.noise(
+      wx * DOMAIN_WARP_SCALE + 17.1,
+      wz * DOMAIN_WARP_SCALE + 31.7,
+    );
+    const dz = this.simplex.noise(
+      wx * DOMAIN_WARP_SCALE + 53.3,
+      wz * DOMAIN_WARP_SCALE + 11.9,
+    );
+    return [wx + dx * DOMAIN_WARP_AMP, wz + dz * DOMAIN_WARP_AMP];
   }
 
   // Large, smooth continent shapes that modulate amplitude
@@ -225,7 +246,10 @@ export class TerrainGenerator {
 
   // Ridged multifractal: high values = deep valleys / scoured channels
   private erosionNoise(wx: number, wz: number): number {
-    let amp = 1, freq = EROSION_SCALE, val = 0, max = 0;
+    let amp = 1,
+      freq = EROSION_SCALE,
+      val = 0,
+      max = 0;
     for (let i = 0; i < EROSION_OCTAVES; i++) {
       const n = this.erosionSimplex.noise(wx * freq, wz * freq);
       const ridged = 1 - Math.abs(n);
@@ -250,7 +274,11 @@ export class TerrainGenerator {
     }
     // Solid: above last threshold
     if (b >= BIOME_THRESHOLDS[BIOME_THRESHOLDS.length - 1] + BIOME_MARGIN) {
-      return { a: BIOMES[BIOMES.length - 1], b: BIOMES[BIOMES.length - 1], t: 0 };
+      return {
+        a: BIOMES[BIOMES.length - 1],
+        b: BIOMES[BIOMES.length - 1],
+        t: 0,
+      };
     }
     // Transition zone around a threshold
     for (let i = 0; i < BIOME_THRESHOLDS.length; i++) {
@@ -263,7 +291,10 @@ export class TerrainGenerator {
     }
     // Solid region between two thresholds
     for (let i = 0; i < BIOME_THRESHOLDS.length - 1; i++) {
-      if (b >= BIOME_THRESHOLDS[i] + BIOME_MARGIN && b < BIOME_THRESHOLDS[i + 1] - BIOME_MARGIN) {
+      if (
+        b >= BIOME_THRESHOLDS[i] + BIOME_MARGIN &&
+        b < BIOME_THRESHOLDS[i + 1] - BIOME_MARGIN
+      ) {
         return { a: BIOMES[i + 1], b: BIOMES[i + 1], t: 0 };
       }
     }
@@ -280,7 +311,10 @@ export class TerrainGenerator {
   }
 
   // Evaluate the full surface for a single world column.
-  private surfaceColumn(wx: number, wz: number): {
+  private surfaceColumn(
+    wx: number,
+    wz: number,
+  ): {
     y: number;
     blend: { a: BiomeDef; b: BiomeDef; t: number };
     erosion: number;
@@ -295,8 +329,16 @@ export class TerrainGenerator {
 
     const baseH = lerp(blend.a.baseHeight, blend.b.baseHeight, blend.t);
     const amp = lerp(blend.a.amplitude, blend.b.amplitude, blend.t);
-    const eroStr = lerp(blend.a.erosionStrength, blend.b.erosionStrength, blend.t);
-    const contFactor = lerp(blend.a.continentalFactor, blend.b.continentalFactor, blend.t);
+    const eroStr = lerp(
+      blend.a.erosionStrength,
+      blend.b.erosionStrength,
+      blend.t,
+    );
+    const contFactor = lerp(
+      blend.a.continentalFactor,
+      blend.b.continentalFactor,
+      blend.t,
+    );
 
     // Multiplicative continental shaping: amplifies landmasses, suppresses basins
     const continentalBoost = lerp(0.3, 1.5, continent * contFactor);
@@ -317,7 +359,7 @@ export class TerrainGenerator {
     wy: number,
     warpNoise: number,
     slope: number,
-    erosion: number
+    erosion: number,
   ): Block {
     // Slope scouring: cliffs strip surface layers and expose deeper material
     const slopeDepth = depth + Math.max(0, (slope - 0.6) * 3);
@@ -336,7 +378,10 @@ export class TerrainGenerator {
 
       if (layer.strataHz !== undefined && layer.strataAmp !== undefined) {
         const warpedY = wy + warpNoise * STRATA_WARP;
-        const s = (Math.sin((warpedY / TERRAIN_HEIGHT) * Math.PI * layer.strataHz) + 1) / 2;
+        const s =
+          (Math.sin((warpedY / TERRAIN_HEIGHT) * Math.PI * layer.strataHz) +
+            1) /
+          2;
         if (s < 1 - layer.strataAmp) continue;
       }
       return layer.block;
@@ -345,16 +390,23 @@ export class TerrainGenerator {
     return biome.strata[biome.strata.length - 1].block;
   }
 
-  generateBlocks(coffset: Vec3): { blocks: Uint16Array; heightmap: Uint8Array; amount: number } {
+  generateBlocks(coffset: Vec3): {
+    blocks: Uint16Array;
+    heightmap: Uint8Array;
+    amount: number;
+  } {
     const blocks = new Uint16Array(CHUNK_SIZE ** 3).fill(
-      BlockStateRegistry.encode(AIR.ID, ORIENTATION.NX_0)
+      BlockStateRegistry.encode(AIR.ID, ORIENTATION.NX_0),
     );
     const heightmap = new Uint8Array(CHUNK_SIZE * CHUNK_SIZE);
     let amount = 0;
 
     const chunkY0 = coffset[1] * CHUNK_SIZE;
     const airCode = BlockStateRegistry.encode(AIR.ID, ORIENTATION.NX_0);
-    const waterCode = BlockStateRegistry.encode(BLUE_GLASS.ID, ORIENTATION.NX_0);
+    const waterCode = BlockStateRegistry.encode(
+      BLUE_GLASS.ID,
+      ORIENTATION.NX_0,
+    );
 
     for (let x = 0; x < CHUNK_SIZE; x++) {
       const wx = x + coffset[0] * CHUNK_SIZE;
@@ -366,9 +418,9 @@ export class TerrainGenerator {
         const nextX = this.surfaceColumn(wx + SLOPE_DELTA, wz);
         const nextZ = this.surfaceColumn(wx, wz + SLOPE_DELTA);
 
-        const slope = Math.sqrt(
-          (here.y - nextX.y) ** 2 + (here.y - nextZ.y) ** 2
-        ) / SLOPE_DELTA;
+        const slope =
+          Math.sqrt((here.y - nextX.y) ** 2 + (here.y - nextZ.y) ** 2) /
+          SLOPE_DELTA;
 
         // Use the dominant biome for discrete block choices.
         // Because heights are already blended, the visual transition is smooth.
@@ -396,7 +448,7 @@ export class TerrainGenerator {
             wy,
             here.warpNoise,
             slope,
-            here.erosion
+            here.erosion,
           );
           blocks[index] = BlockStateRegistry.encode(block.ID, ORIENTATION.PX_0);
           amount++;

@@ -15,7 +15,7 @@ import { ArenaBuffer } from "./classes/arena-buffer.ts";
 import { PhysicsSystem } from "./physics-system.ts";
 import { InputSystem } from "./input-system.ts";
 import { Minimap } from "./classes/minimap.ts";
-import { BYTES_PER_VERTEX, IMAGE_SIZE, } from "./constants.ts";
+import { BYTES_PER_VERTEX, IMAGE_SIZE } from "./constants.ts";
 import { UISystem } from "./ui-system.ts";
 import { Profiler } from "./profiler.ts";
 import { Devices } from "./types.ts";
@@ -31,10 +31,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { Root } from "./react/root.tsx";
 
-
 window.onload = main;
-
-
 
 async function initDevices(): Promise<Devices> {
   const canvas = document.createElement("canvas");
@@ -45,7 +42,8 @@ async function initDevices(): Promise<Devices> {
   canvas.id = "game";
 
   const context = canvas.getContext("webgpu");
-  if (!context) throw new Error("WebGPU context of canvas could not be retreived.");
+  if (!context)
+    throw new Error("WebGPU context of canvas could not be retreived.");
 
   const adapter = await navigator.gpu.requestAdapter();
   if (!adapter) throw new Error("Could not request GPU adapter.");
@@ -67,8 +65,12 @@ async function initDevices(): Promise<Devices> {
   return { canvas, context, adapter, device, audio: new AudioContext() };
 }
 
-
-async function createTextureArray(device: GPUDevice, width: number, height: number, images: ImageBitmap[]): Promise<GPUTexture> {
+async function createTextureArray(
+  device: GPUDevice,
+  width: number,
+  height: number,
+  images: ImageBitmap[],
+): Promise<GPUTexture> {
   const texture = device.createTexture({
     size: {
       width: width,
@@ -78,7 +80,8 @@ async function createTextureArray(device: GPUDevice, width: number, height: numb
     format: "rgba8unorm",
     usage:
       GPUTextureUsage.TEXTURE_BINDING |
-      GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+      GPUTextureUsage.COPY_DST |
+      GPUTextureUsage.RENDER_ATTACHMENT,
   });
 
   images.forEach((source, z) => {
@@ -92,7 +95,6 @@ async function createTextureArray(device: GPUDevice, width: number, height: numb
   return texture;
 }
 
-
 async function main() {
   // TODO pass registries
   const root = document.createElement("div");
@@ -100,25 +102,35 @@ async function main() {
   ReactDOM.createRoot(root).render(
     <React.StrictMode>
       <Root />
-    </React.StrictMode>
+    </React.StrictMode>,
   );
-
 
   const { canvas, context, adapter, device, audio } = await initDevices();
 
   await TextureRegistry.awaitImages();
   await SoundRegistry.awaitSounds(audio);
 
-  const textures = TextureRegistry.getAll().map<ImageBitmap>(texture => texture.bitmap!);
-  const texturearray = await createTextureArray(device, IMAGE_SIZE, IMAGE_SIZE, textures);
+  const textures = TextureRegistry.getAll().map<ImageBitmap>(
+    (texture) => texture.bitmap!,
+  );
+  const texturearray = await createTextureArray(
+    device,
+    IMAGE_SIZE,
+    IMAGE_SIZE,
+    textures,
+  );
   const textureview = texturearray.createView();
 
-
-  const destroytextures = TextureRegistry.getAll().map<ImageBitmap>(texture => texture.bitmap!);
-  const destroytexturearray = await createTextureArray(device, IMAGE_SIZE, IMAGE_SIZE, destroytextures);
+  const destroytextures = TextureRegistry.getAll().map<ImageBitmap>(
+    (texture) => texture.bitmap!,
+  );
+  const destroytexturearray = await createTextureArray(
+    device,
+    IMAGE_SIZE,
+    IMAGE_SIZE,
+    destroytextures,
+  );
   const destroytextureview = destroytexturearray.createView();
-
-
 
   // Create depth texture once
   const depthTexture = device.createTexture({
@@ -127,22 +139,29 @@ async function main() {
     usage: GPUTextureUsage.RENDER_ATTACHMENT,
   });
 
-
-  const minimap_arrow = await createImageBitmap(await loadImage("/ui/minimap-arrow.png"));
-
-  
-
+  const minimap_arrow = await createImageBitmap(
+    await loadImage("/ui/minimap-arrow.png"),
+  );
 
   // CREATE STATE
   const player = new Player({
     creative: true,
-    camera: new Camera({ canvas, active: true, position: vec3.create(-0.5, 78.5, 8) }),
+    camera: new Camera({
+      canvas,
+      active: true,
+      position: vec3.create(-0.5, 78.5, 8),
+    }),
   });
 
   const input = new InputSystem(canvas);
 
   const state: State = {
-    canvas, context, adapter, device, depthTexture, audio,
+    canvas,
+    context,
+    adapter,
+    device,
+    depthTexture,
+    audio,
     paused: true,
     time: {
       last: 0,
@@ -154,9 +173,19 @@ async function main() {
 
     minimap: new Minimap(minimap_arrow),
 
-    chunkBuffer: new ArenaBuffer(device, 2000 * 1024 * 1024, GPUBufferUsage.COPY_DST | GPUBufferUsage.VERTEX, [1 / 6, 1 / 6, 1 / 6, 1 / 6, 1 / 6, 1 / 6], 64),
+    chunkBuffer: new ArenaBuffer(
+      device,
+      2000 * 1024 * 1024,
+      GPUBufferUsage.COPY_DST | GPUBufferUsage.VERTEX,
+      [1 / 6, 1 / 6, 1 / 6, 1 / 6, 1 / 6, 1 / 6],
+      64,
+    ),
 
-    indirectBuffer: new DynamicBuffer(device, GPUBufferUsage.INDIRECT | GPUBufferUsage.COPY_DST, 64),
+    indirectBuffer: new DynamicBuffer(
+      device,
+      GPUBufferUsage.INDIRECT | GPUBufferUsage.COPY_DST,
+      64,
+    ),
 
     pipelines: [
       SKY_PIPELINE(device),
@@ -171,7 +200,7 @@ async function main() {
     input,
     physics: new PhysicsSystem(),
     ui: new UISystem(player, input),
-  }
+  };
 
   Chunk.chunkBuffer = state.chunkBuffer;
 
@@ -203,54 +232,59 @@ async function main() {
     });
 
     state.depthTexture = depthTexture;
-  }
+  };
 
   window.setInterval(() => {
     const prf = state.profiler;
-    window.dispatchEvent(new CustomEvent<WindowEventMap["stats"]["detail"]>("stats", {
-      detail: {
-        time: state.time.seconds,
-        player: {
-          direction: state.player.direction,
-          position: state.player.position,
-          lookat: state.player.lookat,
-          speed: state.player.velocity,
-          biome: state.world.terraingenerator.getBiome(state.player.position[0], state.player.position[2]),
-        },
-        cpu: {
-          averageFPS: 1 / prf.performance("cpu frame time").average(),
-          lows: 1 / prf.performance("cpu frame time").max(5),
-        },
-        gpu: {
-          averageFPS: 1 / prf.performance("gpu frame time").average(),
-          lows: 1 / prf.performance("gpu frame time").max(5),
-        },
-        chunks: {
-          loaded: state.world.chunks.size,
-          rendered: state.world.rendered,
-          queued: state.world.queue.size,
-          avgGenTime: prf.performance("chunk generation").average(),
-          memory: {
-            usedBytes: state.chunkBuffer.stats().usedBytes,
-            totalBytes: state.chunkBuffer.stats().capacityBytes,
+    window.dispatchEvent(
+      new CustomEvent<WindowEventMap["stats"]["detail"]>("stats", {
+        detail: {
+          time: state.time.seconds,
+          player: {
+            direction: state.player.direction,
+            position: state.player.position,
+            lookat: state.player.lookat,
+            speed: state.player.velocity,
+            biome: state.world.terraingenerator.getBiome(
+              state.player.position[0],
+              state.player.position[2],
+            ),
           },
-        },
-        vertices: (() => {
-          let vertices = 0;
-          const chunks = state.world.chunks.values;
+          cpu: {
+            averageFPS: 1 / prf.performance("cpu frame time").average(),
+            lows: 1 / prf.performance("cpu frame time").max(5),
+          },
+          gpu: {
+            averageFPS: 1 / prf.performance("gpu frame time").average(),
+            lows: 1 / prf.performance("gpu frame time").max(5),
+          },
+          chunks: {
+            loaded: state.world.chunks.size,
+            rendered: state.world.rendered,
+            queued: state.world.queue.size,
+            avgGenTime: prf.performance("chunk generation").average(),
+            memory: {
+              usedBytes: state.chunkBuffer.stats().usedBytes,
+              totalBytes: state.chunkBuffer.stats().capacityBytes,
+            },
+          },
+          vertices: (() => {
+            let vertices = 0;
+            const chunks = state.world.chunks.values;
 
-          for (let i = 0; i < chunks.length; i++) {
-            const chunk = chunks[i];
-            for (let face = 0; face < 6; face += 1) {
-              vertices += chunk.allocations[face].size;
+            for (let i = 0; i < chunks.length; i++) {
+              const chunk = chunks[i];
+              for (let face = 0; face < 6; face += 1) {
+                vertices += chunk.allocations[face].size;
+              }
             }
-          }
 
-          return vertices / BYTES_PER_VERTEX;
-        })(),
-      }
-    }));
+            return vertices / BYTES_PER_VERTEX;
+          })(),
+        },
+      }),
+    );
   }, 250);
 
-  requestAnimationFrame(timestamp => update(timestamp, state));
+  requestAnimationFrame((timestamp) => update(timestamp, state));
 }
