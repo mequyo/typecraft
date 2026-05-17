@@ -1,51 +1,47 @@
-import { ArenaBuffer } from "./classes/arena-buffer"
-import { Minimap } from "./classes/minimap"
-import { RingBuffer } from "./classes/ring-buffer"
-import { RenderPipeline } from "./render-pipeline"
-import { Player } from "./player"
-import { World } from "./world"
-import { ChunkBlocksComputePipeline } from "./pipeline-descriptors/chunk-blocks-compute-pipeline"
-import { InputSystem } from "./input-system"
-import { PhysicsSystem } from "./physics-system"
-import { DynamicBuffer } from "./classes/dynamic-buffer"
-import {UISystem} from "./ui-system.ts";
-import { Profiler } from "./profiler.ts"
-
-
+import { ArenaBuffer } from "./classes/arena-buffer";
+import { Minimap } from "./classes/minimap";
+import { RenderPipeline } from "./render-pipeline";
+import { Player } from "./player";
+import { World } from "./world";
+import { ChunkBlocksComputePipeline } from "./pipeline-descriptors/chunk-blocks-compute-pipeline";
+import { InputSystem } from "./input-system";
+import { PhysicsSystem } from "./physics-system";
+import { DynamicBuffer } from "./classes/dynamic-buffer";
+import { UISystem } from "./ui-system.ts";
+import { Profiler } from "./profiler.ts";
 
 export type State = {
-  canvas: HTMLCanvasElement
-  context: GPUCanvasContext
-  device: GPUDevice
-  adapter: GPUAdapter
-  audio: AudioContext
-  paused: boolean
+  canvas: HTMLCanvasElement;
+  context: GPUCanvasContext;
+  device: GPUDevice;
+  adapter: GPUAdapter;
+  audio: AudioContext;
+  paused: boolean;
 
-  depthTexture: GPUTexture
+  depthTexture: GPUTexture;
+  outlineTexture: GPUTexture;
 
   time: {
-    last: number
-    dt: { cpu: number, gpu: number },
-    seconds: number
-  }
+    last: number;
+    dt: { cpu: number; gpu: number };
+    seconds: number;
+  };
 
-  world: World
-  player: Player
+  world: World;
+  player: Player;
 
-  minimap: Minimap
+  minimap: Minimap;
 
-  // TEST FOR NOW
-  chunkBuffer: ArenaBuffer
+  chunkBuffer: ArenaBuffer;
 
-  pipelines: RenderPipeline[]
+  pipelines: RenderPipeline[];
 
-  compute: ChunkBlocksComputePipeline
+  compute: ChunkBlocksComputePipeline;
 
+  indirectBuffer: DynamicBuffer;
 
-  indirectBuffer: DynamicBuffer
-
-  profiler: Profiler
-  input: InputSystem
-  physics: PhysicsSystem
-  ui: UISystem
-}
+  profiler: Profiler;
+  input: InputSystem;
+  physics: PhysicsSystem;
+  ui: UISystem;
+};

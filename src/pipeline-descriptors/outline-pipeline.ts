@@ -20,7 +20,7 @@ export const OUTLINE_PIPELINE = (device: GPUDevice) => {
         entryPoint: "vs_main",
         buffers: [
           {
-            arrayStride: Float32Array.BYTES_PER_ELEMENT * 8,
+            arrayStride: Float32Array.BYTES_PER_ELEMENT * 4,
             attributes: [
               {
                 shaderLocation: 0, // p1
@@ -30,12 +30,7 @@ export const OUTLINE_PIPELINE = (device: GPUDevice) => {
               {
                 shaderLocation: 1, // p2
                 offset: 12,
-                format: "float32x3",
-              },
-              {
-                shaderLocation: 2, // uv
-                offset: 24,
-                format: "float32x2",
+                format: "float32",
               },
             ],
           },
@@ -45,7 +40,7 @@ export const OUTLINE_PIPELINE = (device: GPUDevice) => {
         entryPoint: "fs_main",
         targets: [
           {
-            format: navigator.gpu.getPreferredCanvasFormat(),
+            format: "rgba8unorm",
             blend: {
               color: {
                 srcFactor: "src-alpha",
@@ -118,17 +113,23 @@ export const OUTLINE_PIPELINE = (device: GPUDevice) => {
       pass.setBindGroup(0, self.groups[0].group);
 
       const blockstate = state.world.getBlockState(look);
-      const { block: blockID, orientation } =
-        BlockStateRegistry.decode(blockstate);
-      const mesh = MESHES[BlockRegistry.get(blockID).meshID].getOutlineEdges(
-        look,
+      const reg = BlockStateRegistry;
+      const { block: blockID, orientation } = reg.decode(blockstate);
+
+      const meshType = MESHES[BlockRegistry.get(blockID).meshID];
+      const mesh = meshType.getFullMesh(
+        look[0],
+        look[1],
+        look[2],
+        false, // normals
+        false, // uvs
+        0,
         orientation,
-        state.player.position,
       );
       outlinebuffer.write(mesh);
 
       pass.setVertexBuffer(0, outlinebuffer.handle);
-      pass.draw(outlinebuffer.capacity / Float32Array.BYTES_PER_ELEMENT / 8); // p1 p2 quadCoord (u, v)
+      pass.draw(outlinebuffer.capacity / Float32Array.BYTES_PER_ELEMENT / 4); // p1 p2 quadCoord (u, v)
     },
   });
 };

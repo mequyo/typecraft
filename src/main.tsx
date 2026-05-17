@@ -30,6 +30,7 @@ import { Chunk } from "./chunk.ts";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { Root } from "./react/root.tsx";
+import { POST_PIPELINE } from "./pipeline-descriptors/post-pipeline.ts";
 
 window.onload = main;
 
@@ -109,17 +110,13 @@ async function main() {
 
   await TextureRegistry.awaitImages();
   await SoundRegistry.awaitSounds(audio);
-
-  const textures = TextureRegistry.getAll().map<ImageBitmap>(
-    (texture) => texture.bitmap!,
-  );
+  const textures = TextureRegistry.getAll().map<ImageBitmap>((t) => t.bitmap!);
   const texturearray = await createTextureArray(
     device,
     IMAGE_SIZE,
     IMAGE_SIZE,
     textures,
   );
-  const textureview = texturearray.createView();
 
   const destroytextures = TextureRegistry.getAll().map<ImageBitmap>(
     (texture) => texture.bitmap!,
@@ -130,13 +127,18 @@ async function main() {
     IMAGE_SIZE,
     destroytextures,
   );
-  const destroytextureview = destroytexturearray.createView();
 
   // Create depth texture once
   const depthTexture = device.createTexture({
     size: [canvas.width, canvas.height],
-    format: "depth24plus", // or "depth32float" if you need high precision
+    format: "depth24plus",
     usage: GPUTextureUsage.RENDER_ATTACHMENT,
+  });
+
+  const outlineTexture = device.createTexture({
+    size: [canvas.width, canvas.height],
+    format: "rgba8unorm",
+    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
   });
 
   const minimap_arrow = await createImageBitmap(
@@ -161,6 +163,7 @@ async function main() {
     adapter,
     device,
     depthTexture,
+    outlineTexture,
     audio,
     paused: true,
     time: {
@@ -189,9 +192,10 @@ async function main() {
 
     pipelines: [
       SKY_PIPELINE(device),
-      MAIN_PIPELINE(device, textureview),
+      MAIN_PIPELINE(device, texturearray.createView()),
       OUTLINE_PIPELINE(device),
-      DESTROY_PIPELINE(device, destroytextureview),
+      DESTROY_PIPELINE(device, destroytexturearray.createView()),
+      POST_PIPELINE(device, outlineTexture.createView()),
     ],
 
     compute: new ChunkBlocksComputePipeline(device),
@@ -224,14 +228,21 @@ async function main() {
 
     // Update depth texture
     state.depthTexture.destroy();
-
     const depthTexture = device.createTexture({
       size: [canvas.width, canvas.height],
       format: "depth24plus",
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
     });
-
     state.depthTexture = depthTexture;
+
+    state.outlineTexture.destroy();
+    const outlineTexture = device.createTexture({
+      size: [canvas.width, canvas.height],
+      format: "rgba8unorm",
+      usage:
+        GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+    });
+    state.outlineTexture = outlineTexture;
   };
 
   window.setInterval(() => {
