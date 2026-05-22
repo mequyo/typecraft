@@ -1,18 +1,30 @@
-import { BUFFER_GROW_FACTOR, BUFFER_MIN_SIZE, BUFFER_SHRINK_THRESHOLD } from "../constants";
-
-
+import {
+  BUFFER_GROW_FACTOR,
+  BUFFER_MIN_SIZE,
+  BUFFER_SHRINK_THRESHOLD,
+} from "../constants";
 
 export class DynamicBuffer {
-  private device: GPUDevice
-  public handle: GPUBuffer
-  private usage: GPUBufferUsageFlags
-  public capacity = 0 // Bytes currently in use (being drawn)
-  public readback?: GPUBuffer
-  private sizeBytes = 0 // Actual GPU buffer size in bytes
+  private device: GPUDevice;
+  public handle: GPUBuffer;
+  private usage: GPUBufferUsageFlags;
+  public capacity = 0; // Bytes currently in use (being drawn)
+  public readback?: GPUBuffer;
+  private sizeBytes = 0; // Actual GPU buffer size in bytes
 
-  constructor(device: GPUDevice, usage: GPUBufferUsageFlags, dataOrSize?: ArrayBufferView | number, readback?: boolean) {
+  constructor(
+    device: GPUDevice,
+    usage: GPUBufferUsageFlags,
+    dataOrSize?: ArrayBufferView | number,
+    readback?: boolean,
+  ) {
     // Compute initial size in bytes (must be multiple of 4 for copies)
-    const initialBytes = dataOrSize == undefined ? BUFFER_MIN_SIZE : (typeof dataOrSize == "number" ? dataOrSize : dataOrSize.byteLength);
+    const initialBytes =
+      dataOrSize == undefined
+        ? BUFFER_MIN_SIZE
+        : typeof dataOrSize == "number"
+          ? dataOrSize
+          : dataOrSize.byteLength;
     const aligned = initialBytes + ((4 - (initialBytes % 4)) % 4);
 
     this.device = device;
@@ -31,7 +43,7 @@ export class DynamicBuffer {
     if (dataOrSize && typeof dataOrSize != "number") this.write(dataOrSize);
   }
 
-  /** 
+  /**
    * Uploads data to the GPU buffer. Automatically grows or shrinks
    * depending on usage. Offsets are in bytes.
    */
@@ -39,13 +51,17 @@ export class DynamicBuffer {
     const bytes = data.byteLength;
 
     // Grow if too small or shrink if buffer is way too big for data
-    if (!this.handle || this.sizeBytes < bytes || this.sizeBytes * BUFFER_SHRINK_THRESHOLD > bytes) {
+    if (
+      !this.handle ||
+      this.sizeBytes < bytes + bufferoffset ||
+      this.sizeBytes * BUFFER_SHRINK_THRESHOLD > bytes
+    ) {
       const hadReadback = !!this.readback;
 
       this.handle?.destroy();
       this.readback?.destroy();
 
-      let newSize = Math.floor(bytes * BUFFER_GROW_FACTOR);
+      let newSize = Math.floor((bytes + bufferoffset) * BUFFER_GROW_FACTOR);
       newSize = newSize + ((4 - (newSize % 4)) % 4);
       newSize = Math.max(newSize, BUFFER_MIN_SIZE);
 
@@ -67,7 +83,12 @@ export class DynamicBuffer {
 
     // Write CPU data → GPU buffer
     this.capacity = bytes;
-    this.device.queue.writeBuffer(this.handle, bufferoffset, data.buffer, data.byteOffset, data.byteLength);
+    this.device.queue.writeBuffer(
+      this.handle,
+      bufferoffset,
+      data.buffer,
+      data.byteOffset,
+      data.byteLength,
+    );
   }
-
 }
