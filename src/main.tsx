@@ -31,6 +31,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { Root } from "./react/root.tsx";
 import { POST_PIPELINE } from "./pipeline-descriptors/post-pipeline.ts";
+import { LVH } from "./classes/lvh.ts";
 
 window.onload = main;
 
@@ -50,7 +51,11 @@ async function initDevices(): Promise<Devices> {
   if (!adapter) throw new Error("Could not request GPU adapter.");
 
   const device = await adapter.requestDevice({
-    requiredLimits: { maxBufferSize: adapter.limits.maxBufferSize },
+    requiredLimits: {
+      maxBufferSize: adapter.limits.maxBufferSize,
+      maxStorageBufferBindingSize: adapter.limits.maxStorageBufferBindingSize,
+    },
+
     // @ts-ignore
     requiredFeatures: ["chromium-experimental-multi-draw-indirect"],
   });
@@ -183,6 +188,8 @@ async function main() {
       [1 / 6, 1 / 6, 1 / 6, 1 / 6, 1 / 6, 1 / 6],
       64,
     ),
+
+    lvh: new LVH(device),
 
     indirectBuffer: new DynamicBuffer(
       device,
