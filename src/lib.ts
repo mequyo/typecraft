@@ -7,26 +7,43 @@ import { vec3, Vec3 } from "wgpu-matrix";
 import { Chunk } from "./chunk";
 import { BlockRegistry } from "./registries/block-registry";
 import { FACE, ORIENTATION_FACE_MAP } from "./mesh";
-
-
+import { DynamicBuffer } from "./classes/dynamic-buffer";
 
 export function collides(pos: Vec3, world: World): Vec3 | null {
   const hitbox = {
-    min: vec3.floor(vec3.create(pos[0] - PLAYER_WIDTH / 2, pos[1] - CAMERA_HEIGHT, pos[2] - PLAYER_WIDTH / 2)),
-    max: vec3.floor(vec3.create(pos[0] + PLAYER_WIDTH / 2, pos[1] + PLAYER_HEIGHT - CAMERA_HEIGHT, pos[2] + PLAYER_WIDTH / 2)),
-  }
+    min: vec3.floor(
+      vec3.create(
+        pos[0] - PLAYER_WIDTH / 2,
+        pos[1] - CAMERA_HEIGHT,
+        pos[2] - PLAYER_WIDTH / 2,
+      ),
+    ),
+    max: vec3.floor(
+      vec3.create(
+        pos[0] + PLAYER_WIDTH / 2,
+        pos[1] + PLAYER_HEIGHT - CAMERA_HEIGHT,
+        pos[2] + PLAYER_WIDTH / 2,
+      ),
+    ),
+  };
 
   for (let x = hitbox.min[0]; x <= hitbox.max[0]; x++) {
     for (let y = hitbox.min[1]; y <= hitbox.max[1]; y++) {
       for (let z = hitbox.min[2]; z <= hitbox.max[2]; z++) {
         // Check whether any position is inside a block of a chunk
         const local = vec3ToLocalChunk(vec3.create(x, y, z)); // local position in chunk
-        const offset = vec3.floor(vec3.divScalar(vec3.create(x, y, z), CHUNK_SIZE));  // chunk offset
+        const offset = vec3.floor(
+          vec3.divScalar(vec3.create(x, y, z), CHUNK_SIZE),
+        ); // chunk offset
         const chunk = world.getChunk(offset);
 
         // TODO non-cube blocks
 
-        if (chunk && BlockStateRegistry.decode(chunk.get(local[0], local[1], local[2])).block != AIR.ID) {
+        if (
+          chunk &&
+          BlockStateRegistry.decode(chunk.get(local[0], local[1], local[2]))
+            .block != AIR.ID
+        ) {
           return vec3.create(x, y, z);
         }
       }
@@ -34,6 +51,48 @@ export function collides(pos: Vec3, world: World): Vec3 | null {
   }
 
   return null;
+}
+
+const KB = 1024;
+const MB = 1024 * 1024;
+const GB = 1024 * 1024 * 1024;
+type Size = `${number}${"KB" | "MB" | "GB"}`;
+
+export function ReadOnlyStorage(device: GPUDevice, size?: Size): DynamicBuffer {
+  let bytes: undefined | number = undefined;
+  const match = size?.match(/(\d+)(.+)/);
+
+  if (match) {
+    const num = Number(match[1]);
+    const type = match[2];
+    const mult = type == "KB" ? KB : type == "MB" ? MB : GB;
+    bytes = num * mult;
+  }
+
+  return new DynamicBuffer(
+    device,
+    GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
+    bytes,
+  );
+}
+
+export function Uniform(
+  device: GPUDevice,
+  data: ArrayBufferView,
+): DynamicBuffer {
+  return new DynamicBuffer(
+    device,
+    GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+    data,
+  );
+}
+
+export function u32(...values: number[]) {
+  return new Uint32Array([...values]);
+}
+
+export function f32(...values: number[]) {
+  return new Float32Array([...values]);
 }
 
 export function vec3ToLocalChunk(v: Vec3): Vec3 {
@@ -44,9 +103,12 @@ export function vec3ToLocalChunk(v: Vec3): Vec3 {
   );
 }
 
-
-export function dda(start: Vec3, dir: Vec3, maxDist: number): { pos: Vec3, face: Vec3 }[] {
-  const hits: { pos: Vec3, face: Vec3 }[] = [];
+export function dda(
+  start: Vec3,
+  dir: Vec3,
+  maxDist: number,
+): { pos: Vec3; face: Vec3 }[] {
+  const hits: { pos: Vec3; face: Vec3 }[] = [];
 
   let x = Math.floor(start[0]);
   let y = Math.floor(start[1]);
@@ -60,9 +122,9 @@ export function dda(start: Vec3, dir: Vec3, maxDist: number): { pos: Vec3, face:
   const dy = Math.abs(1 / dir[1]);
   const dz = Math.abs(1 / dir[2]);
 
-  let mx = ((sx > 0 ? (x + 1) - start[0] : start[0] - x)) * dx;
-  let my = ((sy > 0 ? (y + 1) - start[1] : start[1] - y)) * dy;
-  let mz = ((sz > 0 ? (z + 1) - start[2] : start[2] - z)) * dz;
+  let mx = (sx > 0 ? x + 1 - start[0] : start[0] - x) * dx;
+  let my = (sy > 0 ? y + 1 - start[1] : start[1] - y) * dy;
+  let mz = (sz > 0 ? z + 1 - start[2] : start[2] - z) * dz;
 
   let dist = 0;
   while (dist < maxDist) {
@@ -105,21 +167,24 @@ export function dda(start: Vec3, dir: Vec3, maxDist: number): { pos: Vec3, face:
   return hits;
 }
 
-
-export async function loadTexturesFromUrls(urls: string[]): Promise<{ [key: string]: HTMLImageElement }> {
+export async function loadTexturesFromUrls(
+  urls: string[],
+): Promise<{ [key: string]: HTMLImageElement }> {
   const map: { [key: string]: HTMLImageElement } = {};
 
   await Promise.all(
-    urls.map(url =>
-      new Promise<HTMLImageElement>((resolve, reject) => {
-        const img = new Image();
-        img.src = url;
-        img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error(`Failed to load image: ${img.src}`));
+    urls.map(
+      (url) =>
+        new Promise<HTMLImageElement>((resolve, reject) => {
+          const img = new Image();
+          img.src = url;
+          img.onload = () => resolve(img);
+          img.onerror = () =>
+            reject(new Error(`Failed to load image: ${img.src}`));
 
-        map[url] = img;
-      })
-    )
+          map[url] = img;
+        }),
+    ),
   );
 
   return map; // this is now HTMLImageElement[]
@@ -130,28 +195,38 @@ export async function loadImage(url: string): Promise<HTMLImageElement> {
     const image = new Image();
     image.src = url;
     image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error(`Failed to load image from ${image.src}`));
+    image.onerror = () =>
+      reject(new Error(`Failed to load image from ${image.src}`));
   });
 }
 
-export async function bitmapFromBlockData(blocks: Uint16Array): Promise<ImageBitmap> {
-  if (blocks.length != CHUNK_SIZE ** 3) throw new Error("Array should be CHUNK_SIZE^3 big");
+export async function bitmapFromBlockData(
+  blocks: Uint16Array,
+): Promise<ImageBitmap> {
+  if (blocks.length != CHUNK_SIZE ** 3)
+    throw new Error("Array should be CHUNK_SIZE^3 big");
 
   //const data = new Uint8ClampedArray(CHUNK_SIZE * CHUNK_SIZE * 4);
-  const canvas = new OffscreenCanvas(CHUNK_SIZE * IMAGE_SIZE, CHUNK_SIZE * IMAGE_SIZE);
+  const canvas = new OffscreenCanvas(
+    CHUNK_SIZE * IMAGE_SIZE,
+    CHUNK_SIZE * IMAGE_SIZE,
+  );
   const context = canvas.getContext("2d")!;
 
   for (let x = 0; x < CHUNK_SIZE; x++) {
     for (let y = 0; y < CHUNK_SIZE; y++) {
       for (let z = 0; z < CHUNK_SIZE; z++) {
-
         const index = Chunk.pack(x, y, z);
 
         const blockstate = blocks[index];
-        const { block: ID, orientation } = BlockStateRegistry.decode(blockstate);
+        const { block: ID, orientation } =
+          BlockStateRegistry.decode(blockstate);
 
         const block = BlockRegistry.get(ID);
-        const texture = block.textures[ORIENTATION_FACE_MAP[orientation][FACE.PY] % block.textures.length];
+        const texture =
+          block.textures[
+            ORIENTATION_FACE_MAP[orientation][FACE.PY] % block.textures.length
+          ];
 
         //console.log(texture.bitmap)
 
@@ -173,7 +248,9 @@ export async function bitmapFromBlockData(blocks: Uint16Array): Promise<ImageBit
 }
 
 export async function getImageData(url: string): Promise<ImageData> {
-  const bitmap = await fetch(url).then(r => r.blob()).then(createImageBitmap);
+  const bitmap = await fetch(url)
+    .then((r) => r.blob())
+    .then(createImageBitmap);
   const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
   const ctx = canvas.getContext("2d")!;
 
@@ -182,19 +259,42 @@ export async function getImageData(url: string): Promise<ImageData> {
   return ctx.getImageData(0, 0, bitmap.width, bitmap.height);
 }
 
-function packVertex(x: number, y: number, z: number, r: number, g: number, b: number, a: number): [number, number] {
+function packVertex(
+  x: number,
+  y: number,
+  z: number,
+  r: number,
+  g: number,
+  b: number,
+  a: number,
+): [number, number] {
   const pos = (x << 8) | (y << 4) | z;
   const color = ((r << 24) | (g << 16) | (b << 8) | a) >>> 0;
   return [pos, color];
 }
 
 // p0-3 are 4 corners: each is [x, y, z]
-type V3 = [number, number, number]
-type Color = [number, number, number, number]
-function pushQuad(vertices: number[], p0: V3, p1: V3, p2: V3, p3: V3, rgba: Color) {
+type V3 = [number, number, number];
+type Color = [number, number, number, number];
+function pushQuad(
+  vertices: number[],
+  p0: V3,
+  p1: V3,
+  p2: V3,
+  p3: V3,
+  rgba: Color,
+) {
   // Two triangles: p0 p1 p2, p0 p2 p3
   for (const p of [p0, p1, p2, p0, p2, p3]) {
-    const [pos, color] = packVertex(p[0], p[1], p[2], rgba[0], rgba[1], rgba[2], rgba[3]);
+    const [pos, color] = packVertex(
+      p[0],
+      p[1],
+      p[2],
+      rgba[0],
+      rgba[1],
+      rgba[2],
+      rgba[3],
+    );
     vertices.push(pos, color);
   }
 }
@@ -219,32 +319,79 @@ export async function createItemMesh(url: string): Promise<Uint32Array> {
 
       // Front face (z = DEPTH)
       const rgba: Color = [r, g, b, a];
-      pushQuad(vertices, [x, y, DEPTH], [x + 1, y, DEPTH], [x + 1, y + 1, DEPTH], [x, y + 1, DEPTH], rgba);
+      pushQuad(
+        vertices,
+        [x, y, DEPTH],
+        [x + 1, y, DEPTH],
+        [x + 1, y + 1, DEPTH],
+        [x, y + 1, DEPTH],
+        rgba,
+      );
       // Back face (z = 0)
-      pushQuad(vertices, [x + 1, y, 0], [x, y, 0], [x, y + 1, 0], [x + 1, y + 1, 0], rgba);
+      pushQuad(
+        vertices,
+        [x + 1, y, 0],
+        [x, y, 0],
+        [x, y + 1, 0],
+        [x + 1, y + 1, 0],
+        rgba,
+      );
 
       // Right face (+x neighbor transparent)
       if (alpha(x + 1, y) === 0)
-        pushQuad(vertices, [x + 1, y, 0], [x + 1, y + 1, 0], [x + 1, y + 1, DEPTH], [x + 1, y, DEPTH], rgba);
+        pushQuad(
+          vertices,
+          [x + 1, y, 0],
+          [x + 1, y + 1, 0],
+          [x + 1, y + 1, DEPTH],
+          [x + 1, y, DEPTH],
+          rgba,
+        );
 
       // Left face (-x neighbor transparent)
       if (alpha(x - 1, y) === 0)
-        pushQuad(vertices, [x, y, DEPTH], [x, y + 1, DEPTH], [x, y + 1, 0], [x, y, 0], rgba);
+        pushQuad(
+          vertices,
+          [x, y, DEPTH],
+          [x, y + 1, DEPTH],
+          [x, y + 1, 0],
+          [x, y, 0],
+          rgba,
+        );
 
       // Top face (-y neighbor transparent, y=0 is top)
       if (alpha(x, y - 1) === 0)
-        pushQuad(vertices, [x, y, DEPTH], [x, y, 0], [x + 1, y, 0], [x + 1, y, DEPTH], rgba);
+        pushQuad(
+          vertices,
+          [x, y, DEPTH],
+          [x, y, 0],
+          [x + 1, y, 0],
+          [x + 1, y, DEPTH],
+          rgba,
+        );
 
       // Bottom face (+y neighbor transparent)
       if (alpha(x, y + 1) === 0)
-        pushQuad(vertices, [x, y + 1, 0], [x, y + 1, DEPTH], [x + 1, y + 1, DEPTH], [x + 1, y + 1, 0], rgba);
+        pushQuad(
+          vertices,
+          [x, y + 1, 0],
+          [x, y + 1, DEPTH],
+          [x + 1, y + 1, DEPTH],
+          [x + 1, y + 1, 0],
+          rgba,
+        );
     }
   }
 
   return new Uint32Array(vertices);
 }
 
-export async function renderIsometricBlock(canvas: OffscreenCanvas, ctx: OffscreenCanvasRenderingContext2D, source: HTMLImageElement, size = 128): Promise<HTMLImageElement> {
+export async function renderIsometricBlock(
+  canvas: OffscreenCanvas,
+  ctx: OffscreenCanvasRenderingContext2D,
+  source: HTMLImageElement,
+  size = 128,
+): Promise<HTMLImageElement> {
   // 1. Reset and Prepare Canvas
   canvas.width = size;
   canvas.height = size;
@@ -269,17 +416,17 @@ export async function renderIsometricBlock(canvas: OffscreenCanvas, ctx: Offscre
   // --- LEFT FACE ---
   ctx.setTransform(f, f / 2, 0, f, cx - S, cy - S / 2);
   ctx.drawImage(source, 0, 0);
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+  ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
   ctx.fillRect(0, 0, source.width, source.height);
 
   // --- RIGHT FACE ---
   ctx.setTransform(f, -f / 2, 0, f, cx, cy);
   ctx.drawImage(source, 0, 0);
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+  ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
   ctx.fillRect(0, 0, source.width, source.height);
 
   // Export Logic for OffscreenCanvas
-  const blob = await canvas.convertToBlob({ type: 'image/png' });
+  const blob = await canvas.convertToBlob({ type: "image/png" });
   const url = URL.createObjectURL(blob);
 
   return new Promise((resolve, reject) => {
