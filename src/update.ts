@@ -1,4 +1,4 @@
-import { MINIMAP_MAX_ZOOM, MINIMAP_MIN_ZOOM } from "./constants";
+import { CHUNK_SIZE, MINIMAP_MAX_ZOOM, MINIMAP_MIN_ZOOM } from "./constants";
 import { vec3 } from "wgpu-matrix";
 import { State } from "./state";
 import { BlockStateRegistry } from "./registries/blockstate-registry";
@@ -73,6 +73,10 @@ export async function update(timestamp: DOMHighResTimeStamp, state: State) {
       dt,
     );
   }
+
+  state.gpuIndirectionBufferOrigin = vec3.floor(
+    vec3.divScalar(player.position, CHUNK_SIZE),
+  );
 
   await render(state);
 

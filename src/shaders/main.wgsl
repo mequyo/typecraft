@@ -3,7 +3,6 @@ struct VertexInput {
     @location(0) xyz: u32, // [9 bits local x, 9 bits local y, 9 bits local z]
     @location(1) uvt: u32, // [8 bits u, 8 bits v, 16 bits texture]
 }
-
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) normal: vec3<f32>,
@@ -12,22 +11,25 @@ struct VertexOutput {
     @location(3) world_position: vec3<f32>,
     @location(4) delta_time: f32,
 }
-
 struct Chunk {
+    blocks: array<i32, 32768>,
     origin: vec3<i32>,
-    time: f32, // in seconds
+    time: i32, // in milliseconds
 }
 
 @group(0) @binding(0) var mySampler: sampler;
 @group(0) @binding(1) var myTexture: texture_2d_array<f32>;
 
 @group(1) @binding(0) var<storage, read> chunks: array<Chunk>;
+@group(1) @binding(1) var<storage, read> indirection: array<u32>; // Maps xyz (packed) -> index in chunks
 
 @group(2) @binding(0) var<uniform> projection: mat4x4<f32>;
 @group(2) @binding(1) var<uniform> view: mat4x4<f32>;
 @group(2) @binding(2) var<uniform> player_position: vec3<f32>;
 @group(2) @binding(3) var<uniform> time: f32;
 @group(2) @binding(4) var<uniform> lookat: vec3<f32>;
+@group(2) @binding(5) var<uniform> render_distance: u32;
+@group(2) @binding(6) var<uniform> indirectionOrigin: vec3<i32>;
 
 const FADE_IN_DURATION = 0.5;
 
@@ -37,7 +39,8 @@ const FADE_IN_DURATION = 0.5;
 fn vs_main(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
     var face = input.iid & 7;
-    var chunkIndex = input.iid >> 3;
+    var chunkCoordinatePacked = input.iid >> 3;
+    var chunkIndex = indirection[chunkCoordinatePacked];
     var chunk = chunks[chunkIndex];
 
     let local_z = f32(input.xyz & 511) / 4.0;
@@ -56,7 +59,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     output.texture_uv = vec3(f32(u8) / 255.0, f32(v8) / 255.0, f32(tex16));
     output.player_position = player_position;
     output.world_position = world_position;
-    output.delta_time = clamp((time - chunk.time) / FADE_IN_DURATION, 0.0, 1.0);;
+    output.delta_time = clamp((time - f32(chunk.time) / 1000.0) / FADE_IN_DURATION, 0.0, 1.0);;
 
     return output;
 }

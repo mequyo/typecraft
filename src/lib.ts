@@ -91,6 +91,10 @@ export function u32(...values: number[]) {
   return new Uint32Array([...values]);
 }
 
+export function i32(...values: number[]) {
+  return new Int32Array([...values]);
+}
+
 export function f32(...values: number[]) {
   return new Float32Array([...values]);
 }

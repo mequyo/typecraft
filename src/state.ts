@@ -9,6 +9,9 @@ import { PhysicsSystem } from "./physics-system";
 import { DynamicBuffer } from "./classes/dynamic-buffer";
 import { UISystem } from "./ui-system.ts";
 import { Profiler } from "./profiler.ts";
+import { LVH } from "./classes/lvh.ts";
+import { Vec3 } from "wgpu-matrix";
+import { SlotMap } from "./classes/slot-map.ts";
 
 export type State = {
   canvas: HTMLCanvasElement;
@@ -29,11 +32,14 @@ export type State = {
 
   world: World;
   player: Player;
-
+  render_distance: number;
+  sphere_offsets: Vec3[];
+  gpuIndrectionChunkMap: Uint32Array;
+  gpuIndirectionBufferOrigin: Vec3;
   minimap: Minimap;
 
   chunkBuffer: ArenaBuffer;
-
+  lvh: LVH;
   pipelines: RenderPipeline[];
 
   compute: ChunkBlocksComputePipeline;

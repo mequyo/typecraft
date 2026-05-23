@@ -34,7 +34,8 @@ export const WORLEY_THRESHOLD = 0.25;
 
 // USEFUL SIZES
 export const FLOATS_PER_VERTEX = 3 + 2 + 1; // xyz + uv + t
-export const BYTES_PER_VERTEX = Float32Array.BYTES_PER_ELEMENT * FLOATS_PER_VERTEX;
+export const BYTES_PER_VERTEX =
+  Float32Array.BYTES_PER_ELEMENT * FLOATS_PER_VERTEX;
 export const VERTICES_PER_FACE = FLOATS_PER_VERTEX * 6;
 
 // MINIMAP
@@ -46,7 +47,8 @@ export const MINIMAP_INITIAL_ZOOM = 1; // pixels per block
 export const MINIMAP_BLOCK_SIZE = 4;
 export const MINIMAP_CANVAS_SIZE = 512;
 export const REGION_SIZE = MINIMAP_CANVAS_SIZE / MINIMAP_BLOCK_SIZE;
-export const REGION_WIDTH_IN_CHUNKS = MINIMAP_CANVAS_SIZE / CHUNK_SIZE / MINIMAP_BLOCK_SIZE;
+export const REGION_WIDTH_IN_CHUNKS =
+  MINIMAP_CANVAS_SIZE / CHUNK_SIZE / MINIMAP_BLOCK_SIZE;
 
 // DYNAMIC BUFFER
 export const BUFFER_GROW_FACTOR = 1.3; // How much padding the buffer has on resize

@@ -131,13 +131,14 @@ export const ORIENTATION_FACE_MAP: number[][] = (() => {
 })();
 
 // Generates a list of coordinates (a sphere) and sorts it by distance to load chunks around the player in distance order
-export const SPHERE_OFFSETS: Vec3[] = (() => {
-  const offsets: [number, number, number, number][] = [];
-  const r2 = RENDER_DISTANCE * RENDER_DISTANCE;
 
-  for (let x = -RENDER_DISTANCE; x <= RENDER_DISTANCE; x++) {
+export function calculateSphereOffsets(radius: number): Vec3[] {
+  const offsets: [number, number, number, number][] = [];
+  const r2 = radius * radius;
+
+  for (let x = -radius; x <= radius; x++) {
     for (let y = -3; y <= 3; y++) {
-      for (let z = -RENDER_DISTANCE; z <= RENDER_DISTANCE; z++) {
+      for (let z = -radius; z <= radius; z++) {
         const d2 = x * x + y * y + z * z;
         if (d2 <= r2) {
           offsets.push([x, y, z, d2]);
@@ -149,7 +150,7 @@ export const SPHERE_OFFSETS: Vec3[] = (() => {
   offsets.sort((a, b) => a[3] - b[3]); // Sort by distance
 
   return offsets.map((o) => vec3.create(o[0], o[1], o[2]));
-})();
+}
 
 export class Mesh {
   public readonly bakedFaces: Float32Array[][] = []; // [orientation][face] -> Mesh

@@ -1,13 +1,21 @@
-import { DynamicBuffer } from "../classes/dynamic-buffer";
 import { RenderPipeline } from "../render-pipeline";
 import mainvertex from "../shaders/main.wgsl?raw";
 import { mat4, vec3 } from "wgpu-matrix";
+import { World } from "../world";
+import { CHUNK_SIZE, RENDER_DISTANCE } from "../constants";
+import { f32, i32, ReadOnlyStorage, u32, Uniform } from "../lib";
 
 export const MAIN_PIPELINE = (
   device: GPUDevice,
   textureview: GPUTextureView,
-): RenderPipeline =>
-  new RenderPipeline({
+): RenderPipeline => {
+  const BLOCKS = 32 ** 3;
+  const STRIDE = BLOCKS + 3 + 1; // 32768 blocks + origin + time
+
+  const GPUChunks: Map<number, number> = new Map(); // ChunkID -> BufferIndex
+  let slot = 0;
+
+  return new RenderPipeline({
     device,
     module: device.createShaderModule({ code: mainvertex }),
     descriptor: {
@@ -71,28 +79,73 @@ export const MAIN_PIPELINE = (
           resource: textureview,
         },
       ],
+      // STORAGE BUFFERS
       [
+        // Chunk Buffer
         {
           buffer: { type: "read-only-storage" },
-          resource: new DynamicBuffer(
-            device,
-            GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
-          ),
+          resource: ReadOnlyStorage(device, "1GB"),
           update: (state, buffer) => {
-            const filtered = state.world.filtered;
-            const data = new Int32Array(4 * filtered.length);
+            const chunks = state.world.chunks.values;
+            const data = new Int32Array(STRIDE);
 
-            for (let c = 0; c < filtered.length; c++) {
-              const chunk = filtered[c];
-              const i = 4 * c;
+            for (let i = 0; i < chunks.length; i++) {
+              const chunk = chunks[i];
+              const offset = chunk.offset;
+              const ID = World.pack(offset[0], offset[1], offset[2]);
 
-              data[i + 0] = chunk.offset[0];
-              data[i + 1] = chunk.offset[1];
-              data[i + 2] = chunk.offset[2];
-              data[i + 3] = chunk.timestamp;
+              if (GPUChunks.get(ID) !== undefined) continue;
+
+              data.set(chunk.blocks, 0);
+              data[BLOCKS + 0] = chunk.offset[0];
+              data[BLOCKS + 1] = chunk.offset[1];
+              data[BLOCKS + 2] = chunk.offset[2];
+              data[BLOCKS + 3] = 1000 * chunk.timestamp;
+
+              buffer.write(data, slot * STRIDE * Int32Array.BYTES_PER_ELEMENT);
+              GPUChunks.set(ID, slot);
+              slot++;
+            }
+          },
+        },
+        // Indirection
+        {
+          buffer: { type: "read-only-storage" },
+          resource: ReadOnlyStorage(device),
+          update: (state, buffer) => {
+            state.gpuIndrectionChunkMap.fill(0xffffffff);
+
+            const chunks = state.world.chunks.values;
+
+            // 2. Rebuild the map using the chunk's actual SSBO slot
+            for (let i = 0; i < chunks.length; i++) {
+              const chunk = chunks[i];
+              const ID = World.pack(
+                chunk.offset[0],
+                chunk.offset[1],
+                chunk.offset[2],
+              );
+              const chunkSlot = GPUChunks.get(ID);
+
+              if (chunkSlot !== undefined) {
+                const trnsf = vec3.sub(
+                  chunk.offset,
+                  state.gpuIndirectionBufferOrigin,
+                );
+                const indirectionID = World.packIndirection(
+                  trnsf[0],
+                  trnsf[1],
+                  trnsf[2],
+                  state.render_distance,
+                );
+
+                if (indirectionID !== 0xffffffff) {
+                  state.gpuIndrectionChunkMap[indirectionID] = chunkSlot; // Use slot, not i
+                }
+              }
             }
 
-            buffer.write(data);
+            buffer.write(state.gpuIndrectionChunkMap);
           },
         },
       ],
@@ -101,55 +154,49 @@ export const MAIN_PIPELINE = (
       [
         {
           buffer: { type: "uniform" },
-          resource: new DynamicBuffer(
-            device,
-            GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
-            mat4.create(),
-          ),
+          resource: Uniform(device, mat4.create()),
           update: (state, buffer) => buffer.write(state.player.projection),
         },
         {
           buffer: { type: "uniform" },
-          resource: new DynamicBuffer(
-            device,
-            GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
-            mat4.create(),
-          ),
+          resource: Uniform(device, mat4.create()),
           update: (state, buffer) => buffer.write(state.player.view),
         },
         {
           buffer: { type: "uniform" },
-          resource: new DynamicBuffer(
-            device,
-            GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
-            vec3.create(),
-          ),
+          resource: Uniform(device, vec3.create()),
           update: (state, buffer) => buffer.write(state.player.position),
         },
         {
           buffer: { type: "uniform" },
-          resource: new DynamicBuffer(
-            device,
-            GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
-            new Float32Array([0]),
-          ),
-          update: (state, buffer) =>
-            buffer.write(new Float32Array([state.time.seconds])),
+          resource: Uniform(device, f32(0)),
+          update: (state, buffer) => buffer.write(f32(state.time.seconds)),
         },
         {
           buffer: { type: "uniform" },
-          resource: new DynamicBuffer(
-            device,
-            GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
-            new Float32Array(3),
-          ),
+          resource: Uniform(device, vec3.create()),
           update: (state, buffer) => {
             const look = state.player.lookat;
-            const arr = look
-              ? new Float32Array([look[0], look[1], look[2]])
-              : new Float32Array([0, 0, 0]);
-            buffer.write(arr);
+            buffer.write(look ? f32(...look) : f32(0, 0, 0));
           },
+        },
+        {
+          buffer: { type: "uniform" },
+          resource: Uniform(device, u32(2 * RENDER_DISTANCE + 1)),
+          update: (state, buffer) =>
+            buffer.write(u32(2 * state.render_distance + 1)),
+        },
+        {
+          buffer: { type: "uniform" },
+          resource: Uniform(device, vec3.create()),
+          update: (state, buffer) =>
+            buffer.write(
+              i32(
+                ...vec3.floor(
+                  vec3.divScalar(state.player.position, CHUNK_SIZE),
+                ),
+              ),
+            ),
         },
       ],
     ],
@@ -163,37 +210,39 @@ export const MAIN_PIPELINE = (
 
       pass.setVertexBuffer(0, state.chunkBuffer.buffer);
 
-      const filtered = state.world.filtered; // Removes empty and out of frustum chunks
+      const chunks = state.world.chunks.values;
+      const indirect = new Uint32Array(4 * 6 * state.world.filtered.length);
 
-      // TEST multi draw
-      const indirect: number[] = [];
+      for (let i = 0, offset = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
 
-      for (let i = 0; i < filtered.length; i++) {
-        const chunk = filtered[i];
+        if (!chunk.visible) continue;
+
+        const trns = vec3.sub(chunk.offset, state.gpuIndirectionBufferOrigin);
+        const packed = World.packIndirection(
+          trns[0],
+          trns[1],
+          trns[2],
+          state.render_distance,
+        );
+
+        if (packed == 0xffffffff) continue;
 
         for (let face = 0; face < 6; face += 1) {
-          // vertexCount, instanceCount, firstVertex, and firstInstance (29 bits of chunkIndex and 3 bits for face (0-5))
           // allocations.size/start are in bytes; each vertex is 8 bytes (two u32), so divide by 8
-          indirect.push(
-            chunk.allocations[face].size / 8,
-            1,
-            chunk.allocations[face].start / 8,
-            (i << 3) | face,
-          );
+          indirect[offset++] = chunk.allocations[face].size / 8; // vertexCount
+          indirect[offset++] = 1; // instanceCount
+          indirect[offset++] = chunk.allocations[face].start / 8; // firstVertex
+          indirect[offset++] = (packed << 3) | (face << 0); // firstInstance (29 bits chunkIndex, 3 bits face 0-5)
         }
       }
 
       if (indirect.length === 0) return;
 
-      const drawData = new Uint32Array(indirect);
-
-      state.indirectBuffer.write(drawData);
-
+      const buffer = state.indirectBuffer;
+      buffer.write(indirect);
       // @ts-ignore, only available through extension
-      pass.multiDrawIndirect(
-        state.indirectBuffer.handle,
-        0,
-        drawData.length / 4,
-      );
+      pass.multiDrawIndirect(buffer.handle, 0, indirect.length / 4);
     },
   });
+};

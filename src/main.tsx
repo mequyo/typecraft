@@ -15,7 +15,12 @@ import { ArenaBuffer } from "./classes/arena-buffer.ts";
 import { PhysicsSystem } from "./physics-system.ts";
 import { InputSystem } from "./input-system.ts";
 import { Minimap } from "./classes/minimap.ts";
-import { BYTES_PER_VERTEX, IMAGE_SIZE } from "./constants.ts";
+import {
+  BYTES_PER_VERTEX,
+  CHUNK_SIZE,
+  IMAGE_SIZE,
+  RENDER_DISTANCE,
+} from "./constants.ts";
 import { UISystem } from "./ui-system.ts";
 import { Profiler } from "./profiler.ts";
 import { Devices } from "./types.ts";
@@ -32,6 +37,8 @@ import ReactDOM from "react-dom/client";
 import { Root } from "./react/root.tsx";
 import { POST_PIPELINE } from "./pipeline-descriptors/post-pipeline.ts";
 import { LVH } from "./classes/lvh.ts";
+import { calculateSphereOffsets } from "./mesh.ts";
+import { SlotMap } from "./classes/slot-map.ts";
 
 window.onload = main;
 
@@ -178,7 +185,12 @@ async function main() {
     },
     world: new World(new TerrainGenerator()),
     player,
-
+    render_distance: RENDER_DISTANCE,
+    sphere_offsets: calculateSphereOffsets(RENDER_DISTANCE),
+    gpuIndrectionChunkMap: new Uint32Array((2 * RENDER_DISTANCE + 1) ** 3), // Maps chunk index to indirection buffer index
+    gpuIndirectionBufferOrigin: vec3.floor(
+      vec3.divScalar(player.position, CHUNK_SIZE),
+    ),
     minimap: new Minimap(minimap_arrow),
 
     chunkBuffer: new ArenaBuffer(

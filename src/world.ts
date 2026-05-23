@@ -1,14 +1,24 @@
 import { Camera } from "./camera";
 import { Chunk } from "./chunk";
-import { CHUNK_SIZE, AMOUNT_CHUNK_WORKERS, RENDER_DISTANCE, MINING_SOUND_INTERVAL, MINIMAP_CANVAS_SIZE, REGION_WIDTH_IN_CHUNKS } from "./constants";
+import {
+  CHUNK_SIZE,
+  AMOUNT_CHUNK_WORKERS,
+  RENDER_DISTANCE,
+  MINING_SOUND_INTERVAL,
+  MINIMAP_CANVAS_SIZE,
+  REGION_WIDTH_IN_CHUNKS,
+} from "./constants";
 import { TerrainGenerator } from "./terrain-generator";
 import { Sixtuple, WorkerMessageIn, WorkerMessageOut } from "./types";
 import { Pair } from "./classes/pair";
 import { Mat4, mat4, Vec3, vec3 } from "wgpu-matrix";
 import { State } from "./state";
-import { BlockState, BlockStateRegistry } from "./registries/blockstate-registry";
+import {
+  BlockState,
+  BlockStateRegistry,
+} from "./registries/blockstate-registry";
 import { AIR } from "./registries/blocks";
-import { FACE, FACE_NORMALS, ORIENTATION, SPHERE_OFFSETS } from "./mesh";
+import { FACE, FACE_NORMALS, ORIENTATION } from "./mesh";
 import { vec3ToLocalChunk } from "./lib";
 import { BlockRegistry } from "./registries/block-registry";
 import { SoundRegistry } from "./registries/sound-registry";
@@ -17,36 +27,32 @@ import { SlotMap } from "./classes/slot-map";
 import { Player } from "./player";
 import { Region } from "./region";
 
-
-
 // TODO delete chunks that are too far away
 
 type DamagedBlock = {
-  damage: number
-  hardness: number
-  position: Vec3
-  lastHitTime: number
-  lastSoundTime: number
-  nextSoundAt: number
-}
-
-
+  damage: number;
+  hardness: number;
+  position: Vec3;
+  lastHitTime: number;
+  lastSoundTime: number;
+  nextSoundAt: number;
+};
 
 export class World {
   public chunks = new SlotMap<number, Chunk>();
   public regions = new SlotMap<number, Region>();
-  public heightmap: Pair<number, number> // [x, z] => height
-  public blockmap: Pair<number, number> // [x, z] => blockID
-  public workers: Worker[] = []
-  public worker: number
-  public pending = new Set<number>()
-  public rendered: number
-  public seconds: number
-  public chunkHeightmap: Pair<number, Chunk>
-  public terraingenerator: TerrainGenerator
-  public queue = new Map<number, WorkerMessageOut>()
-  public pendingOrder: number[] = []
-  public damaged: Map<number, DamagedBlock>
+  public heightmap: Pair<number, number>; // [x, z] => height
+  public blockmap: Pair<number, number>; // [x, z] => blockID
+  public workers: Worker[] = [];
+  public worker: number;
+  public pending = new Set<number>();
+  public rendered: number;
+  public seconds: number;
+  public chunkHeightmap: Pair<number, Chunk>;
+  public terraingenerator: TerrainGenerator;
+  public queue = new Map<number, WorkerMessageOut>();
+  public pendingOrder: number[] = [];
+  public damaged: Map<number, DamagedBlock>;
   public filtered: Chunk[] = [];
   private vp: Mat4 = mat4.create();
   private planes = new Float32Array(24);
@@ -62,12 +68,12 @@ export class World {
     this.damaged = new Map();
 
     for (let i = 0; i < AMOUNT_CHUNK_WORKERS; i++) {
-      const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
+      const worker = new Worker(new URL("./worker.ts", import.meta.url), {
+        type: "module",
+      });
       this.workers.push(worker);
     }
   }
-
-
 
   damageBlock(wx: number, wy: number, wz: number, dt: number) {
     const now = performance.now();
@@ -86,7 +92,7 @@ export class World {
         hardness: block.hardness,
         lastHitTime: now,
         nextSoundAt: 0,
-        lastSoundTime: 0
+        lastSoundTime: 0,
       };
       this.damaged.set(key, entry);
     }
@@ -101,20 +107,51 @@ export class World {
 
     // Destroy block
     if (entry.damage >= entry.hardness) {
-      this.addBlock(vec3.create(wx, wy, wz), BlockStateRegistry.encode(AIR.ID, ORIENTATION.NX_0));
+      this.addBlock(
+        vec3.create(wx, wy, wz),
+        BlockStateRegistry.encode(AIR.ID, ORIENTATION.NX_0),
+      );
       this.damaged.delete(key);
       SoundRegistry.play(block.sounds.dig.random()!.ID, 1.0);
     }
   }
-
-
 
   // -512 to 512 on each axis
   static pack(cx: number, cy: number, cz: number): number {
     return ((cx + 512) << 20) | ((cy + 512) << 10) | ((cz + 512) << 0);
   }
 
+  // For local indirection indexing (in your state setup)
+  static packIndirection(
+    cx: number,
+    cy: number,
+    cz: number,
+    renderDistance: number,
+  ): number {
+    renderDistance = 2 * renderDistance + 1;
+    const halfDist = renderDistance >> 1;
+    const localX = cx + halfDist;
+    const localY = cy + halfDist;
+    const localZ = cz + halfDist;
 
+    // Validate bounds
+    if (
+      localX < 0 ||
+      localX >= renderDistance ||
+      localY < 0 ||
+      localY >= renderDistance ||
+      localZ < 0 ||
+      localZ >= renderDistance
+    ) {
+      return 0xffffffff; // Invalid sentinel
+    }
+
+    return (
+      localZ * renderDistance * renderDistance +
+      localY * renderDistance +
+      localX
+    );
+  }
 
   static unpack(key: number, out: [number, number, number]) {
     out[0] = ((key >>> 20) & 1023) - 512;
@@ -122,15 +159,22 @@ export class World {
     out[2] = ((key >>> 0) & 1023) - 512;
   }
 
-
   // Queues chunks around the player
   queueChunks(player: Player, state: State) {
-    const playerChunkPos = vec3.floor(vec3.divScalar(player.position, CHUNK_SIZE));
+    const playerChunkPos = vec3.floor(
+      vec3.divScalar(player.position, CHUNK_SIZE),
+    );
 
-    for (let i = 0; i < SPHERE_OFFSETS.length; i += 1) {
-      const chunkpos = vec3.add(playerChunkPos, SPHERE_OFFSETS[i]);
+    for (let i = 0; i < state.sphere_offsets.length; i += 1) {
+      const chunkpos = vec3.add(playerChunkPos, state.sphere_offsets[i]);
 
-      this.queueChunk(state.device, chunkpos, state.time.seconds, state.minimap.zoom, state);
+      this.queueChunk(
+        state.device,
+        chunkpos,
+        state.time.seconds,
+        state.minimap.zoom,
+        state,
+      );
     }
 
     this.generateChunk(state.device, state.time.seconds, state);
@@ -138,8 +182,13 @@ export class World {
     // TODO Dequeue chunks that are too far away
   }
 
-
-  queueChunk(device: GPUDevice, offset: Vec3, time: number, zoom: number, state: State) {
+  queueChunk(
+    device: GPUDevice,
+    offset: Vec3,
+    time: number,
+    zoom: number,
+    state: State,
+  ) {
     const MAX_PENDING_REQUESTS = 12;
 
     if (this.pending.size >= MAX_PENDING_REQUESTS) return;
@@ -164,7 +213,12 @@ export class World {
       this.getChunk(vec3.add(offset, FACE_NORMALS[5]))?.blocks,
     ];
     worker.addEventListener("message", message);
-    worker.postMessage({ offset, neighbors } as WorkerMessageIn, /*[...neighbors.filter(n => n instanceof Uint16Array).map(n => n.buffer)]*/);
+    worker.postMessage(
+      {
+        offset,
+        neighbors,
+      } as WorkerMessageIn /*[...neighbors.filter(n => n instanceof Uint16Array).map(n => n.buffer)]*/,
+    );
 
     this.pending.add(key);
     this.pendingOrder.push(key);
@@ -186,16 +240,25 @@ export class World {
       const blocks = new Uint16Array(data.blocks);
       const heightmap = new Uint8Array(data.heightmap);
       const amount = new Uint16Array(data.amount)[0] ?? 0;
-      const meshes = data.meshes.map(arraybuffer => new Uint32Array(arraybuffer));
+      const meshes = data.meshes.map(
+        (arraybuffer) => new Uint32Array(arraybuffer),
+      );
 
-      const allocations: [Allocation, Allocation, Allocation, Allocation, Allocation, Allocation] = [
+      const allocations: [
+        Allocation,
+        Allocation,
+        Allocation,
+        Allocation,
+        Allocation,
+        Allocation,
+      ] = [
         state.chunkBuffer.write(0, meshes[0]),
         state.chunkBuffer.write(1, meshes[1]),
         state.chunkBuffer.write(2, meshes[2]),
         state.chunkBuffer.write(3, meshes[3]),
         state.chunkBuffer.write(4, meshes[4]),
         state.chunkBuffer.write(5, meshes[5]),
-      ]
+      ];
 
       const chunk = new Chunk(offset, time, amount, allocations, blocks);
 
@@ -211,17 +274,18 @@ export class World {
     }
   }
 
-
   getChunk(offset: Vec3): Chunk | undefined {
     return this.chunks.get(World.pack(offset[0], offset[1], offset[2]));
   }
 
   addBlock(worldpos: Vec3, block: number): boolean {
-    const chunk = this.getChunk(vec3.floor(vec3.divScalar(worldpos, CHUNK_SIZE)));
+    const chunk = this.getChunk(
+      vec3.floor(vec3.divScalar(worldpos, CHUNK_SIZE)),
+    );
 
     if (!chunk) return false;
 
-    const chunkpos = vec3ToLocalChunk(worldpos);// worldpos.mod(CHUNK_SIZE).add(CHUNK_SIZE).mod(CHUNK_SIZE);
+    const chunkpos = vec3ToLocalChunk(worldpos); // worldpos.mod(CHUNK_SIZE).add(CHUNK_SIZE).mod(CHUNK_SIZE);
     const neighbors: Sixtuple<Uint16Array | undefined> = [
       this.getChunk(vec3.add(chunkpos, FACE_NORMALS[0]))?.blocks,
       this.getChunk(vec3.add(chunkpos, FACE_NORMALS[1]))?.blocks,
@@ -236,7 +300,9 @@ export class World {
   }
 
   getBlockState(position: Vec3): number {
-    const chunk = this.getChunk(vec3.floor(vec3.divScalar(position, CHUNK_SIZE)));
+    const chunk = this.getChunk(
+      vec3.floor(vec3.divScalar(position, CHUNK_SIZE)),
+    );
 
     if (!chunk) return BlockStateRegistry.encode(AIR.ID, ORIENTATION.NX_0);
 
@@ -256,21 +322,40 @@ export class World {
     // Extract frustum planes
     const vp = this.vp;
     const planes = this.planes;
-    planes[0] = vp[3] + vp[0]; planes[1] = vp[7] + vp[4]; planes[2] = vp[11] + vp[8]; planes[3] = vp[15] + vp[12];      // Left
-    planes[4] = vp[3] - vp[0]; planes[5] = vp[7] - vp[4]; planes[6] = vp[11] - vp[8]; planes[7] = vp[15] - vp[12];      // Right
-    planes[8] = vp[3] + vp[1]; planes[9] = vp[7] + vp[5]; planes[10] = vp[11] + vp[9]; planes[11] = vp[15] + vp[13];    // Bottom
-    planes[12] = vp[3] - vp[1]; planes[13] = vp[7] - vp[5]; planes[14] = vp[11] - vp[9]; planes[15] = vp[15] - vp[13];  // Top
-    planes[16] = vp[3] + vp[2]; planes[17] = vp[7] + vp[6]; planes[18] = vp[11] + vp[10]; planes[19] = vp[15] + vp[14]; // Near
-    planes[20] = vp[3] - vp[2]; planes[21] = vp[7] - vp[6]; planes[22] = vp[11] - vp[10]; planes[23] = vp[15] - vp[14]; // Far
+    planes[0] = vp[3] + vp[0];
+    planes[1] = vp[7] + vp[4];
+    planes[2] = vp[11] + vp[8];
+    planes[3] = vp[15] + vp[12]; // Left
+    planes[4] = vp[3] - vp[0];
+    planes[5] = vp[7] - vp[4];
+    planes[6] = vp[11] - vp[8];
+    planes[7] = vp[15] - vp[12]; // Right
+    planes[8] = vp[3] + vp[1];
+    planes[9] = vp[7] + vp[5];
+    planes[10] = vp[11] + vp[9];
+    planes[11] = vp[15] + vp[13]; // Bottom
+    planes[12] = vp[3] - vp[1];
+    planes[13] = vp[7] - vp[5];
+    planes[14] = vp[11] - vp[9];
+    planes[15] = vp[15] - vp[13]; // Top
+    planes[16] = vp[3] + vp[2];
+    planes[17] = vp[7] + vp[6];
+    planes[18] = vp[11] + vp[10];
+    planes[19] = vp[15] + vp[14]; // Near
+    planes[20] = vp[3] - vp[2];
+    planes[21] = vp[7] - vp[6];
+    planes[22] = vp[11] - vp[10];
+    planes[23] = vp[15] - vp[14]; // Far
 
     // Check each chunk against the frustum
-    const CHUNK_HALF_DIAGONAL = Math.sqrt(3) * CHUNK_SIZE / 2;
+    const CHUNK_HALF_DIAGONAL = (Math.sqrt(3) * CHUNK_SIZE) / 2;
     const chunks = this.chunks;
-    const renderdistance = (RENDER_DISTANCE * CHUNK_SIZE) ** 2
+    const renderdistance = (RENDER_DISTANCE * CHUNK_SIZE) ** 2;
     const close = (3 * CHUNK_SIZE) ** 2;
 
     for (let i = 0; i < chunks.size; i++) {
       const chunk = chunks.values[i];
+      chunk.visible = false;
 
       if (chunk.blockamount == 0) continue;
 
@@ -282,7 +367,10 @@ export class World {
       const cx = chunk.center[0] - camera.position[0];
       const cy = chunk.center[1] - camera.position[1];
       const cz = chunk.center[2] - camera.position[2];
-      const dot = cx * camera.direction[0] + cy * camera.direction[1] + cz * camera.direction[2];
+      const dot =
+        cx * camera.direction[0] +
+        cy * camera.direction[1] +
+        cz * camera.direction[2];
 
       if (dot < -CHUNK_HALF_DIAGONAL) continue; // Chunk is behind camera
 
@@ -295,6 +383,7 @@ export class World {
       if (distance > renderdistance) continue;
       if (distance < close) {
         this.filtered.push(chunk);
+        chunk.visible = true;
         continue;
       }
 
@@ -315,7 +404,10 @@ export class World {
         }
       }
 
-      if (!outside) this.filtered.push(chunk);
+      if (!outside) {
+        this.filtered.push(chunk);
+        chunk.visible = true;
+      }
     }
 
     this.rendered = this.filtered.length;

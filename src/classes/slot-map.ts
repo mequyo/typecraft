@@ -7,6 +7,10 @@ export class SlotMap<K, T> {
     return this.values[this.indices.get(key) ?? -1] ?? undefined;
   }
 
+  getKey(index: number): K | undefined {
+    return this.reverse.get(index);
+  }
+
   getOrSet(key: K, defaultValue: () => T): T {
     const index = this.indices.get(key);
     if (index !== undefined) return this.values[index];
