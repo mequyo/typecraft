@@ -140,7 +140,7 @@ export const MAIN_PIPELINE = (
                 );
 
                 if (indirectionID !== 0xffffffff) {
-                  state.gpuIndrectionChunkMap[indirectionID] = chunkSlot; // Use slot, not i
+                  state.gpuIndrectionChunkMap[indirectionID] = chunkSlot;
                 }
               }
             }
@@ -149,7 +149,6 @@ export const MAIN_PIPELINE = (
           },
         },
       ],
-
       // UNIFORMS
       [
         {
@@ -218,11 +217,14 @@ export const MAIN_PIPELINE = (
 
         if (!chunk.visible) continue;
 
-        const trns = vec3.sub(chunk.offset, state.gpuIndirectionBufferOrigin);
+        const relative = vec3.sub(
+          chunk.offset,
+          state.gpuIndirectionBufferOrigin,
+        );
         const packed = World.packIndirection(
-          trns[0],
-          trns[1],
-          trns[2],
+          relative[0],
+          relative[1],
+          relative[2],
           state.render_distance,
         );
 

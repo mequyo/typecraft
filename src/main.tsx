@@ -169,6 +169,8 @@ async function main() {
 
   const input = new InputSystem(canvas);
 
+  // TODO resizing kills texture
+
   const state: State = {
     canvas,
     context,

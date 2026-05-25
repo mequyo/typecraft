@@ -128,29 +128,17 @@ export class World {
     cz: number,
     renderDistance: number,
   ): number {
-    renderDistance = 2 * renderDistance + 1;
-    const halfDist = renderDistance >> 1;
-    const localX = cx + halfDist;
-    const localY = cy + halfDist;
-    const localZ = cz + halfDist;
+    const gridSize = 2 * renderDistance + 1;
+    const half = gridSize >> 1;
+    const lx = cx + half;
+    const ly = cy + half;
+    const lz = cz + half;
 
     // Validate bounds
-    if (
-      localX < 0 ||
-      localX >= renderDistance ||
-      localY < 0 ||
-      localY >= renderDistance ||
-      localZ < 0 ||
-      localZ >= renderDistance
-    ) {
-      return 0xffffffff; // Invalid sentinel
-    }
+    if (lx < 0 || ly < 0 || lz < 0) return 0xffffffff;
+    if (lx >= gridSize || ly >= gridSize || lz >= gridSize) return 0xffffffff;
 
-    return (
-      localZ * renderDistance * renderDistance +
-      localY * renderDistance +
-      localX
-    );
+    return lx * gridSize * gridSize + ly * gridSize + lz;
   }
 
   static unpack(key: number, out: [number, number, number]) {
