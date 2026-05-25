@@ -8,7 +8,7 @@ export class DynamicBuffer {
   private device: GPUDevice;
   public handle: GPUBuffer;
   private usage: GPUBufferUsageFlags;
-  //public capacity = 0; // Bytes currently in use (being drawn)
+  public capacity = 0; // Bytes currently in use (being drawn)
   public readback?: GPUBuffer;
   private sizeBytes = 0; // Actual GPU buffer size in bytes
 
@@ -82,7 +82,7 @@ export class DynamicBuffer {
     }
 
     // Write CPU data → GPU buffer
-    //this.capacity = bytes;
+    this.capacity = bytes;
     this.device.queue.writeBuffer(
       this.handle,
       bufferoffset,
