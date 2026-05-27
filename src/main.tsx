@@ -20,13 +20,14 @@ import {
   CHUNK_SIZE,
   IMAGE_SIZE,
   RENDER_DISTANCE,
+  TICKS_PER_SECOND,
 } from "./constants.ts";
 import { UISystem } from "./ui-system.ts";
 import { Profiler } from "./profiler.ts";
 import { Devices } from "./types.ts";
 import { vec3 } from "wgpu-matrix";
 import { Camera } from "./camera.ts";
-import { update } from "./update.ts";
+import { render, update } from "./update.ts";
 import { Player } from "./player.ts";
 import { loadImage } from "./lib.ts";
 import { State } from "./state.ts";
@@ -185,8 +186,10 @@ async function main() {
       dt: { cpu: 0.01, gpu: 0.01 },
       seconds: 0,
     },
+    time_since_last_update: 0,
     world: new World(new TerrainGenerator()),
     player,
+    alpha: 0,
     render_distance: RENDER_DISTANCE,
     sphere_offsets: calculateSphereOffsets(RENDER_DISTANCE),
     gpuIndrectionChunkMap: new Uint32Array((2 * RENDER_DISTANCE + 1) ** 3), // Maps chunk index to indirection buffer index
@@ -237,12 +240,12 @@ async function main() {
     // TODO update minimap as well
 
     // Update context
-    context.configure({
+    /*context.configure({
       device,
       format: navigator.gpu.getPreferredCanvasFormat(),
       alphaMode: "opaque",
       //size: [canvas.width, canvas.height],
-    });
+    });*/
 
     // Update camera's aspect ratio
     state.player.aspectratio = canvas.width / canvas.height;
@@ -256,7 +259,7 @@ async function main() {
     });
     state.depthTexture = depthTexture;
 
-    state.outlineTexture.destroy();
+    //state.outlineTexture.destroy();
     const outlineTexture = device.createTexture({
       size: [canvas.width, canvas.height],
       format: "rgba8unorm",
@@ -318,5 +321,24 @@ async function main() {
     );
   }, 250);
 
-  requestAnimationFrame((timestamp) => update(timestamp, state));
+  requestAnimationFrame(() => loop(state));
+}
+
+async function loop(state: State) {
+  const now = performance.now();
+  state.time.dt.cpu = (now - state.time.last) / 1000;
+  state.time.seconds += state.time.dt.cpu;
+  state.world.seconds += state.time.dt.cpu;
+  state.time.last = now;
+  state.time_since_last_update += state.time.dt.cpu;
+
+  if (state.time_since_last_update > 1 / TICKS_PER_SECOND) {
+    update(state);
+    state.time_since_last_update -= 1 / TICKS_PER_SECOND;
+  }
+
+  state.alpha = state.time_since_last_update * TICKS_PER_SECOND;
+  render(state);
+
+  requestAnimationFrame(() => loop(state));
 }

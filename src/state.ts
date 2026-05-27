@@ -24,6 +24,9 @@ export type State = {
   depthTexture: GPUTexture;
   outlineTexture: GPUTexture;
 
+  time_since_last_update: number;
+  alpha: number;
+
   time: {
     last: number;
     dt: { cpu: number; gpu: number };

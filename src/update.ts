@@ -1,4 +1,4 @@
-import { CHUNK_SIZE, MINIMAP_MAX_ZOOM, MINIMAP_MIN_ZOOM } from "./constants";
+import { CHUNK_SIZE, TICKS_PER_SECOND } from "./constants";
 import { vec3 } from "wgpu-matrix";
 import { State } from "./state";
 import { BlockStateRegistry } from "./registries/blockstate-registry";
@@ -11,36 +11,14 @@ import { PlayerSystem } from "./player-system";
  * @param timestamp Timestamp of the application
  * @param state State of the game that holds all information
  */
-export async function update(timestamp: DOMHighResTimeStamp, state: State) {
-  let start = performance.now();
-
+export function update(state: State) {
   const prof = state.profiler;
-  const now = performance.now();
-  state.time.dt.cpu = (now - state.time.last) / 1000;
-  prof.add("cpu frame time", (now - state.time.last) / 1000); // Tied to monitor refresh rate, can't exceed monitor Hertz
-  state.time.seconds += state.time.dt.cpu;
-  state.world.seconds += state.time.dt.cpu;
-  state.time.last = now;
-
   const player = state.player;
-  const dt = state.time.dt.cpu;
+  const dt = 1 / TICKS_PER_SECOND;
 
   state.world.queueChunks(state.player, state); // Queues chunks around the player and generates one each tick
 
   prof.measure("chunk culling", () => state.world.filterChunks(state.player));
-
-  if (state.input.keypresses["c"])
-    state.player.creative = !state.player.creative;
-
-  if (state.input.keypresses["+"] && state.minimap.zoom < MINIMAP_MAX_ZOOM) {
-    state.minimap.zoom *= 2;
-  }
-
-  if (state.input.keypresses["-"] && state.minimap.zoom > MINIMAP_MIN_ZOOM) {
-    state.minimap.zoom /= 2;
-  }
-
-  state.player.tick(state.input); // CAMERA MOVEMENT
 
   // PLACE BLOOK IF RIGHT CLICKED
   if (state.input.mouse.clicked[MOUSE.RIGHT] && player.lookat) {
@@ -51,55 +29,42 @@ export async function update(timestamp: DOMHighResTimeStamp, state: State) {
     ); // TODO actually set orientation based on viewing direction
   }
 
-  // ========================= MOVEMENT ===============================================================================
+  // damage block if lookat and left click
+  const left = state.input.mouse.buttons[MOUSE.LEFT];
+  if (!state.player.creative && left && player.lookat) {
+    const look = player.lookat;
+    state.world.damageBlock(look[0], look[1], look[2], dt);
+  }
 
   prof.measure("physics", () =>
     state.physics.tick(state.input, state.player, dt, state.world),
   );
-  prof.measure("ui", () => state.ui.tick(state.input, state));
 
   PlayerSystem.updateLookat(state.player, state.world);
-
-  // damage block if lookat and left click
-  if (
-    !state.player.creative &&
-    state.input.mouse.buttons[MOUSE.LEFT] &&
-    player.lookat
-  ) {
-    state.world.damageBlock(
-      player.lookat[0],
-      player.lookat[1],
-      player.lookat[2],
-      dt,
-    );
-  }
 
   state.gpuIndirectionBufferOrigin = vec3.floor(
     vec3.divScalar(player.position, CHUNK_SIZE),
   );
-
-  await render(state);
-
-  state.input.flush();
-
-  requestAnimationFrame((timestamp) => update(timestamp, state));
 }
 
-async function render(state: State) {
-  let start = performance.now();
-
+export function render(state: State) {
+  const start = performance.now();
   const prof = state.profiler;
   const context = state.context;
   const device = state.device;
-  const [width, height] = [state.canvas.width, state.canvas.height];
+  const width = state.canvas.width;
+  const height = state.canvas.height;
+
+  state.player.tick(state.input); // CAMERA MOVEMENT
+  prof.measure("ui", () => state.ui.tick(state.input, state));
+  state.input.flush(true, true);
 
   // MINIMAP
-  await prof.measure("minimap", () =>
+  prof.measure("minimap", () =>
     state.minimap.render(state.world.chunks, state.player, state.world.regions),
   );
 
   // RENDER PIPELINES
-
   prof.measure("pipeline updates", () => {
     for (const pipeline of state.pipelines) pipeline.update(state);
   });

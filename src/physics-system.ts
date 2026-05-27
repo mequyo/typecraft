@@ -84,43 +84,25 @@ export class PhysicsSystem {
 
   // stepwise axis resolution
   resolve(player: Player, world: World, dt: number) {
-    // Stepwise axis resolution
-    let collision = null;
-
+    player.lastPosition = vec3.copy(player.position);
     player.grounded = false;
-    player.position[1] += player.velocity[1] * dt;
-    collision = collides(player.position, world);
-    if (collision) {
-      if (player.velocity[1] > 0) {
-        player.position[1] =
-          collision[1] - PLAYER_HEIGHT + CAMERA_HEIGHT - 0.001;
-      } else {
-        player.position[1] = collision[1] + 1 + CAMERA_HEIGHT + 0.001;
-        player.grounded = true;
-      }
-      player.velocity[1] = 0;
-    }
 
-    player.position[0] += player.velocity[0] * dt;
-    collision = collides(player.position, world);
-    if (collision) {
-      if (player.velocity[0] > 0) {
-        player.position[0] = collision[0] - PLAYER_WIDTH / 2 - 0.001;
-      } else {
-        player.position[0] = collision[0] + 1 + PLAYER_WIDTH / 2 + 0.001;
-      }
-      player.velocity[0] = 0;
-    }
+    for (let axis = 0; axis < 3; axis++) {
+      player.position[axis] += player.velocity[axis] * dt;
+      const hit = collides(player.position, world);
+      if (!hit) continue;
 
-    player.position[2] += player.velocity[2] * dt;
-    collision = collides(player.position, world);
-    if (collision) {
-      if (player.velocity[2] > 0) {
-        player.position[2] = collision[2] - PLAYER_WIDTH / 2 - 0.001;
+      if (player.velocity[axis] > 0) {
+        const offset =
+          axis == 1 ? CAMERA_HEIGHT - PLAYER_HEIGHT : -PLAYER_WIDTH / 2;
+        player.position[axis] = hit[axis] + offset - 0.001;
       } else {
-        player.position[2] = collision[2] + 1 + PLAYER_WIDTH / 2 + 0.001;
+        const offset = axis == 1 ? CAMERA_HEIGHT : PLAYER_WIDTH / 2;
+        player.position[axis] = hit[axis] + offset + 0.001 + 1;
+        if (axis == 1) player.grounded = true;
       }
-      player.velocity[2] = 0;
+
+      player.velocity[axis] = 0;
     }
   }
 }

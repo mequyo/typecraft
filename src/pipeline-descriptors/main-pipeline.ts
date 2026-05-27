@@ -159,12 +159,14 @@ export const MAIN_PIPELINE = (
         {
           buffer: { type: "uniform" },
           resource: Uniform(device, mat4.create()),
-          update: (state, buffer) => buffer.write(state.player.view),
+          update: (state, buffer) =>
+            buffer.write(state.player.view(state.alpha)),
         },
         {
           buffer: { type: "uniform" },
           resource: Uniform(device, vec3.create()),
-          update: (state, buffer) => buffer.write(state.player.position),
+          update: (state, buffer) =>
+            buffer.write(state.player.interpolate(state.alpha)),
         },
         {
           buffer: { type: "uniform" },

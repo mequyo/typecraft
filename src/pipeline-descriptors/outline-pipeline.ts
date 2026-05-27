@@ -81,7 +81,8 @@ export const OUTLINE_PIPELINE = (device: GPUDevice) => {
             GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
             mat4.create(),
           ),
-          update: (state, buffer) => buffer.write(state.player.view),
+          update: (state, buffer) =>
+            buffer.write(state.player.view(state.alpha)),
         },
         {
           buffer: { type: "uniform" }, // camera position

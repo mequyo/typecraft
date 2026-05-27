@@ -8,6 +8,7 @@ import { Chunk } from "./chunk";
 import { BlockRegistry } from "./registries/block-registry";
 import { FACE, ORIENTATION_FACE_MAP } from "./mesh";
 import { DynamicBuffer } from "./classes/dynamic-buffer";
+import { InventoryRow, ItemNames } from "./types";
 
 export function collides(pos: Vec3, world: World): Vec3 | null {
   const hitbox = {
@@ -443,4 +444,15 @@ export async function renderIsometricBlock(
     result.onerror = reject;
     result.src = url;
   });
+}
+
+export function generateInventoryRow(): InventoryRow {
+  return Array.from({ length: 9 }).map(() =>
+    Math.random() > 0.5
+      ? null
+      : [
+          (Math.random() * 63 + 1) >> 0,
+          ItemNames[(Math.random() * ItemNames.length) >> 0],
+        ],
+  ) as InventoryRow;
 }

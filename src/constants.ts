@@ -1,23 +1,25 @@
 import { vec3 } from "wgpu-matrix";
 
-// PLAYER
-export const MAX_HORIZONTAL_VELOCITY = 10.0;
-export const PLAYER_BASE_SPEED = 2.0;
-export const PLAYER_WIDTH = 0.6;
-export const CAMERA_HEIGHT = 1.6;
-export const PLAYER_HEIGHT = 1.8;
-export const JUMP_FORCE = 10.0;
-export const RENDER_DISTANCE = 8;
-export const PLAYER_REACH = 5;
+export const TICKS_PER_SECOND = 40;
 
 // WORLD
-export const GROUND_FRICTION = 0.91;
-export const GRAVITY = vec3.create(0, -30, 0);
+export const GROUND_FRICTION = 0.7;
+export const GRAVITY = vec3.create(0, -40, 0);
 export const AIR_CONTROL_FACTOR = 0.2;
 export const CHUNK_SIZE = 32; // DO NOT CHANGE
 export const TERRAIN_FLOOR = 16; // How many blocks are at least filled in
 export const TERRAIN_HEIGHT = 64; // Can be wrong if multiple octaves are generated
 export const MAX_CHUNKS_GENERATING_SIMULTANEOUSLY = 10;
+
+// PLAYER
+export const MAX_HORIZONTAL_VELOCITY = 20.0;
+export const PLAYER_BASE_SPEED = 5.0;
+export const PLAYER_WIDTH = 0.6;
+export const CAMERA_HEIGHT = 1.6;
+export const PLAYER_HEIGHT = 1.8;
+export const JUMP_FORCE = 2 * Math.sqrt(-GRAVITY[1]);
+export const RENDER_DISTANCE = 8;
+export const PLAYER_REACH = 5;
 
 // TEXTURES
 export const ATLAS_WIDTH = 128;

@@ -305,7 +305,7 @@ export class World {
 
   filterChunks(camera: Camera) {
     this.filtered.length = 0;
-    mat4.multiply(camera.projection, camera.view, this.vp); // Update view projection
+    mat4.multiply(camera.projection, camera.view(), this.vp); // Update view projection
 
     // Extract frustum planes
     const vp = this.vp;
