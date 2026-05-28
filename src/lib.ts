@@ -1,12 +1,9 @@
-import { CHUNK_SIZE, IMAGE_SIZE } from "./constants";
+import { CHUNK_SIZE } from "./constants";
 import { CAMERA_HEIGHT, PLAYER_HEIGHT, PLAYER_WIDTH } from "./constants";
 import { World } from "./world";
 import { BlockStateRegistry } from "./registries/blockstate-registry";
 import { AIR } from "./registries/blocks";
 import { vec3, Vec3 } from "wgpu-matrix";
-import { Chunk } from "./chunk";
-import { BlockRegistry } from "./registries/block-registry";
-import { FACE, ORIENTATION_FACE_MAP } from "./mesh";
 import { DynamicBuffer } from "./classes/dynamic-buffer";
 import { InventoryRow, ItemNames } from "./types";
 
@@ -204,53 +201,6 @@ export async function loadImage(url: string): Promise<HTMLImageElement> {
     image.onerror = () =>
       reject(new Error(`Failed to load image from ${image.src}`));
   });
-}
-
-export async function bitmapFromBlockData(
-  blocks: Uint16Array,
-): Promise<ImageBitmap> {
-  if (blocks.length != CHUNK_SIZE ** 3)
-    throw new Error("Array should be CHUNK_SIZE^3 big");
-
-  //const data = new Uint8ClampedArray(CHUNK_SIZE * CHUNK_SIZE * 4);
-  const canvas = new OffscreenCanvas(
-    CHUNK_SIZE * IMAGE_SIZE,
-    CHUNK_SIZE * IMAGE_SIZE,
-  );
-  const context = canvas.getContext("2d")!;
-
-  for (let x = 0; x < CHUNK_SIZE; x++) {
-    for (let y = 0; y < CHUNK_SIZE; y++) {
-      for (let z = 0; z < CHUNK_SIZE; z++) {
-        const index = Chunk.pack(x, y, z);
-
-        const blockstate = blocks[index];
-        const { blockID: ID, properties } =
-          BlockStateRegistry.decode(blockstate);
-        const orientation = properties.orientation || 0;
-        const block = BlockRegistry.get(ID);
-        const texture =
-          block.textures[
-            ORIENTATION_FACE_MAP[orientation][FACE.PY] % block.textures.length
-          ];
-
-        //console.log(texture.bitmap)
-
-        //context.drawImage(texture.bitmap!, x * IMAGE_SIZE, z * IMAGE_SIZE);
-
-        //const color = colormap[ID];
-        //const dataindex = 4 * (z * CHUNK_SIZE + x);
-
-        //data[dataindex + 0] = color[0];
-        //data[dataindex + 1] = color[1];
-        //data[dataindex + 2] = color[2];
-        //data[dataindex + 3] = color[3];
-      }
-    }
-  }
-
-  //const imagedata = new ImageData(data, CHUNK_SIZE, CHUNK_SIZE);
-  return await createImageBitmap(canvas);
 }
 
 export async function getImageData(url: string): Promise<ImageData> {

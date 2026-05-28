@@ -23,11 +23,25 @@ type BlockRange = {
   end: number;
 };
 
+type CachedBlockState = {
+  readonly blockID: number;
+  readonly properties: Readonly<Record<string, any>>;
+};
+
 export class BlockStateRegistry {
   private static blockInfo = new Map<number, BlockStateInfo>(); // BlockID -> Properties
   private static ranges: BlockRange[] = [];
   private static totalStates = 0;
   private static built = false;
+
+  // Global cache mapping hash -> cached state (with readonly properties)
+  private static globalStateCache: CachedBlockState[] = [];
+
+  // Per-block cache for fast encoding validation
+  private static blockStateCache = new Map<
+    number,
+    Readonly<Record<string, any>>[]
+  >();
 
   static build(): void {
     if (this.built) return;
@@ -37,7 +51,6 @@ export class BlockStateRegistry {
 
     for (const block of blocks) {
       const props = block.properties;
-
       const codecs: PropertyCodec[] = [];
 
       for (const prop of props) {
@@ -92,11 +105,59 @@ export class BlockStateRegistry {
         end: offset + numStates,
       });
 
+      // Pre-compute all states for this block
+      this.precomputeBlockStates(block.ID, numStates, props, codecs, offset);
+
       offset += numStates;
     }
 
     this.totalStates = offset;
     this.built = true;
+  }
+
+  private static precomputeBlockStates(
+    blockID: number,
+    numStates: number,
+    properties: readonly BlockProperty[],
+    codecs: PropertyCodec[],
+    baseOffset: number,
+  ): void {
+    const blockStates: Readonly<Record<string, any>>[] = new Array(numStates);
+
+    // Generate all possible state combinations
+    const indices = new Array(properties.length).fill(0);
+
+    for (let stateIdx = 0; stateIdx < numStates; stateIdx++) {
+      const props: Record<string, any> = {};
+
+      // Decode the current indices into property values
+      for (let i = 0; i < properties.length; i++) {
+        props[properties[i].name] = codecs[i].fromIndex(indices[i]);
+      }
+
+      const frozenProps = Object.freeze(props);
+      const globalHash = baseOffset + stateIdx;
+
+      // Store in per-block cache
+      blockStates[stateIdx] = frozenProps;
+
+      // Store in global cache
+      this.globalStateCache[globalHash] = {
+        blockID,
+        properties: frozenProps,
+      };
+
+      // Increment indices (like a mixed-radix counter)
+      for (let i = properties.length - 1; i >= 0; i--) {
+        indices[i]++;
+        if (indices[i] < codecs[i].size) {
+          break;
+        }
+        indices[i] = 0;
+      }
+    }
+
+    this.blockStateCache.set(blockID, blockStates);
   }
 
   static encode(
@@ -134,55 +195,31 @@ export class BlockStateRegistry {
     return info.baseOffset + local;
   }
 
-  static decode(hash: BlockStateHash): {
-    blockID: number;
-    properties: Record<string, any>;
-  } {
+  static decode(hash: BlockStateHash): CachedBlockState {
     if (!this.built) throw new Error("Registry not built");
     if (hash < 0 || hash >= this.totalStates) {
       throw new Error("Out of range state hash");
     }
 
-    const block = this.findBlock(hash);
-    const info = this.blockInfo.get(block.blockID)!;
-
-    let local = hash - block.start;
-    const props: Record<string, any> = {};
-
-    for (let i = 0; i < info.codecs.length; i++) {
-      const codec = info.codecs[i];
-      const prop = info.properties[i];
-
-      const valueIndex = local % codec.size;
-      local = Math.floor(local / codec.size);
-
-      props[prop.name] = codec.fromIndex(valueIndex);
-    }
-
-    return {
-      blockID: block.blockID,
-      properties: props,
-    };
+    // O(1) lookup - just return the pre-computed cached state
+    return this.globalStateCache[hash];
   }
 
-  private static findBlock(hash: number): BlockRange {
-    // binary search over ranges
-    let lo = 0;
-    let hi = this.ranges.length - 1;
+  // Optional: Fast lookup for all states of a specific block type
+  static getBlockStates(
+    blockID: number,
+  ): readonly Readonly<Record<string, any>>[] {
+    if (!this.built) throw new Error("Registry not built");
 
-    while (lo <= hi) {
-      const mid = (lo + hi) >> 1;
-      const r = this.ranges[mid];
+    const states = this.blockStateCache.get(blockID);
+    if (!states) throw new Error(`Unknown block ${blockID}`);
 
-      if (hash < r.start) {
-        hi = mid - 1;
-      } else if (hash >= r.end) {
-        lo = mid + 1;
-      } else {
-        return r;
-      }
-    }
+    return states;
+  }
 
-    throw new Error("Block range not found (corrupt registry)");
+  // Optional: Get the total number of states
+  static getTotalStates(): number {
+    if (!this.built) throw new Error("Registry not built");
+    return this.totalStates;
   }
 }
