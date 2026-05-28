@@ -1,12 +1,18 @@
 type Parameters = {
-  children?: React.ReactNode,
+  children?: React.ReactNode;
 
-  borderImage: string,
-  slice?: number,
-  padding: number
-}
+  borderImage: string;
+  slice?: number;
+  padding: number;
+};
 
-export function NineSlice({ children, borderImage, slice = 20, padding, ...props }: Parameters & React.ComponentProps<"div">) {
+export function NineSlice({
+  children,
+  borderImage,
+  slice = 20,
+  padding,
+  ...props
+}: Parameters & React.ComponentProps<"div">) {
   const scale = 4;
 
   return (
@@ -18,7 +24,7 @@ export function NineSlice({ children, borderImage, slice = 20, padding, ...props
         borderImageWidth: `${slice * scale}px`,
         borderImageRepeat: "repeat",
         borderWidth: padding,
-        imageRendering: "pixelated"
+        imageRendering: "pixelated",
       }}
     >
       {children}

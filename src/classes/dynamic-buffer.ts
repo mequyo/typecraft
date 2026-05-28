@@ -1,8 +1,4 @@
-import {
-  BUFFER_GROW_FACTOR,
-  BUFFER_MIN_SIZE,
-  BUFFER_SHRINK_THRESHOLD,
-} from "../constants";
+import { BUFFER_GROW_FACTOR, BUFFER_MIN_SIZE } from "../constants";
 
 export class DynamicBuffer {
   private device: GPUDevice;

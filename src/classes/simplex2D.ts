@@ -1,10 +1,8 @@
-import { NOISE_LACUNARITY, NOISE_OCTAVES, NOISE_PERSISTENCE, NOISE_SCALE, TERRAIN_FLOOR, TERRAIN_HEIGHT } from "../constants"
-
 export class Simplex2D {
-  private perm: Uint8Array
-  private skew: number
-  private unskew: number
-  private gradient: number[][]
+  private perm: Uint8Array;
+  private skew: number;
+  private unskew: number;
+  private gradient: number[][];
 
   constructor(seed: number) {
     const perm = new Uint8Array(512);
@@ -12,7 +10,8 @@ export class Simplex2D {
 
     // simple LCG
     let s = Math.floor(seed * 65536) & 0xffffffff;
-    const rand = () => (s = (s * 1664525 + 1013904223) & 0xffffffff) / 0xffffffff;
+    const rand = () =>
+      (s = (s * 1664525 + 1013904223) & 0xffffffff) / 0xffffffff;
 
     for (let i = 0; i < 256; i++) p[i] = i;
 
@@ -27,8 +26,14 @@ export class Simplex2D {
 
     // Gradients for 2D simplex
     this.gradient = [
-      [1, 1], [-1, 1], [1, -1], [-1, -1],
-      [1, 0], [-1, 0], [0, 1], [0, -1],
+      [1, 1],
+      [-1, 1],
+      [1, -1],
+      [-1, -1],
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
       [Math.SQRT1_2, Math.SQRT1_2],
       [-Math.SQRT1_2, Math.SQRT1_2],
       [Math.SQRT1_2, -Math.SQRT1_2],
@@ -39,7 +44,6 @@ export class Simplex2D {
     this.skew = 0.5 * (Math.sqrt(3) - 1);
     this.unskew = (3 - Math.sqrt(3)) / 6;
   }
-
 
   /**
    * Generates 2D simplex noise for the given coordinates.
@@ -64,9 +68,11 @@ export class Simplex2D {
 
     let i1, j1;
     if (x0 > y0) {
-      i1 = 1; j1 = 0;
+      i1 = 1;
+      j1 = 0;
     } else {
-      i1 = 0; j1 = 1;
+      i1 = 0;
+      j1 = 1;
     }
 
     const x1 = x0 - i1 + this.unskew;
@@ -80,7 +86,9 @@ export class Simplex2D {
     const g1 = this.gradient[this.perm[ii + i1 + this.perm[jj + j1]] % 8];
     const g2 = this.gradient[this.perm[ii + 1 + this.perm[jj + 1]] % 8];
 
-    let n0 = 0, n1 = 0, n2 = 0;
+    let n0 = 0,
+      n1 = 0,
+      n2 = 0;
 
     let t0 = 0.5 - x0 * x0 - y0 * y0;
     if (t0 >= 0) {
@@ -100,6 +108,6 @@ export class Simplex2D {
       n2 = t2 * t2 * (g2[0] * x2 + g2[1] * y2);
     }
 
-    return ((n0 + n1 + n2) * 70 / 2) + 0.5; // Scale result to [0, 1]
+    return ((n0 + n1 + n2) * 70) / 2 + 0.5; // Scale result to [0, 1]
   }
 }

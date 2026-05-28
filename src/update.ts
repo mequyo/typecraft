@@ -57,13 +57,15 @@ export function render(state: State) {
   const width = state.canvas.width;
   const height = state.canvas.height;
 
+  prof.add("cpu frame time", state.time.dt.cpu);
+
   state.player.tick(state.input); // CAMERA MOVEMENT
   prof.measure("ui", () => state.ui.tick(state.input, state));
   state.input.flush(true, true);
 
   // MINIMAP
   prof.measure("minimap", () =>
-    state.minimap.render(state.world.chunks, state.player, state.world.regions),
+    state.minimap.render(state.player, state.world.regions),
   );
 
   // RENDER PIPELINES

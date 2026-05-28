@@ -5,20 +5,15 @@ import {
   AMOUNT_CHUNK_WORKERS,
   RENDER_DISTANCE,
   MINING_SOUND_INTERVAL,
-  MINIMAP_CANVAS_SIZE,
-  REGION_WIDTH_IN_CHUNKS,
 } from "./constants";
 import { TerrainGenerator } from "./terrain-generator";
 import { Sixtuple, WorkerMessageIn, WorkerMessageOut } from "./types";
 import { Pair } from "./classes/pair";
 import { Mat4, mat4, Vec3, vec3 } from "wgpu-matrix";
 import { State } from "./state";
-import {
-  BlockState,
-  BlockStateRegistry,
-} from "./registries/blockstate-registry";
+import { BlockStateRegistry } from "./registries/blockstate-registry";
 import { AIR } from "./registries/blocks";
-import { FACE, FACE_NORMALS, ORIENTATION } from "./mesh";
+import { FACE_NORMALS, ORIENTATION } from "./mesh";
 import { vec3ToLocalChunk } from "./lib";
 import { BlockRegistry } from "./registries/block-registry";
 import { SoundRegistry } from "./registries/sound-registry";
@@ -79,7 +74,7 @@ export class World {
     const now = performance.now();
     const key = World.pack(wx, wy, wz);
     const blockstate = this.getBlockState(vec3.create(wx, wy, wz));
-    const blockID = BlockStateRegistry.decode(blockstate).block;
+    const blockID = BlockStateRegistry.decode(blockstate).blockID;
     const block = BlockRegistry.get(blockID);
 
     let entry = this.damaged.get(key);
@@ -109,7 +104,7 @@ export class World {
     if (entry.damage >= entry.hardness) {
       this.addBlock(
         vec3.create(wx, wy, wz),
-        BlockStateRegistry.encode(AIR.ID, ORIENTATION.NX_0),
+        BlockStateRegistry.encode(AIR.ID, { orientation: ORIENTATION.NX_0 }),
       );
       this.damaged.delete(key);
       SoundRegistry.play(block.sounds.dig.random()!.ID, 1.0);
@@ -156,27 +151,15 @@ export class World {
     for (let i = 0; i < state.sphere_offsets.length; i += 1) {
       const chunkpos = vec3.add(playerChunkPos, state.sphere_offsets[i]);
 
-      this.queueChunk(
-        state.device,
-        chunkpos,
-        state.time.seconds,
-        state.minimap.zoom,
-        state,
-      );
+      this.queueChunk(chunkpos);
     }
 
-    this.generateChunk(state.device, state.time.seconds, state);
+    this.generateChunk(state.time.seconds, state);
 
     // TODO Dequeue chunks that are too far away
   }
 
-  queueChunk(
-    device: GPUDevice,
-    offset: Vec3,
-    time: number,
-    zoom: number,
-    state: State,
-  ) {
+  queueChunk(offset: Vec3) {
     const MAX_PENDING_REQUESTS = 12;
 
     if (this.pending.size >= MAX_PENDING_REQUESTS) return;
@@ -213,7 +196,7 @@ export class World {
     this.worker = (this.worker + 1) % this.workers.length;
   }
 
-  generateChunk(device: GPUDevice, time: number, state: State) {
+  generateChunk(time: number, state: State) {
     while (this.pendingOrder.length > 0) {
       const key = this.pendingOrder[0];
       const data = this.queue.get(key);
@@ -226,7 +209,7 @@ export class World {
 
       const offset = new Float32Array(data.offset);
       const blocks = new Uint16Array(data.blocks);
-      const heightmap = new Uint8Array(data.heightmap);
+      //const heightmap = new Uint8Array(data.heightmap);
       const amount = new Uint16Array(data.amount)[0] ?? 0;
       const meshes = data.meshes.map(
         (arraybuffer) => new Uint32Array(arraybuffer),
@@ -292,7 +275,10 @@ export class World {
       vec3.floor(vec3.divScalar(position, CHUNK_SIZE)),
     );
 
-    if (!chunk) return BlockStateRegistry.encode(AIR.ID, ORIENTATION.NX_0);
+    if (!chunk)
+      return BlockStateRegistry.encode(AIR.ID, {
+        orientation: ORIENTATION.NX_0,
+      });
 
     const cpos = vec3ToLocalChunk(position);
 

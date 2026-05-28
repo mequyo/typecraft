@@ -1,5 +1,5 @@
 import { BlockRegistry } from "./block-registry";
-import { BlockProperty, BlockPropertyNames } from "../block-properties";
+import { BlockProperty } from "../block-properties";
 
 export type BlockStateHash = number;
 

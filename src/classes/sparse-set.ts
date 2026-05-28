@@ -1,16 +1,16 @@
 type DataArray = { [key: number]: any; length: number };
-type ExtractTuple<T extends DataArray[]> = { [K in keyof T]: T[K] extends { [key: number]: infer U } ? U : never };
-
+type ExtractTuple<T extends DataArray[]> = {
+  [K in keyof T]: T[K] extends { [key: number]: infer U } ? U : never;
+};
 
 /**
- * High-performance SparseSet implementation optimized for ECS-style workloads. Adds, removes and looks up in O(1). 
+ * High-performance SparseSet implementation optimized for ECS-style workloads. Adds, removes and looks up in O(1).
  */
 export class SparseSet<V extends DataArray[]> {
-  private indices: Int32Array;  // Sparse entity -> dense index table. Uses -1 as "not present"
+  private indices: Int32Array; // Sparse entity -> dense index table. Uses -1 as "not present"
   private entities: Int32Array; // Dense storage of entitys
-  public values: V;             // Storage for component data. Each index in this tuple represents one field of the component type
-  private _size: number = 0;    // Number of active entities in the set
-
+  public values: V; // Storage for component data. Each index in this tuple represents one field of the component type
+  private _size: number = 0; // Number of active entities in the set
 
   /**
    * Creates a new SparseSet.
@@ -23,7 +23,6 @@ export class SparseSet<V extends DataArray[]> {
     this.values = init;
   }
 
-
   /**
    * Checks if an entity exists in the set.
    * @param e Entity ID.
@@ -34,7 +33,6 @@ export class SparseSet<V extends DataArray[]> {
     return i !== -1 && this.entities[i] === e;
   }
 
-
   /**
    * Gets the dense index position of an entity. Useful for direct buffer access.
    * @param e Entity ID.
@@ -44,7 +42,6 @@ export class SparseSet<V extends DataArray[]> {
     const i = this.indices[e];
     return i !== -1 && this.entities[i] === e ? i : -1;
   }
-
 
   /**
    * Adds or updates an entity with component data. If the entity already exists, its data will be overwritten.
@@ -74,7 +71,6 @@ export class SparseSet<V extends DataArray[]> {
     }
   }
 
-
   /**
    * Removes an entity from the set using swap-remove in O(1). Maintains dense array compactness by swapping with the last element.
    * @param e Entity ID.
@@ -101,7 +97,6 @@ export class SparseSet<V extends DataArray[]> {
     this.indices[e] = -1;
     return true;
   }
-
 
   /**
    * Returns the number of active entities in the set.

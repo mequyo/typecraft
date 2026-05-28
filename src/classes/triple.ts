@@ -52,7 +52,13 @@ export class Triple<K, V> {
     return this;
   }
 
-  setIf(k1: K, k2: K, k3: K, value: V, condition: (current: V) => boolean): this {
+  setIf(
+    k1: K,
+    k2: K,
+    k3: K,
+    value: V,
+    condition: (current: V) => boolean,
+  ): this {
     let layer2 = this.map.get(k1);
     if (!layer2) {
       layer2 = new Map();
@@ -105,16 +111,18 @@ export class Triple<K, V> {
     }
   }
 
-  *entriesOrdered(compareK1?: (a: K, b: K) => number, compareK2?: (a: K, b: K) => number, compareK3?: (a: K, b: K) => number): IterableIterator<[[K, K, K], V]> {
+  *entriesOrdered(
+    compareK1?: (a: K, b: K) => number,
+    compareK2?: (a: K, b: K) => number,
+    compareK3?: (a: K, b: K) => number,
+  ): IterableIterator<[[K, K, K], V]> {
     const k1sorted = Array.from(this.map.keys()).sort(compareK1);
     for (const k1 of k1sorted) {
-
       const layer2 = this.map.get(k1);
       if (!layer2) continue;
       const k2sorted = Array.from(layer2.keys()).sort(compareK2);
 
       for (const k2 of k2sorted) {
-
         const layer3 = layer2.get(k2);
         if (!layer3) continue;
         const k3sorted = Array.from(layer3.keys()).sort(compareK3);

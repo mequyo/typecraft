@@ -23,7 +23,9 @@ export class Database {
 
       this.database.onerror = (event: Event) => {
         const target = event.target as IDBRequest;
-        throw new Error((target.error as DOMException)?.message ?? "Database error");
+        throw new Error(
+          (target.error as DOMException)?.message ?? "Database error",
+        );
       };
     };
 
@@ -41,7 +43,9 @@ export class Database {
     const columns = Object.keys(layout);
     if (columns.length === 0) return;
 
-    const store = this.database.createObjectStore(name, { keyPath: columns[0] });
+    const store = this.database.createObjectStore(name, {
+      keyPath: columns[0],
+    });
 
     for (const [column, unique] of Object.entries(layout)) {
       store.createIndex(column, column, { unique });

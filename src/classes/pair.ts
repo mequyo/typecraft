@@ -85,16 +85,17 @@ export class Pair<K, V> {
     }
   }
 
-  *entriesOrdered(compareK1?: (a: K, b: K) => number, compareK2?: (a: K, b: K) => number): IterableIterator<[[K, K], V]> {
+  *entriesOrdered(
+    compareK1?: (a: K, b: K) => number,
+    compareK2?: (a: K, b: K) => number,
+  ): IterableIterator<[[K, K], V]> {
     const k1sorted = Array.from(this.map.keys()).sort(compareK1);
     for (const k1 of k1sorted) {
-
       const layer2 = this.map.get(k1);
       if (!layer2) continue;
       const k2sorted = Array.from(layer2.keys()).sort(compareK2);
 
       for (const k2 of k2sorted) {
-
         const v = this.get(k1, k2);
         if (!v) continue;
 

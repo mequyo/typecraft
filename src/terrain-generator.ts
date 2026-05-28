@@ -14,7 +14,6 @@ import {
   BLUE_GLASS,
   COBBLESTONE,
   DEEPSLATE,
-  DIORITE,
   DIRT,
   GRANITE,
   GRASS_BLOCK,
@@ -28,8 +27,6 @@ import {
   SNOW,
   STONE,
   TUFF,
-  OAK_SLAB,
-  OAK_FENCE,
 } from "./registries/blocks";
 import { BlockStateRegistry } from "./registries/blockstate-registry";
 import { Simplex2D } from "./classes/simplex2D";
@@ -404,9 +401,6 @@ export class TerrainGenerator {
     let amount = 0;
 
     const chunkY0 = coffset[1] * CHUNK_SIZE;
-    const airCode = BlockStateRegistry.encode(AIR.ID, {
-      orientation: ORIENTATION.NX_0,
-    });
     const waterCode = BlockStateRegistry.encode(BLUE_GLASS.ID, {
       orientation: ORIENTATION.NX_0,
     });

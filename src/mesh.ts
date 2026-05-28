@@ -1,5 +1,5 @@
 import { mat3, Mat3, Vec3, vec3 } from "wgpu-matrix";
-import { FLOATS_PER_VERTEX, RENDER_DISTANCE } from "./constants";
+import { FLOATS_PER_VERTEX } from "./constants";
 import { Sixtuple } from "./types";
 
 export enum FACE {

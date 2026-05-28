@@ -1,7 +1,6 @@
 import { NineSlice } from "./nine-slice";
 
 export function PauseMenu({ ...props }: {} & React.ComponentProps<"div">) {
-
   const resume = () => window.dispatchEvent(new CustomEvent("resume"));
 
   return (
@@ -15,11 +14,19 @@ export function PauseMenu({ ...props }: {} & React.ComponentProps<"div">) {
         RESUME
       </NineSlice>
 
-      <NineSlice borderImage="url(./ui/button.png)" padding={16} className="p-2 text-2xl font-bold relative text-center text-gray-500">
+      <NineSlice
+        borderImage="url(./ui/button.png)"
+        padding={16}
+        className="p-2 text-2xl font-bold relative text-center text-gray-500"
+      >
         SETTINGS
       </NineSlice>
 
-      <NineSlice borderImage="url(./ui/button.png)" padding={16} className="p-2 text-2xl font-bold relative text-center text-gray-500">
+      <NineSlice
+        borderImage="url(./ui/button.png)"
+        padding={16}
+        className="p-2 text-2xl font-bold relative text-center text-gray-500"
+      >
         QUIT
       </NineSlice>
     </div>

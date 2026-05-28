@@ -10,6 +10,7 @@ import { FACE, ORIENTATION_FACE_MAP } from "./mesh";
 import { DynamicBuffer } from "./classes/dynamic-buffer";
 import { InventoryRow, ItemNames } from "./types";
 
+// TODO more general method
 export function collides(pos: Vec3, world: World): Vec3 | null {
   const hitbox = {
     min: vec3.floor(

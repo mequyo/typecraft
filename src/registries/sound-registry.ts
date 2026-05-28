@@ -1,17 +1,17 @@
-export type SoundID = number
+export type SoundID = number;
 
 export type SoundDefinition = {
-  url: string
-}
+  url: string;
+};
 
 export type Sound = SoundDefinition & {
-  ID: SoundID
-  buffer?: AudioBuffer
-}
+  ID: SoundID;
+  buffer?: AudioBuffer;
+};
 
 export class SoundRegistry {
-  private static context: AudioContext
-  private static sounds: Sound[] = []
+  private static context: AudioContext;
+  private static sounds: Sound[] = [];
 
   static register(definition: SoundDefinition): Sound {
     const texture: Sound = {
@@ -31,12 +31,14 @@ export class SoundRegistry {
   }
 
   static async awaitSounds(context: AudioContext) {
-    await Promise.all(this.sounds.map(async (element) => {
-      const response = await fetch(element.url);
-      const arraybuffer = await response.arrayBuffer();
-      const audiobuffer = await context.decodeAudioData(arraybuffer);
-      element.buffer = audiobuffer;
-    }));
+    await Promise.all(
+      this.sounds.map(async (element) => {
+        const response = await fetch(element.url);
+        const arraybuffer = await response.arrayBuffer();
+        const audiobuffer = await context.decodeAudioData(arraybuffer);
+        element.buffer = audiobuffer;
+      }),
+    );
   }
 
   static play(soundID: SoundID, volume: number = 1.0) {

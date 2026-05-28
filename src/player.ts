@@ -1,7 +1,7 @@
 import { vec3, Vec3 } from "wgpu-matrix";
 import { Camera, CameraDescriptor } from "./camera";
 import { PLAYER_HEIGHT, PLAYER_WIDTH } from "./constants";
-import { Inventory, InventoryRow, ItemNames, ItemStack } from "./types";
+import { Inventory, InventoryRow, ItemStack } from "./types";
 import { generateInventoryRow } from "./lib";
 
 type PlayerDescriptor = {

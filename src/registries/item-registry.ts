@@ -1,24 +1,25 @@
-import { Block } from "./block-registry"
+import { MeshID } from "../mesh";
+import { Block } from "./block-registry";
 
-export type ItemID = number
-export type URL = string
+export type ItemID = number;
+export type URL = string;
 
 export type ItemDefinition = {
-  name: string
-  stacksize: number
-  source: Block | URL // If this is provided, the item will use the block mesh as its own mesh
-}
+  name: string;
+  stacksize: number;
+  source: Block | URL; // If this is provided, the item will use the block mesh as its own mesh
+};
 
 export type Item = ItemDefinition & {
-  ID: ItemID
-  mesh: MeshID
-}
+  ID: ItemID;
+  mesh: MeshID;
+};
 
 export class ItemRegistry {
-  private static items: Item[] = []
+  private static items: Item[] = [];
 
   static register(definition: ItemDefinition): Item {
-    const item: Item = { ...definition, ID: this.items.length };
+    const item: Item = { ...definition, ID: this.items.length,  };
     this.items.push(item);
     return item;
   }
@@ -30,5 +31,4 @@ export class ItemRegistry {
   static getAll(): Item[] {
     return this.items;
   }
-
 }

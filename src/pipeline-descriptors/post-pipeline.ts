@@ -69,7 +69,7 @@ export const POST_PIPELINE = (
       ],
     ],
 
-    draw: (pass, self, state) => {
+    draw: (pass, self, _) => {
       pass.setPipeline(self.pipeline);
       for (let i = 0; i < self.groups.length; i++) {
         pass.setBindGroup(i, self.groups[i].group);

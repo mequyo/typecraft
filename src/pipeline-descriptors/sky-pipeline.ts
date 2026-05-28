@@ -35,6 +35,7 @@ export const SKY_PIPELINE = (device: GPUDevice): RenderPipeline =>
           ),
           update: (state, buffer) =>
             buffer.write(
+              // @ts-ignore
               mat4.multiply(
                 mat4.invert(state.player.projection),
                 mat4.invert(state.player.view()),

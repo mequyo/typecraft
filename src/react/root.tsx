@@ -1,5 +1,3 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
 import { useEffect, useRef, useState } from "react";
 import { Inventory, ItemStack, Menu } from "../types";
 import { MOUSE } from "../input-system";

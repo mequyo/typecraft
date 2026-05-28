@@ -1,16 +1,16 @@
-export type TextureID = number
+export type TextureID = number;
 
 export type TextureDefinition = {
-  url: string
-}
+  url: string;
+};
 
 export type Texture = TextureDefinition & {
-  ID: TextureID
-  bitmap?: ImageBitmap
-}
+  ID: TextureID;
+  bitmap?: ImageBitmap;
+};
 
 export class TextureRegistry {
-  private static textures: Texture[] = []
+  private static textures: Texture[] = [];
 
   static register(definition: TextureDefinition): Texture {
     const texture: Texture = { ...definition, ID: this.textures.length };
@@ -26,10 +26,13 @@ export class TextureRegistry {
     return this.textures;
   }
 
-
   static async awaitImages() {
-    await Promise.all(this.textures.map(async t => {
-      t.bitmap = await fetch(t.url).then(r => r.blob()).then(b => createImageBitmap(b));
-    }));
+    await Promise.all(
+      this.textures.map(async (t) => {
+        t.bitmap = await fetch(t.url)
+          .then((r) => r.blob())
+          .then((b) => createImageBitmap(b));
+      }),
+    );
   }
 }

@@ -7,7 +7,8 @@ export class Worley3D {
 
   // Simple pseudo-random generator (deterministic for each cell)
   private hash(x: number, y: number, z: number): number {
-    let h = x * 374761393 + y * 668265263 + z * 2147483647 + this.seed * 1013904223;
+    let h =
+      x * 374761393 + y * 668265263 + z * 2147483647 + this.seed * 1013904223;
     h = (h ^ (h >> 13)) * 1274126177;
     return (h ^ (h >> 16)) >>> 0;
   }

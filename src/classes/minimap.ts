@@ -1,14 +1,17 @@
-import { Chunk } from "../chunk";
-import { MINIMAP_INITIAL_ZOOM, MINIMAP_RENDER_SIZE, REGION_SIZE } from "../constants";
+import {
+  MINIMAP_INITIAL_ZOOM,
+  MINIMAP_RENDER_SIZE,
+  REGION_SIZE,
+} from "../constants";
 import { Player } from "../player";
 import { SlotMap } from "./slot-map";
 import { Region } from "../region";
 
 export class Minimap {
-  private canvas: HTMLCanvasElement
-  private context: CanvasRenderingContext2D
-  public zoom: number = MINIMAP_INITIAL_ZOOM
-  public arrow: ImageBitmap
+  private canvas: HTMLCanvasElement;
+  private context: CanvasRenderingContext2D;
+  public zoom: number = MINIMAP_INITIAL_ZOOM;
+  public arrow: ImageBitmap;
 
   constructor(arrow: ImageBitmap) {
     const canvas = document.querySelector<HTMLCanvasElement>("#minimap");
@@ -26,8 +29,7 @@ export class Minimap {
     this.arrow = arrow;
   }
 
-
-  async render(chunks: SlotMap<number, Chunk>, player: Player, regions: SlotMap<number, Region>) {
+  async render(player: Player, regions: SlotMap<number, Region>) {
     const center = MINIMAP_RENDER_SIZE / 2;
 
     this.context.fillStyle = "rgba(0, 0, 0, 0)";
@@ -36,8 +38,12 @@ export class Minimap {
     for (let region of regions.values) {
       this.context.drawImage(
         region.canvas,
-        Math.floor(this.zoom * (region.rx * REGION_SIZE - player.position[0]) + center),
-        Math.floor(this.zoom * (region.rz * REGION_SIZE - player.position[2]) + center),
+        Math.floor(
+          this.zoom * (region.rx * REGION_SIZE - player.position[0]) + center,
+        ),
+        Math.floor(
+          this.zoom * (region.rz * REGION_SIZE - player.position[2]) + center,
+        ),
         REGION_SIZE * this.zoom,
         REGION_SIZE * this.zoom,
       );

@@ -1,15 +1,30 @@
 import { RingBuffer } from "./classes/ring-buffer";
 import { PROFILER_ENABLED } from "./constants";
 
-
-
-const BUFFERS = ["chunk generation", "chunk meshing", "chunk culling", "pipeline draw", "pipeline updates", "minimap", "cpu frame time", "gpu frame time", "physics", "ui"] as const;
+const BUFFERS = [
+  "chunk generation",
+  "chunk meshing",
+  "chunk culling",
+  "pipeline draw",
+  "pipeline updates",
+  "minimap",
+  "cpu frame time",
+  "gpu frame time",
+  "physics",
+  "ui",
+] as const;
 const BUFFER_SIZE = 300;
 
 export class Profiler {
-  private last = 0;
-  private buffers: Record<typeof BUFFERS[number], RingBuffer> = {} as Record<typeof BUFFERS[number], RingBuffer>;
-  private calls: Record<typeof BUFFERS[number], number> = {} as Record<typeof BUFFERS[number], number>;
+  //private last = 0;
+  private buffers: Record<(typeof BUFFERS)[number], RingBuffer> = {} as Record<
+    (typeof BUFFERS)[number],
+    RingBuffer
+  >;
+  private calls: Record<(typeof BUFFERS)[number], number> = {} as Record<
+    (typeof BUFFERS)[number],
+    number
+  >;
 
   public constructor() {
     for (let buffer = 0; buffer < BUFFERS.length; buffer++) {
@@ -18,7 +33,7 @@ export class Profiler {
     }
   }
 
-  public measure<T>(key: typeof BUFFERS[number], fn: () => T): T {
+  public measure<T>(key: (typeof BUFFERS)[number], fn: () => T): T {
     const start = performance.now();
     const result = fn();
 
@@ -36,11 +51,11 @@ export class Profiler {
     return result;
   }
 
-  public add(buffer: typeof BUFFERS[number], seconds: number) {
+  public add(buffer: (typeof BUFFERS)[number], seconds: number) {
     this.buffers[buffer].push(seconds);
   }
 
-  public performance(buffer: typeof BUFFERS[number]) {
+  public performance(buffer: (typeof BUFFERS)[number]) {
     return this.buffers[buffer];
   }
 }

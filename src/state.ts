@@ -3,7 +3,6 @@ import { Minimap } from "./classes/minimap";
 import { RenderPipeline } from "./render-pipeline";
 import { Player } from "./player";
 import { World } from "./world";
-import { ChunkBlocksComputePipeline } from "./pipeline-descriptors/chunk-blocks-compute-pipeline";
 import { InputSystem } from "./input-system";
 import { PhysicsSystem } from "./physics-system";
 import { DynamicBuffer } from "./classes/dynamic-buffer";
@@ -11,7 +10,6 @@ import { UISystem } from "./ui-system.ts";
 import { Profiler } from "./profiler.ts";
 import { LVH } from "./classes/lvh.ts";
 import { Vec3 } from "wgpu-matrix";
-import { SlotMap } from "./classes/slot-map.ts";
 
 export type State = {
   canvas: HTMLCanvasElement;
@@ -44,8 +42,6 @@ export type State = {
   chunkBuffer: ArenaBuffer;
   lvh: LVH;
   pipelines: RenderPipeline[];
-
-  compute: ChunkBlocksComputePipeline;
 
   indirectBuffer: DynamicBuffer;
 

@@ -26,10 +26,11 @@ export class RingBuffer {
   }
 
   public min(percent: number): number {
-    if (percent < 1 || percent > 100) throw new Error("Percent must be between 1 and 100.");
+    if (percent < 1 || percent > 100)
+      throw new Error("Percent must be between 1 and 100.");
 
     const sorted = this.data.slice(0, this.elements).sort();
-    const count = Math.ceil(this.elements * percent / 100);
+    const count = Math.ceil((this.elements * percent) / 100);
 
     let sum = 0;
     for (let i = 0; i < count; i++) sum += sorted[i];
@@ -37,10 +38,11 @@ export class RingBuffer {
   }
 
   public max(percent: number): number {
-    if (percent < 1 || percent > 100) throw new Error("Percent must be between 1 and 100.");
+    if (percent < 1 || percent > 100)
+      throw new Error("Percent must be between 1 and 100.");
 
     const sorted = this.data.slice(0, this.elements).sort((a, b) => b - a);
-    const count = Math.ceil(this.elements * percent / 100);
+    const count = Math.ceil((this.elements * percent) / 100);
 
     let sum = 0;
     for (let i = 0; i < count; i++) sum += sorted[i];

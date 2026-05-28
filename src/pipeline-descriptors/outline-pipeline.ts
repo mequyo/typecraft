@@ -5,7 +5,6 @@ import { RenderPipeline } from "../render-pipeline";
 import { BlockRegistry } from "../registries/block-registry";
 import { BlockStateRegistry } from "../registries/blockstate-registry";
 import code from "../shaders/outline.wgsl?raw";
-import { AIR } from "../registries/blocks";
 
 export const OUTLINE_PIPELINE = (device: GPUDevice) => {
   const outlinebuffer = new DynamicBuffer(
