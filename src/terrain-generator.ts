@@ -396,17 +396,20 @@ export class TerrainGenerator {
     amount: number;
   } {
     const blocks = new Uint16Array(CHUNK_SIZE ** 3).fill(
-      BlockStateRegistry.encode(AIR.ID, ORIENTATION.NX_0),
+      BlockStateRegistry.encode(AIR.ID, {
+        orientation: ORIENTATION.NX_0,
+      }),
     );
     const heightmap = new Uint8Array(CHUNK_SIZE * CHUNK_SIZE);
     let amount = 0;
 
     const chunkY0 = coffset[1] * CHUNK_SIZE;
-    const airCode = BlockStateRegistry.encode(AIR.ID, ORIENTATION.NX_0);
-    const waterCode = BlockStateRegistry.encode(
-      BLUE_GLASS.ID,
-      ORIENTATION.NX_0,
-    );
+    const airCode = BlockStateRegistry.encode(AIR.ID, {
+      orientation: ORIENTATION.NX_0,
+    });
+    const waterCode = BlockStateRegistry.encode(BLUE_GLASS.ID, {
+      orientation: ORIENTATION.NX_0,
+    });
 
     for (let x = 0; x < CHUNK_SIZE; x++) {
       const wx = x + coffset[0] * CHUNK_SIZE;
@@ -450,7 +453,9 @@ export class TerrainGenerator {
             slope,
             here.erosion,
           );
-          blocks[index] = BlockStateRegistry.encode(block.ID, ORIENTATION.PX_0);
+          blocks[index] = BlockStateRegistry.encode(block.ID, {
+            orientation: ORIENTATION.NX_0,
+          });
           amount++;
         }
       }

@@ -43,7 +43,7 @@ export function collides(pos: Vec3, world: World): Vec3 | null {
         if (
           chunk &&
           BlockStateRegistry.decode(chunk.get(local[0], local[1], local[2]))
-            .block != AIR.ID
+            .blockID != AIR.ID
         ) {
           return vec3.create(x, y, z);
         }
@@ -224,9 +224,9 @@ export async function bitmapFromBlockData(
         const index = Chunk.pack(x, y, z);
 
         const blockstate = blocks[index];
-        const { block: ID, orientation } =
+        const { blockID: ID, properties } =
           BlockStateRegistry.decode(blockstate);
-
+        const orientation = properties.orientation || 0;
         const block = BlockRegistry.get(ID);
         const texture =
           block.textures[

@@ -1,18 +1,21 @@
 import { vec3 } from "wgpu-matrix";
 import { Chunk } from "./chunk";
-import { CHUNK_SIZE, MINIMAP_BLOCK_SIZE, MINIMAP_CANVAS_SIZE, REGION_SIZE } from "./constants";
+import {
+  CHUNK_SIZE,
+  MINIMAP_BLOCK_SIZE,
+  MINIMAP_CANVAS_SIZE,
+  REGION_SIZE,
+} from "./constants";
 import { FACE, ORIENTATION_FACE_MAP } from "./mesh";
 import { BlockRegistry } from "./registries/block-registry";
 import { AIR } from "./registries/blocks";
 import { BlockStateRegistry } from "./registries/blockstate-registry";
 
-
-
 export class Region {
-  public rx: number
-  public rz: number
-  public wx: number
-  public wz: number
+  public rx: number;
+  public rz: number;
+  public wx: number;
+  public wz: number;
   public canvas = new OffscreenCanvas(MINIMAP_CANVAS_SIZE, MINIMAP_CANVAS_SIZE);
   private context = this.canvas.getContext("2d")!;
   private heightmap = new Int16Array(REGION_SIZE * REGION_SIZE).fill(-32768);
@@ -20,7 +23,8 @@ export class Region {
   public constructor(rkey: number) {
     const rxrz: [number, number] = [0, 0];
     Region.unpack(rkey, rxrz);
-    const rx = rxrz[0], rz = rxrz[1];
+    const rx = rxrz[0],
+      rz = rxrz[1];
     this.rx = rx;
     this.rz = rz;
     this.wx = rx * REGION_SIZE;
@@ -28,7 +32,13 @@ export class Region {
   }
 
   public updateBlock(wx: number, wy: number, wz: number, blockhash: number) {
-    if (wx < this.wx || wx >= this.wx + REGION_SIZE || wz < this.wz || wz >= this.wz + REGION_SIZE) return;
+    if (
+      wx < this.wx ||
+      wx >= this.wx + REGION_SIZE ||
+      wz < this.wz ||
+      wz >= this.wz + REGION_SIZE
+    )
+      return;
 
     const lx = wx - this.wx;
     const lz = wz - this.wz;
@@ -37,10 +47,24 @@ export class Region {
     if (this.heightmap[index] > wy) return;
 
     const blockstate = BlockStateRegistry.decode(blockhash);
-    const block = BlockRegistry.get(blockstate.block);
-    const texture = block.textures[ORIENTATION_FACE_MAP[blockstate.orientation][FACE.PY] % block.textures.length];
+    const block = BlockRegistry.get(blockstate.blockID);
+    const orientation = blockstate.properties.orientation;
 
-    this.context.drawImage(texture.bitmap!, lx * MINIMAP_BLOCK_SIZE, lz * MINIMAP_BLOCK_SIZE, MINIMAP_BLOCK_SIZE, MINIMAP_BLOCK_SIZE);
+    // TODO fix this, for now assume air
+    if (orientation == undefined) return;
+
+    const texture =
+      block.textures[
+        ORIENTATION_FACE_MAP[orientation][FACE.PY] % block.textures.length
+      ];
+
+    this.context.drawImage(
+      texture.bitmap!,
+      lx * MINIMAP_BLOCK_SIZE,
+      lz * MINIMAP_BLOCK_SIZE,
+      MINIMAP_BLOCK_SIZE,
+      MINIMAP_BLOCK_SIZE,
+    );
     this.heightmap[index] = wy;
   }
 
@@ -52,14 +76,14 @@ export class Region {
         for (let y = CHUNK_SIZE - 1; y >= 0; y--) {
           const index = Chunk.pack(x, y, z);
           const blockstate = chunk.blocks[index];
-          const block = BlockStateRegistry.decode(blockstate).block;
+          const block = BlockStateRegistry.decode(blockstate).blockID;
 
           if (block == AIR.ID) continue;
 
           const wx = x + offset[0];
           const wy = y + offset[1];
           const wz = z + offset[2];
-          this.updateBlock(wx, wy, wz, chunk.blocks[index])
+          this.updateBlock(wx, wy, wz, chunk.blocks[index]);
         }
       }
     }
@@ -73,7 +97,7 @@ export class Region {
   }
 
   public static unpack(key: number, out: [number, number]) {
-    out[0] = ((key >>> 16) & 0xFFFF) - 32768;
-    out[1] = ((key >>> 0) & 0xFFFF) - 32768;
+    out[0] = ((key >>> 16) & 0xffff) - 32768;
+    out[1] = ((key >>> 0) & 0xffff) - 32768;
   }
 }

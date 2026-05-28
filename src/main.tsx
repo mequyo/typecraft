@@ -39,7 +39,7 @@ import { Root } from "./react/root.tsx";
 import { POST_PIPELINE } from "./pipeline-descriptors/post-pipeline.ts";
 import { LVH } from "./classes/lvh.ts";
 import { calculateSphereOffsets } from "./mesh.ts";
-import { SlotMap } from "./classes/slot-map.ts";
+import { BlockStateRegistry } from "./registries/blockstate-registry.ts";
 
 window.onload = main;
 
@@ -121,6 +121,7 @@ async function main() {
 
   const { canvas, context, adapter, device, audio } = await initDevices();
 
+  BlockStateRegistry.build();
   await TextureRegistry.awaitImages();
   await SoundRegistry.awaitSounds(audio);
   const textures = TextureRegistry.getAll().map<ImageBitmap>((t) => t.bitmap!);

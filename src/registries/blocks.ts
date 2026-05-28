@@ -1,9 +1,67 @@
-import { MESH } from "../mesh"
-import { BlockRegistry } from "./block-registry"
-import { AZALEA_LEAVES_DIG_SOUND, AZALEA_LEAVES_MINING_SOUND, STONE_DIG_SOUND, STONE_MINING_SOUND, WOOD_DIG_SOUND, WOOD_MINING_SOUND } from "./sounds";
-import { AIR_TEXTURE, ANDESITE_TEXTURE, AZALEA_LEAVES_TEXTURE, BASALT_TEXTURE, BLACKSTONE_TEXTURE, BLUE_GLASS_TEXTURE, CALCITE_TEXTURE, CLAY_TEXTURE, COAL_ORE_TEXTURE, COARSE_DIRT_TEXTURE, COBBLESTONE_TEXTURE, COPPER_ORE_TEXTURE, CRAFTING_TABLE_FRONT_TEXTURE, CRAFTING_TABLE_SIDE_TEXTURE, CRAFTING_TABLE_TOP_TEXTURE, DEEPSLATE_COAL_ORE_TEXTURE, DEEPSLATE_COPPER_ORE_TEXTURE, DEEPSLATE_DIAMOND_ORE_TEXTURE, DEEPSLATE_EMERALD_ORE_TEXTURE, DEEPSLATE_GOLD_ORE_TEXTURE, DEEPSLATE_IRON_ORE_TEXTURE, DEEPSLATE_LAPIS_ORE_TEXTURE, DEEPSLATE_REDSTONE_ORE_TEXTURE, DEEPSLATE_TEXTURE, DIORITE_TEXTURE, DIRT_TEXTURE, DRIPSTONE_TEXTURE, EMERALD_ORE_TEXTURE, FLOWERING_AZALEA_TEXTURE, GLASS_TEXTURE, GOLD_ORE_TEXTURE, GRANITE_TEXTURE, GRASS_SIDE_TEXTURE, GRASS_TOP_TEXTURE, GRAVEL_TEXTURE, IRON_ORE_TEXTURE, LAPIS_ORE_TEXTURE, MOSS_BLOCK_TEXTURE, MOSSY_COBBLESTONE_TEXTURE, MUD_TEXTURE, OAK_LOG_SIDE_TEXTURE, OAK_LOG_TOP_TEXTURE, OAK_PLANKS_TEXTURE, PODZOL_TEXTURE, RED_SAND_TEXTURE, REDSTONE_ORE_TEXTURE, SAND_TEXTURE, SANDSTONE_TEXTURE, SNOW_TEXTURE, STONE_TEXTURE, TUFF_TEXTURE } from "./textures";
-
-
+import { BlockProperties } from "../block-properties";
+import { MESH } from "../mesh";
+import { BlockRegistry } from "./block-registry";
+import {
+  AZALEA_LEAVES_DIG_SOUND,
+  AZALEA_LEAVES_MINING_SOUND,
+  STONE_DIG_SOUND,
+  STONE_MINING_SOUND,
+  WOOD_DIG_SOUND,
+  WOOD_MINING_SOUND,
+} from "./sounds";
+import {
+  AIR_TEXTURE,
+  ANDESITE_TEXTURE,
+  AZALEA_LEAVES_TEXTURE,
+  BASALT_TEXTURE,
+  BLACKSTONE_TEXTURE,
+  BLUE_GLASS_TEXTURE,
+  CALCITE_TEXTURE,
+  CLAY_TEXTURE,
+  COAL_ORE_TEXTURE,
+  COARSE_DIRT_TEXTURE,
+  COBBLESTONE_TEXTURE,
+  COPPER_ORE_TEXTURE,
+  CRAFTING_TABLE_FRONT_TEXTURE,
+  CRAFTING_TABLE_SIDE_TEXTURE,
+  CRAFTING_TABLE_TOP_TEXTURE,
+  DEEPSLATE_COAL_ORE_TEXTURE,
+  DEEPSLATE_COPPER_ORE_TEXTURE,
+  DEEPSLATE_DIAMOND_ORE_TEXTURE,
+  DEEPSLATE_EMERALD_ORE_TEXTURE,
+  DEEPSLATE_GOLD_ORE_TEXTURE,
+  DEEPSLATE_IRON_ORE_TEXTURE,
+  DEEPSLATE_LAPIS_ORE_TEXTURE,
+  DEEPSLATE_REDSTONE_ORE_TEXTURE,
+  DEEPSLATE_TEXTURE,
+  DIORITE_TEXTURE,
+  DIRT_TEXTURE,
+  DRIPSTONE_TEXTURE,
+  EMERALD_ORE_TEXTURE,
+  FLOWERING_AZALEA_TEXTURE,
+  GLASS_TEXTURE,
+  GOLD_ORE_TEXTURE,
+  GRANITE_TEXTURE,
+  GRASS_SIDE_TEXTURE,
+  GRASS_TOP_TEXTURE,
+  GRAVEL_TEXTURE,
+  IRON_ORE_TEXTURE,
+  LAPIS_ORE_TEXTURE,
+  MOSS_BLOCK_TEXTURE,
+  MOSSY_COBBLESTONE_TEXTURE,
+  MUD_TEXTURE,
+  OAK_LOG_SIDE_TEXTURE,
+  OAK_LOG_TOP_TEXTURE,
+  OAK_PLANKS_TEXTURE,
+  PODZOL_TEXTURE,
+  RED_SAND_TEXTURE,
+  REDSTONE_ORE_TEXTURE,
+  SAND_TEXTURE,
+  SANDSTONE_TEXTURE,
+  SNOW_TEXTURE,
+  STONE_TEXTURE,
+  TUFF_TEXTURE,
+} from "./textures";
 
 export const AIR = BlockRegistry.register({
   name: "air",
@@ -13,9 +71,9 @@ export const AIR = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [AIR_TEXTURE]
+  textures: [AIR_TEXTURE],
+  properties: [],
 });
-
 export const ANDESITE = BlockRegistry.register({
   name: "andesite",
   meshID: MESH.CUBE,
@@ -24,9 +82,9 @@ export const ANDESITE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [ANDESITE_TEXTURE]
+  textures: [ANDESITE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const AZALEA_LEAVES = BlockRegistry.register({
   name: "azalea_leaves",
   meshID: MESH.OPAQUE_CUBE,
@@ -35,9 +93,9 @@ export const AZALEA_LEAVES = BlockRegistry.register({
     dig: AZALEA_LEAVES_DIG_SOUND,
     mining: AZALEA_LEAVES_MINING_SOUND,
   },
-  textures: [AZALEA_LEAVES_TEXTURE]
+  textures: [AZALEA_LEAVES_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const BASALT = BlockRegistry.register({
   name: "basalt",
   meshID: MESH.CUBE,
@@ -46,9 +104,9 @@ export const BASALT = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [BASALT_TEXTURE]
+  textures: [BASALT_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const BLACKSTONE = BlockRegistry.register({
   name: "blackstone",
   meshID: MESH.CUBE,
@@ -57,9 +115,9 @@ export const BLACKSTONE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [BLACKSTONE_TEXTURE]
+  textures: [BLACKSTONE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const CALCITE = BlockRegistry.register({
   name: "calcite",
   meshID: MESH.CUBE,
@@ -68,9 +126,9 @@ export const CALCITE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [CALCITE_TEXTURE]
+  textures: [CALCITE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const CLAY = BlockRegistry.register({
   name: "clay",
   meshID: MESH.CUBE,
@@ -79,9 +137,9 @@ export const CLAY = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [CLAY_TEXTURE]
+  textures: [CLAY_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const COAL_ORE = BlockRegistry.register({
   name: "coal_ore",
   meshID: MESH.CUBE,
@@ -90,9 +148,9 @@ export const COAL_ORE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [COAL_ORE_TEXTURE]
+  textures: [COAL_ORE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const COARSE_DIRT = BlockRegistry.register({
   name: "coarse_dirt",
   meshID: MESH.CUBE,
@@ -101,9 +159,9 @@ export const COARSE_DIRT = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [COARSE_DIRT_TEXTURE]
+  textures: [COARSE_DIRT_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const COBBLESTONE = BlockRegistry.register({
   name: "cobblestone",
   meshID: MESH.CUBE,
@@ -112,9 +170,9 @@ export const COBBLESTONE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [COBBLESTONE_TEXTURE]
+  textures: [COBBLESTONE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const COPPER_ORE = BlockRegistry.register({
   name: "copper_ore",
   meshID: MESH.CUBE,
@@ -123,9 +181,9 @@ export const COPPER_ORE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [COPPER_ORE_TEXTURE]
+  textures: [COPPER_ORE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const CRAFTING_TABLE = BlockRegistry.register({
   name: "crafting_table",
   meshID: MESH.CUBE,
@@ -141,9 +199,9 @@ export const CRAFTING_TABLE = BlockRegistry.register({
     CRAFTING_TABLE_SIDE_TEXTURE,
     CRAFTING_TABLE_FRONT_TEXTURE,
     CRAFTING_TABLE_SIDE_TEXTURE,
-  ]
+  ],
+  properties: [BlockProperties.orientation],
 });
-
 export const DEEPSLATE_COAL_ORE = BlockRegistry.register({
   name: "deepslate_coal_ore",
   meshID: MESH.CUBE,
@@ -152,9 +210,9 @@ export const DEEPSLATE_COAL_ORE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [DEEPSLATE_COAL_ORE_TEXTURE]
+  textures: [DEEPSLATE_COAL_ORE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const DEEPSLATE_COPPER_ORE = BlockRegistry.register({
   name: "deepslate_copper_ore",
   meshID: MESH.CUBE,
@@ -163,9 +221,9 @@ export const DEEPSLATE_COPPER_ORE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [DEEPSLATE_COPPER_ORE_TEXTURE]
+  textures: [DEEPSLATE_COPPER_ORE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const DEEPSLATE_DIAMOND_ORE = BlockRegistry.register({
   name: "deepslate_diamond_ore",
   meshID: MESH.CUBE,
@@ -174,9 +232,9 @@ export const DEEPSLATE_DIAMOND_ORE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [DEEPSLATE_DIAMOND_ORE_TEXTURE]
+  textures: [DEEPSLATE_DIAMOND_ORE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const DEEPSLATE_EMERALD_ORE = BlockRegistry.register({
   name: "deepslate_emerald_ore",
   meshID: MESH.CUBE,
@@ -185,9 +243,9 @@ export const DEEPSLATE_EMERALD_ORE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [DEEPSLATE_EMERALD_ORE_TEXTURE]
+  textures: [DEEPSLATE_EMERALD_ORE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const DEEPSLATE_GOLD_ORE = BlockRegistry.register({
   name: "deepslate_gold_ore",
   meshID: MESH.CUBE,
@@ -196,9 +254,9 @@ export const DEEPSLATE_GOLD_ORE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [DEEPSLATE_GOLD_ORE_TEXTURE]
+  textures: [DEEPSLATE_GOLD_ORE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const DEEPSLATE_IRON_ORE = BlockRegistry.register({
   name: "deepslate_iron_ore",
   meshID: MESH.CUBE,
@@ -207,9 +265,9 @@ export const DEEPSLATE_IRON_ORE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [DEEPSLATE_IRON_ORE_TEXTURE]
+  textures: [DEEPSLATE_IRON_ORE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const DEEPSLATE_LAPIS_ORE = BlockRegistry.register({
   name: "deepslate_lapis_ore",
   meshID: MESH.CUBE,
@@ -218,9 +276,9 @@ export const DEEPSLATE_LAPIS_ORE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [DEEPSLATE_LAPIS_ORE_TEXTURE]
+  textures: [DEEPSLATE_LAPIS_ORE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const DEEPSLATE_REDSTONE_ORE = BlockRegistry.register({
   name: "deepslate_redstone_ore",
   meshID: MESH.CUBE,
@@ -229,9 +287,9 @@ export const DEEPSLATE_REDSTONE_ORE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [DEEPSLATE_REDSTONE_ORE_TEXTURE]
+  textures: [DEEPSLATE_REDSTONE_ORE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const DEEPSLATE = BlockRegistry.register({
   name: "deepslate",
   meshID: MESH.CUBE,
@@ -240,11 +298,9 @@ export const DEEPSLATE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [DEEPSLATE_TEXTURE]
+  textures: [DEEPSLATE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
-// DESTROY TEXTURES
-
 export const DIORITE = BlockRegistry.register({
   name: "diorite",
   meshID: MESH.CUBE,
@@ -253,9 +309,9 @@ export const DIORITE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [DIORITE_TEXTURE]
+  textures: [DIORITE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const DIRT = BlockRegistry.register({
   name: "dirt",
   meshID: MESH.CUBE,
@@ -264,9 +320,9 @@ export const DIRT = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [DIRT_TEXTURE]
+  textures: [DIRT_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const DRIPSTONE = BlockRegistry.register({
   name: "dripstone",
   meshID: MESH.CUBE,
@@ -275,9 +331,9 @@ export const DRIPSTONE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [DRIPSTONE_TEXTURE]
+  textures: [DRIPSTONE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const EMERALD_ORE = BlockRegistry.register({
   name: "emerald_ore",
   meshID: MESH.CUBE,
@@ -286,9 +342,9 @@ export const EMERALD_ORE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [EMERALD_ORE_TEXTURE]
+  textures: [EMERALD_ORE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const FLOWERING_AZALEA = BlockRegistry.register({
   name: "flowering_azalea",
   meshID: MESH.OPAQUE_CUBE,
@@ -297,9 +353,9 @@ export const FLOWERING_AZALEA = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [FLOWERING_AZALEA_TEXTURE]
+  textures: [FLOWERING_AZALEA_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const GLASS = BlockRegistry.register({
   name: "glass",
   meshID: MESH.OPAQUE_CUBE,
@@ -309,8 +365,8 @@ export const GLASS = BlockRegistry.register({
     mining: STONE_MINING_SOUND,
   },
   textures: [GLASS_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const BLUE_GLASS = BlockRegistry.register({
   name: "blue_glass",
   meshID: MESH.CUBE,
@@ -320,8 +376,8 @@ export const BLUE_GLASS = BlockRegistry.register({
     mining: STONE_MINING_SOUND,
   },
   textures: [BLUE_GLASS_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const GOLD_ORE = BlockRegistry.register({
   name: "gold_ore",
   meshID: MESH.CUBE,
@@ -330,9 +386,9 @@ export const GOLD_ORE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [GOLD_ORE_TEXTURE]
+  textures: [GOLD_ORE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const GRANITE = BlockRegistry.register({
   name: "granite",
   meshID: MESH.CUBE,
@@ -341,9 +397,9 @@ export const GRANITE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [GRANITE_TEXTURE]
+  textures: [GRANITE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const GRASS_BLOCK = BlockRegistry.register({
   name: "grass_block",
   meshID: MESH.CUBE,
@@ -359,9 +415,9 @@ export const GRASS_BLOCK = BlockRegistry.register({
     DIRT_TEXTURE,
     GRASS_SIDE_TEXTURE,
     GRASS_SIDE_TEXTURE,
-  ]
+  ],
+  properties: [BlockProperties.orientation],
 });
-
 export const GRAVEL = BlockRegistry.register({
   name: "gravel",
   meshID: MESH.CUBE,
@@ -370,9 +426,9 @@ export const GRAVEL = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [GRAVEL_TEXTURE]
+  textures: [GRAVEL_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const IRON_ORE = BlockRegistry.register({
   name: "iron_ore",
   meshID: MESH.CUBE,
@@ -381,9 +437,9 @@ export const IRON_ORE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [IRON_ORE_TEXTURE]
+  textures: [IRON_ORE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const LAPIS_ORE = BlockRegistry.register({
   name: "lapis_ore",
   meshID: MESH.CUBE,
@@ -392,9 +448,9 @@ export const LAPIS_ORE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [LAPIS_ORE_TEXTURE]
+  textures: [LAPIS_ORE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const MOSS_BLOCK = BlockRegistry.register({
   name: "moss_block",
   meshID: MESH.CUBE,
@@ -403,9 +459,9 @@ export const MOSS_BLOCK = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [MOSS_BLOCK_TEXTURE]
+  textures: [MOSS_BLOCK_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const MOSSY_COBBLESTONE = BlockRegistry.register({
   name: "mossy_cobblestone",
   meshID: MESH.CUBE,
@@ -414,9 +470,9 @@ export const MOSSY_COBBLESTONE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [MOSSY_COBBLESTONE_TEXTURE]
+  textures: [MOSSY_COBBLESTONE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const MUD = BlockRegistry.register({
   name: "mud",
   meshID: MESH.CUBE,
@@ -425,9 +481,9 @@ export const MUD = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [MUD_TEXTURE]
+  textures: [MUD_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const OAK_LOG = BlockRegistry.register({
   name: "oak_log",
   meshID: MESH.CUBE,
@@ -443,9 +499,9 @@ export const OAK_LOG = BlockRegistry.register({
     OAK_LOG_TOP_TEXTURE,
     OAK_LOG_SIDE_TEXTURE,
     OAK_LOG_SIDE_TEXTURE,
-  ]
+  ],
+  properties: [BlockProperties.orientation],
 });
-
 export const OAK_FENCE = BlockRegistry.register({
   name: "oak_fence",
   meshID: MESH.FENCE,
@@ -454,9 +510,9 @@ export const OAK_FENCE = BlockRegistry.register({
     dig: WOOD_DIG_SOUND,
     mining: WOOD_MINING_SOUND,
   },
-  textures: [OAK_PLANKS_TEXTURE]
+  textures: [OAK_PLANKS_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const OAK_SLAB = BlockRegistry.register({
   name: "oak_slab",
   meshID: MESH.SLAB,
@@ -465,9 +521,9 @@ export const OAK_SLAB = BlockRegistry.register({
     dig: WOOD_DIG_SOUND,
     mining: WOOD_MINING_SOUND,
   },
-  textures: [OAK_PLANKS_TEXTURE]
+  textures: [OAK_PLANKS_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const PODZOL = BlockRegistry.register({
   name: "podzol",
   meshID: MESH.CUBE,
@@ -476,9 +532,9 @@ export const PODZOL = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [PODZOL_TEXTURE]
+  textures: [PODZOL_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const RED_SAND = BlockRegistry.register({
   name: "red_sand",
   meshID: MESH.CUBE,
@@ -487,9 +543,9 @@ export const RED_SAND = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [RED_SAND_TEXTURE]
+  textures: [RED_SAND_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const REDSTONE_ORE = BlockRegistry.register({
   name: "redstone_ore",
   meshID: MESH.CUBE,
@@ -498,9 +554,9 @@ export const REDSTONE_ORE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [REDSTONE_ORE_TEXTURE]
+  textures: [REDSTONE_ORE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const SAND = BlockRegistry.register({
   name: "sand",
   meshID: MESH.CUBE,
@@ -509,9 +565,9 @@ export const SAND = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [SAND_TEXTURE]
+  textures: [SAND_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const SANDSTONE = BlockRegistry.register({
   name: "sandstone",
   meshID: MESH.CUBE,
@@ -520,9 +576,9 @@ export const SANDSTONE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [SANDSTONE_TEXTURE]
+  textures: [SANDSTONE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const SNOW = BlockRegistry.register({
   name: "snow",
   meshID: MESH.CUBE,
@@ -531,9 +587,9 @@ export const SNOW = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [SNOW_TEXTURE]
+  textures: [SNOW_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const STONE = BlockRegistry.register({
   name: "stone",
   meshID: MESH.CUBE,
@@ -542,9 +598,9 @@ export const STONE = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [STONE_TEXTURE]
+  textures: [STONE_TEXTURE],
+  properties: [BlockProperties.orientation],
 });
-
 export const TUFF = BlockRegistry.register({
   name: "tuff",
   meshID: MESH.CUBE,
@@ -553,5 +609,6 @@ export const TUFF = BlockRegistry.register({
     dig: STONE_DIG_SOUND,
     mining: STONE_MINING_SOUND,
   },
-  textures: [TUFF_TEXTURE]
+  textures: [TUFF_TEXTURE],
+  properties: [BlockProperties.orientation],
 });

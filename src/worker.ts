@@ -5,7 +5,10 @@ import { Sixtuple, WorkerMessageIn, WorkerMessageOut } from "./types";
 import { CHUNK_SIZE } from "./constants";
 import { createMeshes } from "./mesh-utils";
 import { World } from "./world";
+import "./registries/blocks";
+import { BlockStateRegistry } from "./registries/blockstate-registry";
 
+BlockStateRegistry.build();
 const terraingen = new TerrainGenerator();
 
 const MAX_MESH_SIZE = CHUNK_SIZE ** 3 * 6 * 2; // Currently using 2 ints per vertex, 6 sides per cube

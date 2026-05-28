@@ -312,6 +312,7 @@ export class Mesh {
     orientation: number,
   ): Float32Array {
     const buf: number[] = [];
+    if (orientation == undefined) orientation = 0;
 
     let offset = 0;
     for (let face = 0; face < 6; face += 1) {

@@ -69,8 +69,9 @@ export class Chunk {
           const index = Chunk.pack(x, y, z);
 
           const blockstate = this.blocks[index];
-          const { block: ID, orientation } =
+          const { blockID: ID, properties } =
             BlockStateRegistry.decode(blockstate);
+          const orientation = properties.orientation;
 
           if (ID == AIR.ID) continue;
 
@@ -139,8 +140,8 @@ export class Chunk {
   ) {
     const index = Chunk.pack(x, y, z);
     const oldstate = this.blocks[index];
-    const curblockID = BlockStateRegistry.decode(oldstate).block;
-    const newblockID = BlockStateRegistry.decode(blockstate).block;
+    const curblockID = BlockStateRegistry.decode(oldstate).blockID;
+    const newblockID = BlockStateRegistry.decode(blockstate).blockID;
 
     // TODO Air should only be one state to avoid this check
     if (
@@ -158,7 +159,8 @@ export class Chunk {
     // Check if the new block is the highest block in this column and draw into bitmap if that's the case
     for (let i = CHUNK_SIZE - 1; i >= 0; i--) {
       const state = this.get(x, i, z);
-      const { block: ID, orientation } = BlockStateRegistry.decode(state);
+      const { blockID: ID, properties } = BlockStateRegistry.decode(state);
+      const orientation = properties.orientation;
 
       if (ID == AIR.ID) continue; // Current highest block is higher than y
       if (i > y) break; // Found block, but it's higher than y

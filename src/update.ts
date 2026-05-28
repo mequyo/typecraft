@@ -25,7 +25,9 @@ export function update(state: State) {
     const position = vec3.sub(player.lookat, state.player.placeoffset);
     state.world.addBlock(
       position,
-      BlockStateRegistry.encode(OAK_SLAB.ID, Math.floor(Math.random() * 24)),
+      BlockStateRegistry.encode(OAK_SLAB.ID, {
+        orientation: Math.floor(Math.random() * 24),
+      }),
     ); // TODO actually set orientation based on viewing direction
   }
 

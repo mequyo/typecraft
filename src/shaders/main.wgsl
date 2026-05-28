@@ -30,6 +30,7 @@ struct Chunk {
 @group(2) @binding(4) var<uniform> lookat: vec3<f32>;
 @group(2) @binding(5) var<uniform> indirectionGridSize: u32; // Is the indirection grid size
 @group(2) @binding(6) var<uniform> indirectionOrigin: vec3<i32>;
+@group(2) @binding(7) var<uniform> air_ID: i32;
 
 const FADE_IN_DURATION = 0.5;
 const FACE_NORMALS = array<vec3<f32>, 6>(
@@ -160,7 +161,7 @@ fn traceConeShadow(origin: vec3<f32>, direction: vec3<f32>, coneAngle: f32) -> f
 
         // Simple: check center voxel, weighted by cone size
         // TODO every block currently has 24 orientations, including air
-        if getVoxel(voxelPos) > 23 {
+        if getVoxel(voxelPos) != air_ID {
             let coverage = min(1.0, sampleRadius);
             occlusion += coverage * 0.1;
             if occlusion >= 1.0 {

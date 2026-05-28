@@ -4,6 +4,7 @@ import { mat4, vec3 } from "wgpu-matrix";
 import { World } from "../world";
 import { CHUNK_SIZE, RENDER_DISTANCE } from "../constants";
 import { f32, i32, ReadOnlyStorage, u32, Uniform } from "../lib";
+import { AIR } from "../registries/blocks";
 
 export const MAIN_PIPELINE = (
   device: GPUDevice,
@@ -198,6 +199,10 @@ export const MAIN_PIPELINE = (
                 ),
               ),
             ),
+        },
+        {
+          buffer: { type: "uniform" },
+          resource: Uniform(device, i32(AIR.ID)),
         },
       ],
     ],

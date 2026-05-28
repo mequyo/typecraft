@@ -1,6 +1,6 @@
 // export type WorkerMessageOut = { offset: ArrayBuffer, blocks: ArrayBuffer, heightmap: ArrayBuffer, bitmap: ImageBitmap, mesh: ArrayBuffer, amount: ArrayBuffer }
 import { Vec3 } from "wgpu-matrix";
-import code from "./shaders/terrain.wgsl?raw"
+import code from "./shaders/terrain.wgsl?raw";
 import { World } from "./world";
 import { AIR, COBBLESTONE } from "./registries/blocks";
 import { SparseSet } from "./classes/sparse-set";
@@ -9,8 +9,18 @@ import { SparseSet } from "./classes/sparse-set";
 // use compute shader to generate heightmap
 // use existing terrain generator to create map
 
-export function generateBlocksCompute(device: GPUDevice, size: number, world: World, chunkOffset: Vec3) {
-  const paramData = new Float32Array([chunkOffset[0], chunkOffset[1], chunkOffset[2], size]); // Four entries to make it uniform aligned (16 bytes aligned)
+export function generateBlocksCompute(
+  device: GPUDevice,
+  size: number,
+  world: World,
+  chunkOffset: Vec3,
+) {
+  const paramData = new Float32Array([
+    chunkOffset[0],
+    chunkOffset[1],
+    chunkOffset[2],
+    size,
+  ]); // Four entries to make it uniform aligned (16 bytes aligned)
   const paramBuffer = device.createBuffer({
     size: paramData.byteLength,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -45,7 +55,7 @@ export function generateBlocksCompute(device: GPUDevice, size: number, world: Wo
     entries: [
       { binding: 0, resource: { buffer: paramBuffer } },
       { binding: 1, resource: { buffer: blocksBuffer } },
-    ]
+    ],
   });
 
   // Encoder
@@ -68,7 +78,13 @@ export function generateBlocksCompute(device: GPUDevice, size: number, world: Wo
   pass.end();
 
   // Copy GPU output -> readback buffer
-  encoder.copyBufferToBuffer(blocksBuffer, 0, blocksReadBackBuffer, 0, outSizeBytes);
+  encoder.copyBufferToBuffer(
+    blocksBuffer,
+    0,
+    blocksReadBackBuffer,
+    0,
+    outSizeBytes,
+  );
 
   device.queue.submit([encoder.finish()]);
 
@@ -82,22 +98,28 @@ export function generateBlocksCompute(device: GPUDevice, size: number, world: Wo
 
     blocksReadBackBuffer.unmap();
     //console.log((performance.now() - start))
-    const blocks = new Float32Array(copy).map(block => block > 0.5 ? COBBLESTONE.ID : AIR.ID);
+    const blocks = new Float32Array(copy).map((block) =>
+      block > 0.5 ? COBBLESTONE.ID : AIR.ID,
+    );
     console.log(blocks.length);
   });
 }
-
-
-
 
 /*
 
 Blöcke:
 Meshes sind für viele Blöcke gleich, also -> MeshID + texture
-Main Pipeline bekommt: 
+Main Pipeline bekommt:
 
 
 Items haben alle unterschiedliche meshes, die aber alle at runtime generiert werden müssen
+
+
+
+blockstate -> blockID, orientation, layers, etc.
+blockID, orientation, ... -> blockstate
+
+
 
 
 
