@@ -7,6 +7,10 @@ import { vec3, Vec3 } from "wgpu-matrix";
 import { DynamicBuffer } from "./classes/dynamic-buffer";
 import { InventoryRow, ItemNames } from "./types";
 
+export function clamp(min: number, value: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
 // TODO more general method
 export function collides(pos: Vec3, world: World): Vec3 | null {
   const hitbox = {

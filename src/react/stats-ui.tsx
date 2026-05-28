@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Stats } from "../types";
+import { NumberUtils } from "../number-utils";
 
 export function StatsUI() {
   const [stats, setStats] = useState<Stats | null>(null);
@@ -27,7 +28,7 @@ export function StatsUI() {
         border: "3px solid rgba(255, 255, 255, 0.3)",
       }}
     >
-      <span>TIME: {stats?.time.time("hh:mm:ss") || "00:00:00"}</span>
+      <span>TIME: {NumberUtils.time(stats?.time, "hh:mm:ss")}</span>
       <span>
         CPU FPS: {stats?.cpu.averageFPS.toFixed() || "-"} avg,{" "}
         {stats?.cpu.lows.toFixed() || "-"} lows
@@ -62,7 +63,8 @@ export function StatsUI() {
         rendered ({Math.floor((100 * chunksRendered) / chunksLoaded)}%)
       </span>
       <span>
-        MEMORY: {mem.used.memory("MB")} / {mem.total.memory("MB")} (
+        MEMORY: {NumberUtils.memory(mem.used, "MB")} /{" "}
+        {NumberUtils.memory(mem.total, "MB")} (
         {((100 * mem.used) / mem.total).toFixed(1)}%)
       </span>
       <span>

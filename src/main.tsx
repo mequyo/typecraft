@@ -1,6 +1,3 @@
-import "./augmentation/array.ts";
-import "./augmentation/math.ts";
-import "./augmentation/number.ts";
 import { DESTROY_PIPELINE } from "./pipeline-descriptors/destroy-pipeline.ts";
 import { OUTLINE_PIPELINE } from "./pipeline-descriptors/outline-pipeline.ts";
 import { MAIN_PIPELINE } from "./pipeline-descriptors/main-pipeline.ts";
