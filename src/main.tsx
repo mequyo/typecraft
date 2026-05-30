@@ -36,6 +36,7 @@ import { POST_PIPELINE } from "./pipeline-descriptors/post-pipeline.ts";
 import { LVH } from "./classes/lvh.ts";
 import { calculateSphereOffsets } from "./mesh.ts";
 import { BlockStateRegistry } from "./registries/blockstate-registry.ts";
+import { GHOST_PIPELINE } from "./pipeline-descriptors/ghost-pipeline.ts";
 
 window.onload = main;
 
@@ -217,6 +218,7 @@ async function main() {
       OUTLINE_PIPELINE(device),
       DESTROY_PIPELINE(device, destroytexturearray.createView()),
       POST_PIPELINE(device, outlineTexture.createView()),
+      GHOST_PIPELINE(device, texturearray.createView()),
     ],
 
     profiler: new Profiler(),

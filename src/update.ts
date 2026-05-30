@@ -6,6 +6,7 @@ import { OAK_SLAB } from "./registries/blocks";
 import { MOUSE } from "./input-system";
 import { PlayerSystem } from "./player-system";
 import { BlockRegistry } from "./registries/block-registry";
+import { ORIENTATION } from "./mesh";
 
 /**
  * This function gets called every frame, updates state and renders it.
@@ -45,7 +46,7 @@ export function update(state: State) {
       state.world.addBlock(
         position,
         BlockStateRegistry.encode(block, {
-          orientation: Math.floor(Math.random() * 24),
+          orientation: ORIENTATION.NX_0,
         }),
       ); // TODO actually set orientation based on viewing direction
       // TODO don't place if placing into entities

@@ -1,6 +1,7 @@
 import { mat3, Mat3, Vec3, vec3 } from "wgpu-matrix";
 import { FLOATS_PER_VERTEX } from "./constants";
 import { Sixtuple } from "./types";
+import { Block } from "./registries/block-registry";
 
 export enum FACE {
   PX = 0,
@@ -308,7 +309,7 @@ export class Mesh {
     z: number,
     normals: boolean,
     uv: boolean,
-    texture: undefined | number,
+    block: Block,
     orientation: number,
   ): Float32Array {
     const buf: number[] = [];
@@ -319,6 +320,8 @@ export class Mesh {
       const geometry = this.bakedFaces[orientation][face];
       const realface = ORIENTATION_FACE_MAP[orientation][face];
       const n = FACE_NORMALS[realface];
+      const localface = ORIENTATION_FACE_MAP[orientation][face];
+      const texture = block.textures[localface % block.textures.length].ID; // Wrap with modulo in case of one single texture
 
       for (let v = 0; v < geometry.length; v += FLOATS_PER_VERTEX) {
         buf[offset++] = geometry[v + 0] + x;
@@ -364,11 +367,6 @@ export class Mesh {
     return out;
   }
 
-  /**
-   * Returns a Float32Array for a TriangleList.
-   * Each vertex: [p1.x, p1.y, p1.z, p2.x, p2.y, p2.z, quadU, quadV]
-   * Total: 8 floats per vertex * 6 vertices per edge = 48 floats per edge.
-   */
   public getOutlineEdges(
     block: Vec3,
     orientation: number,

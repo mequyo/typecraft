@@ -115,6 +115,7 @@ export const OUTLINE_PIPELINE = (device: GPUDevice) => {
       const blockstate = state.world.getBlockState(look);
       const reg = BlockStateRegistry;
       const { blockID, properties } = reg.decode(blockstate);
+      const block = BlockRegistry.get(blockID);
       const orientation = properties.orientation;
 
       const meshType = MESHES[BlockRegistry.get(blockID).meshID];
@@ -124,7 +125,7 @@ export const OUTLINE_PIPELINE = (device: GPUDevice) => {
         look[2],
         false, // normals
         false, // uvs
-        0,
+        block,
         orientation,
       );
       outlinebuffer.write(mesh);

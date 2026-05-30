@@ -51,6 +51,7 @@ export function render(state: State) {
     state.pipelines[0].draw(swapchainPass, state.pipelines[0], state); // SKY_PIPELINE(device),
     state.pipelines[1].draw(swapchainPass, state.pipelines[1], state); // MAIN_PIPELINE(device, textureview),
     state.pipelines[3].draw(swapchainPass, state.pipelines[3], state); // DESTROY_PIPELINE(device, destroytextureview),
+    state.pipelines[5].draw(swapchainPass, state.pipelines[5], state); // GHOST_PIPELINE(device, texturearrayview),
   });
 
   swapchainPass.end();
