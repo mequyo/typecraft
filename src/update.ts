@@ -2,11 +2,10 @@ import { CHUNK_SIZE, TICKS_PER_SECOND } from "./constants";
 import { vec3 } from "wgpu-matrix";
 import { State } from "./state";
 import { BlockStateRegistry } from "./registries/blockstate-registry";
-import { OAK_SLAB } from "./registries/blocks";
 import { MOUSE } from "./input-system";
 import { PlayerSystem } from "./player-system";
 import { BlockRegistry } from "./registries/block-registry";
-import { ORIENTATION } from "./mesh";
+import { NORMAL_TO_ORIENTATION, ORIENTATION, ROTATION } from "./mesh";
 
 /**
  * This function gets called every frame, updates state and renders it.
@@ -43,12 +42,16 @@ export function update(state: State) {
         );
       }
 
+      const orientation = NORMAL_TO_ORIENTATION(
+        state.player.placeoffset,
+        ROTATION.ZERO,
+      );
       state.world.addBlock(
         position,
         BlockStateRegistry.encode(block, {
-          orientation: ORIENTATION.NX_0,
+          orientation,
         }),
-      ); // TODO actually set orientation based on viewing direction
+      );
       // TODO don't place if placing into entities
     } catch (_) {
       // No block selected, placing doesn't work

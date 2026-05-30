@@ -50,6 +50,28 @@ interface EdgeInfo {
   faceIndices: number[]; // Which world-space faces share this edge
 }
 
+const NORMALS_TO_ORIENTATION = [
+  [9, 13, 17, 23],
+  [11, 15, 19, 21],
+  [2, 6, 18, 22],
+  [0, 4, 16, 20],
+  [1, 7, 10, 12],
+  [3, 5, 8, 14],
+];
+export function NORMAL_TO_ORIENTATION(
+  normal: Vec3,
+  rotation: ROTATION = ROTATION.ZERO,
+): ORIENTATION {
+  if (normal[0] > 0.5) return NORMALS_TO_ORIENTATION[0][rotation];
+  if (normal[0] < -0.5) return NORMALS_TO_ORIENTATION[1][rotation];
+  if (normal[1] > 0.5) return NORMALS_TO_ORIENTATION[2][rotation];
+  if (normal[1] < -0.5) return NORMALS_TO_ORIENTATION[3][rotation];
+  if (normal[2] > 0.5) return NORMALS_TO_ORIENTATION[4][rotation];
+  if (normal[2] < -0.5) return NORMALS_TO_ORIENTATION[5][rotation];
+
+  return ORIENTATION.PX_0; // Fallback
+}
+
 export const ROTATION_MATRICES = [
   mat3.create(1, 0, 0, 0, 1, 0, 0, 0, 1), //   0° Z axis rotation
   mat3.create(0, 1, 0, -1, 0, 0, 0, 0, 1), //  90° Z axis rotation

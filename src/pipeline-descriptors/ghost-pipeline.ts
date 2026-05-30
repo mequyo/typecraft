@@ -1,13 +1,21 @@
 import code from "../shaders/ghost.wgsl?raw";
 import { RenderPipeline } from "../render-pipeline";
 import { DynamicBuffer } from "../classes/dynamic-buffer";
-import { mat4, vec3 } from "wgpu-matrix";
+import { mat4, Vec3, vec3 } from "wgpu-matrix";
 import { DESTROY_STAGE_TEXTURES } from "../registries/textures";
 import { cube } from "../cube";
 import { FLOATS_PER_VERTEX } from "../constants";
-import { Mesh, MESHES, ORIENTATION } from "../mesh";
+import {
+  FACE,
+  Mesh,
+  MESHES,
+  NORMAL_TO_ORIENTATION,
+  ORIENTATION,
+  ROTATION,
+} from "../mesh";
 import { BlockRegistry } from "../registries/block-registry";
 import { BlockStateRegistry } from "../registries/blockstate-registry";
+import { ArrayUtils } from "../array-utils";
 
 export const GHOST_PIPELINE = (
   device: GPUDevice,
@@ -128,7 +136,7 @@ export const GHOST_PIPELINE = (
         true,
         true,
         block,
-        ORIENTATION.NX_0,
+        NORMAL_TO_ORIENTATION(state.player.placeoffset, ROTATION.ZERO),
       );
 
       buffer.write(meshbuffer);
