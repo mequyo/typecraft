@@ -22,6 +22,7 @@ import { SlotMap } from "./classes/slot-map";
 import { Player } from "./player";
 import { Region } from "./region";
 import { ArrayUtils } from "./array-utils";
+import { PlayerSystem } from "./player-system";
 
 // TODO delete chunks that are too far away
 
@@ -71,7 +72,7 @@ export class World {
     }
   }
 
-  damageBlock(wx: number, wy: number, wz: number, dt: number) {
+  damageBlock(wx: number, wy: number, wz: number, dt: number, player: Player) {
     const now = performance.now();
     const key = World.pack(wx, wy, wz);
     const blockstate = this.getBlockState(vec3.create(wx, wy, wz));
@@ -104,6 +105,17 @@ export class World {
 
     // Destroy block
     if (entry.damage >= entry.hardness) {
+      const blockstate = this.getBlockState(vec3.create(wx, wy, wz));
+      const blockID = BlockStateRegistry.decode(blockstate).blockID;
+
+      PlayerSystem.addToInventory(player, blockID, 1);
+
+      window.dispatchEvent(
+        new CustomEvent("ui-update", {
+          detail: { inventory: player.inventory, hand: player.hand },
+        }),
+      );
+
       this.addBlock(
         vec3.create(wx, wy, wz),
         BlockStateRegistry.encode(AIR.ID, { orientation: ORIENTATION.NX_0 }),

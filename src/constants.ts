@@ -1,7 +1,7 @@
 import { vec3 } from "wgpu-matrix";
 
 export const TICKS_PER_SECOND = 40;
-
+export const ITEM_STACK_SIZE = 64;
 // WORLD
 export const GROUND_FRICTION = 0.7;
 export const GRAVITY = vec3.create(0, -40, 0);

@@ -35,18 +35,8 @@ export type Sixtuple<T> = [T, T, T, T, T, T];
 
 export const ItemNames = Object.keys(
   import.meta.glob("/public/items/*.png"),
-).map((p) => p.split("/").at(-1)?.replace(".png", "")); /*[
-  "bamboo",
-  "carrot",
-  "coal",
-  "diamond",
-  "emerald",
-  "potato",
-  "raw_copper",
-  "raw_gold",
-  "raw_iron",
-  "redstone_dust",
-  ];*/
+).map((p) => p.split("/").at(-1)?.replace(".png", ""));
+
 export type ItemName = (typeof ItemNames)[number];
 export type ItemStack = [number, ItemName];
 export type InventoryRow = [

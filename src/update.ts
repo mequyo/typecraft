@@ -35,7 +35,7 @@ export function update(state: State) {
   const left = state.input.mouse.buttons[MOUSE.LEFT];
   if (!state.player.creative && left && player.lookat) {
     const look = player.lookat;
-    state.world.damageBlock(look[0], look[1], look[2], dt);
+    state.world.damageBlock(look[0], look[1], look[2], dt, player);
   }
 
   prof.measure("physics", () =>

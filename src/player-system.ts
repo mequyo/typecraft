@@ -2,9 +2,10 @@ import { vec3 } from "wgpu-matrix";
 import { Player } from "./player";
 import { World } from "./world";
 import { dda, vec3ToLocalChunk } from "./lib";
-import { CHUNK_SIZE, PLAYER_REACH } from "./constants";
+import { CHUNK_SIZE, ITEM_STACK_SIZE, PLAYER_REACH } from "./constants";
 import { AIR } from "./registries/blocks";
 import { BlockStateRegistry } from "./registries/blockstate-registry";
+import { BlockRegistry } from "./registries/block-registry";
 
 export class PlayerSystem {
   static updateLookat(player: Player, world: World) {
@@ -28,5 +29,56 @@ export class PlayerSystem {
       player.placeoffset = face;
       break;
     }
+  }
+
+  static addToInventory(player: Player, blockID: number, amount: number): void {
+    if (amount <= 0) return;
+
+    const inv = player.inventory;
+    const blockname = BlockRegistry.get(blockID).name;
+
+    // Look for itemstacks with same name
+    for (let row = 0; row < inv.length; row++) {
+      for (let col = 0; col < inv[row].length; col++) {
+        let slot = inv[row][col]; // ItemStack = [amount, item]
+
+        if (!slot || slot[1] != blockname) continue;
+
+        const space = ITEM_STACK_SIZE - slot[0];
+        const add = Math.min(space, amount);
+
+        slot[0] += add;
+        amount -= add;
+
+        if (amount <= 0) return;
+      }
+    }
+
+    // All itemstacks with same name have been tried, look for empty slots
+    for (let row = 0; row < inv.length; row++) {
+      for (let col = 0; col < inv[row].length; col++) {
+        let slot = inv[row][col]; // ItemStack = [amount, item]
+
+        if (slot) continue;
+
+        inv[row][col] = [Math.min(ITEM_STACK_SIZE, amount), blockname];
+        amount -= ITEM_STACK_SIZE;
+
+        if (amount <= 0) return;
+      }
+    }
+  }
+
+  static printInventory(player: Player) {
+    const str = player.inventory
+      .map((row) =>
+        row.map((itemstack) => {
+          return itemstack == null
+            ? "[        ]"
+            : `[${itemstack[0].toString().padStart(2, " ")} ${itemstack[1]?.slice(0, 5)}]`;
+        }),
+      )
+      .join("\n");
+    console.log(str);
   }
 }

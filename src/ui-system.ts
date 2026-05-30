@@ -1,5 +1,6 @@
 import { MINIMAP_MAX_ZOOM, MINIMAP_MIN_ZOOM } from "./constants.ts";
 import { InputSystem } from "./input-system.ts";
+import { PlayerSystem } from "./player-system.ts";
 import { Player } from "./player.ts";
 import { State } from "./state.ts";
 import { Inventory, ItemStack, Menu } from "./types.ts";
@@ -100,6 +101,7 @@ export class UISystem {
     } else if (input.keypresses["p"]) {
       this.setMenu("toggle", "pause", input);
     } else if (input.keypresses["e"]) {
+      PlayerSystem.printInventory(state.player);
       this.setMenu("toggle", "inventory", input, {
         inventory: state.player.inventory,
         hand: state.player.hand,
