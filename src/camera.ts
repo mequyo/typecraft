@@ -1,6 +1,7 @@
 import { mat4, Mat4, vec3, Vec3 } from "wgpu-matrix";
 import { CAMERA_HEIGHT, PLAYER_HEIGHT, PLAYER_WIDTH } from "./constants";
 import { InputSystem } from "./input-system";
+import { clamp } from "./lib";
 
 export type CameraDescriptor = {
   canvas: HTMLCanvasElement;
@@ -72,7 +73,7 @@ export class Camera {
     );
     this.right = vec3.normalize(vec3.cross(this.direction, this.up));
 
-    this.fov = Math.clamp(
+    this.fov = clamp(
       Math.PI / 180,
       this.fov + (input.mouse.wheel / 100 / 180) * Math.PI,
       2 * Math.PI,

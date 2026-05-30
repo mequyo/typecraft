@@ -83,6 +83,7 @@ export class UISystem {
   }
 
   // Handles input and, depending on context, opens a menu or not
+  // TODO move input logic to another system
   public tick(input: InputSystem, state: State) {
     if (input.keypresses["c"]) state.player.creative = !state.player.creative;
 

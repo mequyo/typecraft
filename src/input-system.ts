@@ -70,15 +70,23 @@ export class InputSystem {
     });
   }
 
-  public flush(mouse: boolean, keyboard: boolean) {
-    if (mouse) {
+  public flush(options?: {
+    mouse_movement?: boolean;
+    keypresses?: boolean;
+    button_presses?: boolean;
+  }) {
+    if (options?.mouse_movement) {
       this.mouse.dx = 0;
       this.mouse.dy = 0;
-      this.mouse.wheel = 0;
     }
-    if (keyboard) {
+    if (options?.keypresses) {
+      this.mouse.wheel = 0;
       this.keypresses = {};
-      this.mouse.clicked = [false, false, false];
+    }
+    if (options?.button_presses) {
+      this.mouse.clicked[0] = false;
+      this.mouse.clicked[1] = false;
+      this.mouse.clicked[2] = false;
     }
   }
 

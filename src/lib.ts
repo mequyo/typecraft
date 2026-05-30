@@ -3,7 +3,7 @@ import { CAMERA_HEIGHT, PLAYER_HEIGHT, PLAYER_WIDTH } from "./constants";
 import { World } from "./world";
 import { BlockStateRegistry } from "./registries/blockstate-registry";
 import { AIR } from "./registries/blocks";
-import { vec3, Vec3 } from "wgpu-matrix";
+import { vec3, Vec3, vec4, Vec4 } from "wgpu-matrix";
 import { DynamicBuffer } from "./classes/dynamic-buffer";
 import { InventoryRow, ItemNames } from "./types";
 
@@ -233,16 +233,13 @@ function packVertex(
   return [pos, color];
 }
 
-// p0-3 are 4 corners: each is [x, y, z]
-type V3 = [number, number, number];
-type Color = [number, number, number, number];
 function pushQuad(
   vertices: number[],
-  p0: V3,
-  p1: V3,
-  p2: V3,
-  p3: V3,
-  rgba: Color,
+  p0: Vec3,
+  p1: Vec3,
+  p2: Vec3,
+  p3: Vec3,
+  rgba: Vec4,
 ) {
   // Two triangles: p0 p1 p2, p0 p2 p3
   for (const p of [p0, p1, p2, p0, p2, p3]) {
@@ -269,77 +266,86 @@ export async function createItemMesh(url: string): Promise<Uint32Array> {
   };
 
   const DEPTH = 2; // thickness in "pixel units", so z goes 0..DEPTH
+  const rgba = vec4.create();
+  const first = vec3.create();
+  const second = vec3.create();
+  const third = vec3.create();
+  const fourth = vec3.create();
 
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
       const i = 4 * (y * width + x);
-      const [r, g, b, a] = [data[i], data[i + 1], data[i + 2], data[i + 3]];
+      vec4.set(data[i + 0], data[i + 1], data[i + 2], data[i + 3], rgba);
 
-      if (a === 0) continue;
+      if (rgba[3] === 0) continue;
 
       // Front face (z = DEPTH)
-      const rgba: Color = [r, g, b, a];
       pushQuad(
         vertices,
-        [x, y, DEPTH],
-        [x + 1, y, DEPTH],
-        [x + 1, y + 1, DEPTH],
-        [x, y + 1, DEPTH],
+        vec3.set(x, y, DEPTH, first),
+        vec3.set(x + 1, y, DEPTH, second),
+        vec3.set(x + 1, y + 1, DEPTH, third),
+        vec3.set(x, y + 1, DEPTH, fourth),
         rgba,
       );
+
       // Back face (z = 0)
       pushQuad(
         vertices,
-        [x + 1, y, 0],
-        [x, y, 0],
-        [x, y + 1, 0],
-        [x + 1, y + 1, 0],
+        vec3.set(x + 1, y, 0, first),
+        vec3.set(x, y, 0, second),
+        vec3.set(x, y + 1, 0, third),
+        vec3.set(x + 1, y + 1, 0, fourth),
         rgba,
       );
 
       // Right face (+x neighbor transparent)
-      if (alpha(x + 1, y) === 0)
+      if (alpha(x + 1, y) === 0) {
         pushQuad(
           vertices,
-          [x + 1, y, 0],
-          [x + 1, y + 1, 0],
-          [x + 1, y + 1, DEPTH],
-          [x + 1, y, DEPTH],
+          vec3.set(x + 1, y, 0, first),
+          vec3.set(x + 1, y + 1, 0, second),
+          vec3.set(x + 1, y + 1, DEPTH, third),
+          vec3.set(x + 1, y, DEPTH, fourth),
           rgba,
         );
+      }
 
       // Left face (-x neighbor transparent)
-      if (alpha(x - 1, y) === 0)
+      if (alpha(x - 1, y) === 0) {
         pushQuad(
           vertices,
-          [x, y, DEPTH],
-          [x, y + 1, DEPTH],
-          [x, y + 1, 0],
-          [x, y, 0],
+          vec3.set(x, y, DEPTH, first),
+          vec3.set(x, y + 1, DEPTH, second),
+          vec3.set(x, y + 1, 0, third),
+          vec3.set(x, y, 0, fourth),
           rgba,
         );
+      }
 
       // Top face (-y neighbor transparent, y=0 is top)
-      if (alpha(x, y - 1) === 0)
+      if (alpha(x, y - 1) === 0) {
         pushQuad(
           vertices,
-          [x, y, DEPTH],
-          [x, y, 0],
-          [x + 1, y, 0],
-          [x + 1, y, DEPTH],
+          vec3.set(x, y, DEPTH, first),
+          vec3.set(x, y, 0, second),
+          vec3.set(x + 1, y, 0, third),
+          vec3.set(x + 1, y, DEPTH, fourth),
           rgba,
         );
+      }
 
       // Bottom face (+y neighbor transparent)
-      if (alpha(x, y + 1) === 0)
+      if (alpha(x, y + 1) === 0) {
         pushQuad(
           vertices,
-          [x, y + 1, 0],
-          [x, y + 1, DEPTH],
-          [x + 1, y + 1, DEPTH],
-          [x + 1, y + 1, 0],
+          vec3.set(x, y + 1, 0, first),
+          vec3.set(x, y + 1, DEPTH, second),
+          vec3.set(x + 1, y + 1, DEPTH, third),
+          vec3.set(x + 1, y + 1, 0, fourth),
           rgba,
         );
+      }
     }
   }
 
