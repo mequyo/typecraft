@@ -5,6 +5,7 @@ import { BlockStateRegistry } from "./registries/blockstate-registry";
 import { OAK_SLAB } from "./registries/blocks";
 import { MOUSE } from "./input-system";
 import { PlayerSystem } from "./player-system";
+import { BlockRegistry } from "./registries/block-registry";
 
 /**
  * This function gets called every frame, updates state and renders it.
@@ -23,12 +24,22 @@ export function update(state: State) {
   // PLACE BLOOK IF RIGHT CLICKED
   if (state.input.mouse.clicked[MOUSE.RIGHT] && player.lookat) {
     const position = vec3.sub(player.lookat, state.player.placeoffset);
-    state.world.addBlock(
-      position,
-      BlockStateRegistry.encode(OAK_SLAB.ID, {
-        orientation: Math.floor(Math.random() * 24),
-      }),
-    ); // TODO actually set orientation based on viewing direction
+
+    try {
+      const slot = player.hotbar[player.selectedSlot]?.[1] || "empty slot";
+      const block = BlockRegistry.getByName(slot).ID;
+
+      state.world.addBlock(
+        position,
+        BlockStateRegistry.encode(block, {
+          orientation: Math.floor(Math.random() * 24),
+        }),
+      ); // TODO actually set orientation based on viewing direction
+      // TODO don't place if placing into entities
+    } catch (_) {
+      // No block selected, placing doesn't work
+      console.log("Placing with non-block");
+    }
   }
 
   // damage block if lookat and left click

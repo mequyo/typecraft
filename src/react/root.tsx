@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Inventory, ItemStack, Menu } from "../types";
+import { Inventory, InventoryRow, ItemStack, Menu } from "../types";
 import { MOUSE } from "../input-system";
 import { PauseMenu } from "./pause-menu";
 import { InventoryMenu } from "./inventory-menu";
@@ -7,11 +7,14 @@ import { Crosshair } from "./crosshair";
 import { Hand } from "./hand";
 import { Minimap } from "./minimap";
 import { StatsUI } from "./stats-ui";
+import { Hotbar } from "./hotbar";
 
 export function Root() {
   const [inventory, setInventory] = useState<Inventory | null>(null);
   const [hand, setHand] = useState<ItemStack | null>(null);
   const [menu, setMenu] = useState<Menu | null>("pause");
+  const [hotbar, setHotbar] = useState<InventoryRow | null>(null);
+  const [selected, setSelected] = useState<number>(0);
   const handref = useRef<HTMLDivElement>(null);
 
   const click = (
@@ -52,14 +55,19 @@ export function Root() {
         menu?: Menu | null;
         hand?: ItemStack | null;
         inventory?: Inventory;
+        selected?: number;
+        hotbar?: InventoryRow;
       }>,
     ) => {
       const m = e.detail.menu,
         h = e.detail.hand,
-        i = e.detail.inventory;
+        i = e.detail.inventory,
+        s = e.detail.selected;
       if (m !== undefined) setMenu(m);
       if (h !== undefined) setHand(h == null ? null : [...h]);
       if (i !== undefined) setInventory(i == null ? null : [...i]);
+      if (s !== undefined) setSelected(s);
+      if (e.detail.hotbar !== undefined) setHotbar([...e.detail.hotbar]);
     };
 
     const mousemove = (e: MouseEvent) =>
@@ -89,6 +97,9 @@ export function Root() {
       >
         {menu == null && <Crosshair width={2} height={16} />}
         {menu == "pause" && <PauseMenu />}
+        {inventory && (menu == null || menu == "inventory") && (
+          <Hotbar selected={selected} inventory={hotbar} />
+        )}
         {inventory && menu == "inventory" && (
           <InventoryMenu inventory={inventory} click={click} />
         )}

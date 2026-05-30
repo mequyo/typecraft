@@ -28,7 +28,10 @@ export function InventoryMenu({
         className="relative flex justify-center pt-6 pb-2"
         padding={16}
       >
-        <div className="grid grid-cols-9 grid-rows-4 gap-2 justify-center items-center">
+        <div
+          className="grid gap-2 justify-center items-center"
+          style={{ gridColumn: inventory[0].length, gridRow: inventory.length }}
+        >
           {inventory.map((row, ri) =>
             row.map((itemstack, ci) => (
               <div

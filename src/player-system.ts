@@ -35,9 +35,26 @@ export class PlayerSystem {
     if (amount <= 0) return;
 
     const inv = player.inventory;
+    const hotbar = player.hotbar;
     const blockname = BlockRegistry.get(blockID).name;
 
-    // Look for itemstacks with same name
+    // Look for itemstacks with same item
+    // Hotbar
+    for (let col = 0; col < hotbar.length; col++) {
+      let slot = hotbar[col]; // ItemStack = [amount, item]
+
+      if (!slot || slot[1] != blockname) continue;
+
+      const space = ITEM_STACK_SIZE - slot[0];
+      const add = Math.min(space, amount);
+
+      slot[0] += add;
+      amount -= add;
+
+      if (amount <= 0) return;
+    }
+
+    // Inventory
     for (let row = 0; row < inv.length; row++) {
       for (let col = 0; col < inv[row].length; col++) {
         let slot = inv[row][col]; // ItemStack = [amount, item]
@@ -55,6 +72,17 @@ export class PlayerSystem {
     }
 
     // All itemstacks with same name have been tried, look for empty slots
+    for (let col = 0; col < hotbar.length; col++) {
+      let slot = hotbar[col]; // ItemStack = [amount, item]
+
+      if (slot) continue;
+
+      hotbar[col] = [Math.min(ITEM_STACK_SIZE, amount), blockname];
+      amount -= ITEM_STACK_SIZE;
+
+      if (amount <= 0) return;
+    }
+
     for (let row = 0; row < inv.length; row++) {
       for (let col = 0; col < inv[row].length; col++) {
         let slot = inv[row][col]; // ItemStack = [amount, item]
@@ -70,15 +98,21 @@ export class PlayerSystem {
   }
 
   static printInventory(player: Player) {
-    const str = player.inventory
+    let hotbar = player.hotbar.map((itemstack) => {
+      return itemstack == null
+        ? "[        ]"
+        : `[${itemstack[0].toString().padStart(2, " ")} ${itemstack[1]?.slice(0, 5)}]`;
+    });
+
+    let inventory = player.inventory
       .map((row) =>
         row.map((itemstack) => {
           return itemstack == null
-            ? "[        ]"
-            : `[${itemstack[0].toString().padStart(2, " ")} ${itemstack[1]?.slice(0, 5)}]`;
+            ? "[    ]"
+            : `[${itemstack[0].toString().padStart(2, " ")} ${itemstack[1]?.slice(0, 1)}]`;
         }),
       )
       .join("\n");
-    console.log(str);
+    console.log(hotbar, inventory);
   }
 }

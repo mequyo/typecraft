@@ -86,6 +86,20 @@ export class UISystem {
   // Handles input and, depending on context, opens a menu or not
   // TODO move input logic to another system
   public tick(input: InputSystem, state: State) {
+    if (this.menu == null && input.mouse.wheel != 0) {
+      const len = state.player.hotbar.length;
+      const sel = state.player.selectedSlot;
+      const dir = Math.sign(input.mouse.wheel);
+      state.player.selectedSlot = (sel + dir + len) % len;
+      window.dispatchEvent(
+        new CustomEvent<WindowEventMap["ui-update"]["detail"]>("ui-update", {
+          detail: {
+            selected: state.player.selectedSlot,
+          },
+        }),
+      );
+    }
+
     if (input.keypresses["c"]) state.player.creative = !state.player.creative;
 
     if (input.keypresses["+"] && state.minimap.zoom < MINIMAP_MAX_ZOOM) {
@@ -101,11 +115,11 @@ export class UISystem {
     } else if (input.keypresses["p"]) {
       this.setMenu("toggle", "pause", input);
     } else if (input.keypresses["e"]) {
-      PlayerSystem.printInventory(state.player);
       this.setMenu("toggle", "inventory", input, {
         inventory: state.player.inventory,
         hand: state.player.hand,
       });
+      console.log(PlayerSystem.printInventory(state.player));
     }
   }
 

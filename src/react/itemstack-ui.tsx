@@ -7,9 +7,7 @@ export function ItemStackUI({
     <div
       {...props}
       draggable={false}
-      className={
-        "relative flex justify-center items-center w-full h-full hover:bg-gray-300/40 cursor-pointer"
-      }
+      className={`relative flex justify-center items-center w-full h-full hover:bg-gray-300/40 cursor-pointer ${props.className}`}
     >
       {item != null && (
         <img

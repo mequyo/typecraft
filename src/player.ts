@@ -25,10 +25,12 @@ export class Player extends Camera {
   public inventory: Inventory;
   public hotbar: InventoryRow;
   public hand: ItemStack | null;
+  public selectedSlot: number;
 
   constructor(descriptor: PlayerDescriptor) {
     super(descriptor.camera);
 
+    this.selectedSlot = 0;
     this.placeoffset = vec3.create(0, 0, 0);
     this.velocity = descriptor.velocity ?? vec3.create(0, 0, 0);
     this.min =
@@ -48,5 +50,14 @@ export class Player extends Camera {
     this.grounded = true;
     this.creative = descriptor.creative ?? false;
     this.lookat = null;
+
+    window.dispatchEvent(
+      new CustomEvent<WindowEventMap["ui-update"]["detail"]>("ui-update", {
+        detail: {
+          inventory: this.inventory,
+          hotbar: this.hotbar,
+        },
+      }),
+    );
   }
 }

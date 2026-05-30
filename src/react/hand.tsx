@@ -7,7 +7,7 @@ export function Hand({
 }: {
   handref: React.RefObject<HTMLDivElement | null>;
   amount: number;
-  item: string;
+  item?: string;
 }) {
   return (
     <div ref={handref} className="fixed top-0 left-0 w-16 h-16 -translate-1/2">

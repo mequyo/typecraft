@@ -73,9 +73,12 @@ export class Camera {
     );
     this.right = vec3.normalize(vec3.cross(this.direction, this.up));
 
+    const up = input.keypresses["arrowup"];
+    const down = input.keypresses["arrowdown"];
+    const change = up ? -1 : down ? 1 : 0;
     this.fov = clamp(
       Math.PI / 180,
-      this.fov + (input.mouse.wheel / 100 / 180) * Math.PI,
+      this.fov + (change / 180) * Math.PI,
       2 * Math.PI,
     ); // Clamp between 1° and 360°
 

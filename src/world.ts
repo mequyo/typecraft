@@ -112,7 +112,11 @@ export class World {
 
       window.dispatchEvent(
         new CustomEvent("ui-update", {
-          detail: { inventory: player.inventory, hand: player.hand },
+          detail: {
+            inventory: player.inventory,
+            hand: player.hand,
+            hotbar: player.hotbar,
+          },
         }),
       );
 

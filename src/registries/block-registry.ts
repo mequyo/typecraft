@@ -23,11 +23,15 @@ export type Block = BlockDefinition & {
 
 export class BlockRegistry {
   private static blocks: Block[] = [];
+  private static names: Map<string, number> = new Map();
 
   static register(definition: BlockDefinition): Block {
-    const block: Block = { ...definition, ID: this.blocks.length };
+    const ID = this.blocks.length;
+    const block: Block = { ...definition, ID };
 
+    this.names.set(definition.name, ID);
     this.blocks.push(block);
+
     return block;
   }
 
@@ -37,5 +41,11 @@ export class BlockRegistry {
 
   static getAll(): Block[] {
     return this.blocks;
+  }
+
+  static getByName(name: string): Block {
+    const ID = this.names.get(name);
+    if (!ID) throw new Error(`No block with name ${name} exists.`);
+    return this.blocks[ID];
   }
 }
