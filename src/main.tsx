@@ -161,7 +161,7 @@ async function main() {
     camera: new Camera({
       canvas,
       active: true,
-      position: vec3.create(-0.5, 78.5, 8),
+      position: vec3.create(-0.5, 64.5, 8),
     }),
   });
 

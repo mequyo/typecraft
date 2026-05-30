@@ -26,8 +26,21 @@ export function update(state: State) {
     const position = vec3.sub(player.lookat, state.player.placeoffset);
 
     try {
-      const slot = player.hotbar[player.selectedSlot]?.[1] || "empty slot";
-      const block = BlockRegistry.getByName(slot).ID;
+      let slot = player.hotbar[player.selectedSlot];
+      const block = BlockRegistry.getByName(slot?.[1] || "empty slot").ID;
+
+      if (slot) {
+        slot[0] -= 1;
+        if (slot[0] <= 0) player.hotbar[player.selectedSlot] = null;
+        window.dispatchEvent(
+          new CustomEvent<WindowEventMap["ui-update"]["detail"]>("ui-update", {
+            detail: {
+              inventory: state.player.inventory,
+              hotbar: state.player.hotbar,
+            },
+          }),
+        );
+      }
 
       state.world.addBlock(
         position,
@@ -38,7 +51,6 @@ export function update(state: State) {
       // TODO don't place if placing into entities
     } catch (_) {
       // No block selected, placing doesn't work
-      console.log("Placing with non-block");
     }
   }
 

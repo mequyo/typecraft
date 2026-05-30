@@ -119,7 +119,6 @@ export class UISystem {
         inventory: state.player.inventory,
         hand: state.player.hand,
       });
-      console.log(PlayerSystem.printInventory(state.player));
     }
   }
 

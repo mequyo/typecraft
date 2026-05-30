@@ -409,11 +409,11 @@ export async function renderIsometricBlock(
 
 export function generateInventoryRow(): InventoryRow {
   return Array.from({ length: 9 }).map(() =>
-    Math.random() > 0.5
+    Math.random() > 0.2
       ? null
       : [
-          (Math.random() * 63 + 1) >> 0,
-          ItemNames[(Math.random() * ItemNames.length) >> 0],
+          (Math.random() * 2 + 1) >> 0,
+          "oak_slab", //ItemNames[(Math.random() * ItemNames.length) >> 0],
         ],
   ) as InventoryRow;
 }
