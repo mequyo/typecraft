@@ -46,8 +46,8 @@ fn fs_main(in: VSOut) -> @location(0) vec4<f32> {
 
     // Sky gradient
     let baseColor = vec3<f32>(175.0 / 255.0, 212.0 / 255.0, 255.0 / 255.0);
-    let tintTop = vec3<f32>(10.0 / 255.0, 180.0 / 255.0, 255.0 / 255.0);
-    let blue = mix(baseColor, tintTop, pow(in.uv.y, 1.5));
+    let tintTop = vec3<f32>(10.0 / 255.0, 18.0 / 255.0, 255.0 / 255.0);
+    let blue = mix(baseColor, tintTop, abs(dir.y));
 
     // Blend clouds into sky
     let color = mix(blue, vec3<f32>(1.0, 1.0, 1.0), clouds);

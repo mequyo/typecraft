@@ -1,4 +1,4 @@
-import { mat4 } from "wgpu-matrix";
+import { Mat4, mat4 } from "wgpu-matrix";
 import { DynamicBuffer } from "../classes/dynamic-buffer";
 import { RenderPipeline } from "../render-pipeline";
 import code from "../shaders/sky.wgsl?raw";
@@ -33,14 +33,17 @@ export const SKY_PIPELINE = (device: GPUDevice): RenderPipeline =>
             GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
             mat4.create(),
           ),
-          update: (state, buffer) =>
-            buffer.write(
-              // @ts-ignore
-              mat4.multiply(
-                mat4.invert(state.player.projection),
-                mat4.invert(state.player.view()),
-              ),
-            ),
+          update: (state, buffer) => {
+            const copy = mat4.clone(state.player.view(state.alpha));
+            copy[12] = 0;
+            copy[13] = 0;
+            copy[14] = 0;
+
+            const viewProj = mat4.multiply(state.player.projection, copy); // proj * view
+            const result = mat4.invert(viewProj); // single invert
+
+            return buffer.write(result);
+          },
         },
       ],
     ],
