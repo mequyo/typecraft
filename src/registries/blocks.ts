@@ -524,6 +524,17 @@ export const OAK_SLAB = BlockRegistry.register({
   textures: [OAK_PLANKS_TEXTURE],
   properties: [BlockProperties.orientation],
 });
+export const OAK_STAIRS = BlockRegistry.register({
+  name: "oak_stairs",
+  meshID: MESH.STAIRS,
+  hardness: 3,
+  sounds: {
+    dig: WOOD_DIG_SOUND,
+    mining: WOOD_MINING_SOUND,
+  },
+  textures: [OAK_PLANKS_TEXTURE],
+  properties: [BlockProperties.orientation],
+});
 export const PODZOL = BlockRegistry.register({
   name: "podzol",
   meshID: MESH.CUBE,

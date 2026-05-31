@@ -23,6 +23,7 @@ import { Player } from "./player";
 import { Region } from "./region";
 import { ArrayUtils } from "./array-utils";
 import { PlayerSystem } from "./player-system";
+import { Rand } from "./classes/random";
 
 // TODO delete chunks that are too far away
 
@@ -100,7 +101,7 @@ export class World {
     if (now - entry.lastSoundTime > MINING_SOUND_INTERVAL) {
       entry.lastSoundTime = now;
       // TODO safety guard for possibly no mining sounds
-      SoundRegistry.play(ArrayUtils.random(block.sounds.mining)!.ID, 1.0);
+      SoundRegistry.play(Rand.array(block.sounds.mining).ID, 1.0);
     }
 
     // Destroy block
@@ -125,7 +126,7 @@ export class World {
         BlockStateRegistry.encode(AIR.ID, { orientation: ORIENTATION.NX_0 }),
       );
       this.damaged.delete(key);
-      SoundRegistry.play(ArrayUtils.random(block.sounds.dig)!.ID, 1.0);
+      SoundRegistry.play(Rand.array(block.sounds.dig).ID, 1.0);
     }
   }
 

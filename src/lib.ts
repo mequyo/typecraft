@@ -6,6 +6,7 @@ import { AIR } from "./registries/blocks";
 import { vec3, Vec3, vec4, Vec4 } from "wgpu-matrix";
 import { DynamicBuffer } from "./classes/dynamic-buffer";
 import { InventoryRow, ItemNames } from "./types";
+import { Rand } from "./classes/random";
 
 export function clamp(min: number, value: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -409,11 +410,22 @@ export async function renderIsometricBlock(
 
 export function generateInventoryRow(): InventoryRow {
   return Array.from({ length: 9 }).map(() =>
-    Math.random() > 0.7
-      ? null
-      : [
-          (Math.random() * 4 + 1) >> 0,
-          Math.random() > 0.5 ? "oak_slab" : "crafting_table", //ItemNames[(Math.random() * ItemNames.length) >> 0],
+    Rand.choice([
+      [0.2, null],
+      [
+        0.8,
+        [
+          Rand.range(1, 64),
+          Rand.array(
+            /*ItemNames*/ [
+              "oak_stairs",
+              "oak_slab",
+              "oak_log",
+              "crafting_table",
+            ],
+          ),
         ],
+      ],
+    ]),
   ) as InventoryRow;
 }
