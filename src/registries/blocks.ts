@@ -1,5 +1,5 @@
-import { BlockProperties } from "../block-properties";
 import { MESH } from "../mesh";
+import { BlockProperties } from "../block-properties";
 import { BlockRegistry } from "./block-registry";
 import {
   AZALEA_LEAVES_DIG_SOUND,

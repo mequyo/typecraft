@@ -3,10 +3,11 @@ import { CAMERA_HEIGHT, PLAYER_HEIGHT, PLAYER_WIDTH } from "./constants";
 import { World } from "./world";
 import { BlockStateRegistry } from "./registries/blockstate-registry";
 import { AIR } from "./registries/blocks";
-import { vec3, Vec3, vec4, Vec4 } from "wgpu-matrix";
+import { vec2, Vec2, vec3, Vec3, vec4, Vec4 } from "wgpu-matrix";
 import { DynamicBuffer } from "./classes/dynamic-buffer";
 import { InventoryRow, ItemNames } from "./types";
 import { Rand } from "./classes/random";
+import { ROTATION } from "./mesh";
 
 export function clamp(min: number, value: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -115,8 +116,8 @@ export function dda(
   start: Vec3,
   dir: Vec3,
   maxDist: number,
-): { pos: Vec3; face: Vec3 }[] {
-  const hits: { pos: Vec3; face: Vec3 }[] = [];
+): { pos: Vec3; face: Vec3; uv: Vec2 }[] {
+  const hits: { pos: Vec3; face: Vec3; uv: Vec2 }[] = [];
 
   let x = Math.floor(start[0]);
   let y = Math.floor(start[1]);
@@ -138,36 +139,104 @@ export function dda(
   while (dist < maxDist) {
     // starting cell has no face because we didn't cross anything yet
     if (hits.length === 0) {
-      hits.push({ pos: vec3.create(x, y, z), face: vec3.create(0, 0, 0) });
+      hits.push({
+        pos: vec3.create(x, y, z),
+        face: vec3.create(0, 0, 0),
+        uv: vec2.create(0.0, 0.0),
+      });
     }
 
     if (mx < my) {
       if (mx < mz) {
         // crossed an X boundary
-        x += sx;
-        hits.push({ pos: vec3.create(x, y, z), face: vec3.create(sx, 0, 0) });
         dist = mx;
         mx += dx;
+        x += sx;
+
+        const t = dist;
+        const hitPoint = vec3.create(
+          start[0] + dir[0] * t,
+          start[1] + dir[1] * t,
+          start[2] + dir[2] * t,
+        );
+
+        // UV coordinates: Y and Z components (local to the face)
+        const u = hitPoint[2] - Math.floor(hitPoint[2]);
+        const v = hitPoint[1] - Math.floor(hitPoint[1]);
+
+        hits.push({
+          pos: vec3.create(x, y, z),
+          face: vec3.create(sx, 0, 0),
+          uv: vec2.create(u, v),
+        });
       } else {
         // crossed a Z boundary
-        z += sz;
-        hits.push({ pos: vec3.create(x, y, z), face: vec3.create(0, 0, sz) });
         dist = mz;
         mz += dz;
+        z += sz;
+
+        const t = dist;
+        const hitPoint = vec3.create(
+          start[0] + dir[0] * t,
+          start[1] + dir[1] * t,
+          start[2] + dir[2] * t,
+        );
+
+        // UV coordinates: X and Y components (local to the face)
+        const u = hitPoint[0] - Math.floor(hitPoint[0]);
+        const v = hitPoint[1] - Math.floor(hitPoint[1]);
+
+        hits.push({
+          pos: vec3.create(x, y, z),
+          face: vec3.create(0, 0, sz),
+          uv: vec2.create(u, v),
+        });
       }
     } else {
       if (my < mz) {
         // crossed a Y boundary
-        y += sy;
-        hits.push({ pos: vec3.create(x, y, z), face: vec3.create(0, sy, 0) });
         dist = my;
         my += dy;
+        y += sy;
+
+        const t = dist;
+        const hitPoint = vec3.create(
+          start[0] + dir[0] * t,
+          start[1] + dir[1] * t,
+          start[2] + dir[2] * t,
+        );
+
+        // UV coordinates: X and Z components (local to the face)
+        const u = hitPoint[0] - Math.floor(hitPoint[0]);
+        const v = hitPoint[2] - Math.floor(hitPoint[2]);
+
+        hits.push({
+          pos: vec3.create(x, y, z),
+          face: vec3.create(0, sy, 0),
+          uv: vec2.create(u, v),
+        });
       } else {
         // crossed a Z boundary
-        z += sz;
-        hits.push({ pos: vec3.create(x, y, z), face: vec3.create(0, 0, sz) });
         dist = mz;
         mz += dz;
+        z += sz;
+
+        const t = dist;
+        const hitPoint = vec3.create(
+          start[0] + dir[0] * t,
+          start[1] + dir[1] * t,
+          start[2] + dir[2] * t,
+        );
+
+        // UV coordinates: X and Y components (local to the face)
+        const u = hitPoint[0] - Math.floor(hitPoint[0]);
+        const v = hitPoint[1] - Math.floor(hitPoint[1]);
+
+        hits.push({
+          pos: vec3.create(x, y, z),
+          face: vec3.create(0, 0, sz),
+          uv: vec2.create(u, v),
+        });
       }
     }
   }
@@ -416,14 +485,7 @@ export function generateInventoryRow(): InventoryRow {
         0.8,
         [
           Rand.range(1, 64),
-          Rand.array(
-            /*ItemNames*/ [
-              "oak_stairs",
-              "oak_slab",
-              "oak_log",
-              "crafting_table",
-            ],
-          ),
+          Rand.array(/*ItemNames*/ ["oak_stairs", "crafting_table"]),
         ],
       ],
     ]),

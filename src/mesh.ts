@@ -1,4 +1,4 @@
-import { mat3, Mat3, Vec3, vec3 } from "wgpu-matrix";
+import { mat3, Mat3, Vec2, Vec3, vec3 } from "wgpu-matrix";
 import { FLOATS_PER_VERTEX } from "./constants";
 import { Sixtuple } from "./types";
 import { Block } from "./registries/block-registry";
@@ -51,17 +51,30 @@ interface EdgeInfo {
 }
 
 const NORMALS_TO_ORIENTATION = [
-  [9, 13, 17, 23],
-  [11, 15, 19, 21],
-  [2, 6, 18, 22],
-  [0, 4, 16, 20],
-  [1, 7, 10, 12],
-  [3, 5, 8, 14],
+  [9, 23, 13, 17],
+  [11, 21, 15, 19],
+  [22, 2, 18, 6],
+  [20, 0, 16, 4],
+  [10, 1, 12, 7],
+  [8, 3, 14, 5],
 ];
-export function NORMAL_TO_ORIENTATION(
-  normal: Vec3,
-  rotation: ROTATION = ROTATION.ZERO,
-): ORIENTATION {
+
+export function UV_TO_ROTATION(uv: Vec2): ROTATION {
+  const du = uv[0] - 0.5;
+  const dv = uv[1] - 0.5;
+
+  if (Math.abs(du) > Math.abs(dv)) {
+    console.log(du > 0 ? ROTATION.NINETY : ROTATION.TWOSEVENTY);
+    return du > 0 ? ROTATION.NINETY : ROTATION.TWOSEVENTY;
+  } else {
+    console.log(dv > 0 ? ROTATION.ZERO : ROTATION.ONEEIGHTY);
+    return dv > 0 ? ROTATION.ZERO : ROTATION.ONEEIGHTY;
+  }
+}
+
+export function NORMAL_TO_ORIENTATION(normal: Vec3, uv: Vec2): ORIENTATION {
+  const rotation = UV_TO_ROTATION(uv);
+
   if (normal[0] > 0.5) return NORMALS_TO_ORIENTATION[0][rotation];
   if (normal[0] < -0.5) return NORMALS_TO_ORIENTATION[1][rotation];
   if (normal[1] > 0.5) return NORMALS_TO_ORIENTATION[2][rotation];

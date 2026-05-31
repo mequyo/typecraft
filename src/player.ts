@@ -1,4 +1,4 @@
-import { vec3, Vec3 } from "wgpu-matrix";
+import { vec2, Vec2, vec3, Vec3 } from "wgpu-matrix";
 import { Camera, CameraDescriptor } from "./camera";
 import { PLAYER_HEIGHT, PLAYER_WIDTH } from "./constants";
 import { Inventory, InventoryRow, ItemStack } from "./types";
@@ -22,6 +22,7 @@ export class Player extends Camera {
   public creative: boolean;
   public lookat: Vec3 | null;
   public placeoffset: Vec3;
+  public lookatuv: Vec2;
   public inventory: Inventory;
   public hotbar: InventoryRow;
   public hand: ItemStack | null;
@@ -32,6 +33,7 @@ export class Player extends Camera {
 
     this.selectedSlot = 0;
     this.placeoffset = vec3.create(0, 0, 0);
+    this.lookatuv = vec2.create(0, 0);
     this.velocity = descriptor.velocity ?? vec3.create(0, 0, 0);
     this.min =
       descriptor.min ??

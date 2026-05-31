@@ -14,7 +14,7 @@ export class PlayerSystem {
     const positions = dda(player.eye, player.direction, PLAYER_REACH); // TODO move dda to a RaycastSystem
 
     for (const hit of positions) {
-      const { pos, face } = hit;
+      const { pos, face, uv } = hit;
       const offset = vec3.floor(vec3.divScalar(pos, CHUNK_SIZE)); // chunk location
       const chunk = world.getChunk(offset);
 
@@ -27,6 +27,8 @@ export class PlayerSystem {
 
       player.lookat = pos;
       player.placeoffset = face;
+      player.lookatuv = uv;
+
       break;
     }
   }

@@ -136,7 +136,7 @@ export const GHOST_PIPELINE = (
         true,
         true,
         block,
-        NORMAL_TO_ORIENTATION(state.player.placeoffset, ROTATION.ZERO),
+        NORMAL_TO_ORIENTATION(state.player.placeoffset, state.player.lookatuv),
       );
 
       buffer.write(meshbuffer);

@@ -44,7 +44,7 @@ export function update(state: State) {
 
       const orientation = NORMAL_TO_ORIENTATION(
         state.player.placeoffset,
-        ROTATION.ZERO,
+        state.player.lookatuv,
       );
       state.world.addBlock(
         position,
