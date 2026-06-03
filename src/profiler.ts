@@ -1,6 +1,8 @@
 import { RingBuffer } from "./classes/ring-buffer";
 import { PROFILER_ENABLED } from "./constants";
 
+type ProfilerMap<T> = Record<(typeof BUFFERS)[number], T>;
+
 const BUFFERS = [
   "chunk generation",
   "chunk meshing",
@@ -17,14 +19,8 @@ const BUFFER_SIZE = 300;
 
 export class Profiler {
   //private last = 0;
-  private buffers: Record<(typeof BUFFERS)[number], RingBuffer> = {} as Record<
-    (typeof BUFFERS)[number],
-    RingBuffer
-  >;
-  private calls: Record<(typeof BUFFERS)[number], number> = {} as Record<
-    (typeof BUFFERS)[number],
-    number
-  >;
+  private buffers: ProfilerMap<RingBuffer> = {} as ProfilerMap<RingBuffer>;
+  private calls: ProfilerMap<number> = {} as ProfilerMap<number>;
 
   public constructor() {
     for (let buffer = 0; buffer < BUFFERS.length; buffer++) {

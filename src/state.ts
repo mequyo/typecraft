@@ -10,6 +10,7 @@ import { UISystem } from "./ui-system.ts";
 import { Profiler } from "./profiler.ts";
 import { LVH } from "./classes/lvh.ts";
 import { Vec3 } from "wgpu-matrix";
+import { RegistryManagerData } from "./registry-manager.ts";
 
 export type State = {
   canvas: HTMLCanvasElement;
@@ -45,6 +46,7 @@ export type State = {
 
   indirectBuffer: DynamicBuffer;
 
+  registrymanager: RegistryManagerData;
   profiler: Profiler;
   input: InputSystem;
   physics: PhysicsSystem;

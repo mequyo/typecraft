@@ -5,9 +5,15 @@ import {
   AMOUNT_CHUNK_WORKERS,
   RENDER_DISTANCE,
   MINING_SOUND_INTERVAL,
+  MAX_PENDING_REQUESTS,
 } from "./constants";
 import { TerrainGenerator } from "./terrain-generator";
-import { Sixtuple, WorkerMessageIn, WorkerMessageOut } from "./types";
+import {
+  ChunkMessage,
+  Sixtuple,
+  WorkerMessageIn,
+  WorkerMessageOut,
+} from "./types";
 import { Pair } from "./classes/pair";
 import { Mat4, mat4, Vec3, vec3 } from "wgpu-matrix";
 import { State } from "./state";
@@ -179,8 +185,6 @@ export class World {
   }
 
   queueChunk(offset: Vec3) {
-    const MAX_PENDING_REQUESTS = 12;
-
     if (this.pending.size >= MAX_PENDING_REQUESTS) return;
 
     const worker = this.workers[this.worker];
@@ -203,12 +207,11 @@ export class World {
       this.getChunk(vec3.add(offset, FACE_NORMALS[5]))?.blocks,
     ];
     worker.addEventListener("message", message);
-    worker.postMessage(
-      {
-        offset,
-        neighbors,
-      } as WorkerMessageIn /*[...neighbors.filter(n => n instanceof Uint16Array).map(n => n.buffer)]*/,
-    );
+    worker.postMessage({
+      type: "chunk",
+      offset,
+      neighbors,
+    } as ChunkMessage);
 
     this.pending.add(key);
     this.pendingOrder.push(key);
@@ -234,14 +237,7 @@ export class World {
         (arraybuffer) => new Uint32Array(arraybuffer),
       );
 
-      const allocations: [
-        Allocation,
-        Allocation,
-        Allocation,
-        Allocation,
-        Allocation,
-        Allocation,
-      ] = [
+      const allocations: Sixtuple<Allocation> = [
         state.chunkBuffer.write(0, meshes[0]),
         state.chunkBuffer.write(1, meshes[1]),
         state.chunkBuffer.write(2, meshes[2]),

@@ -64,10 +64,8 @@ export function UV_TO_ROTATION(uv: Vec2): ROTATION {
   const dv = uv[1] - 0.5;
 
   if (Math.abs(du) > Math.abs(dv)) {
-    console.log(du > 0 ? ROTATION.NINETY : ROTATION.TWOSEVENTY);
     return du > 0 ? ROTATION.NINETY : ROTATION.TWOSEVENTY;
   } else {
-    console.log(dv > 0 ? ROTATION.ZERO : ROTATION.ONEEIGHTY);
     return dv > 0 ? ROTATION.ZERO : ROTATION.ONEEIGHTY;
   }
 }

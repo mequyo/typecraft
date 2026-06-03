@@ -85,7 +85,7 @@ export const MAIN_PIPELINE = (
         // Chunk Buffer
         {
           buffer: { type: "read-only-storage" },
-          resource: ReadOnlyStorage(device, "1GB"),
+          resource: ReadOnlyStorage(device, "500MB"),
           update: (state, buffer) => {
             const chunks = state.world.chunks.values;
             const data = new Int32Array(STRIDE);

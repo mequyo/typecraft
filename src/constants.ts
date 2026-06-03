@@ -10,6 +10,7 @@ export const CHUNK_SIZE = 32; // DO NOT CHANGE
 export const TERRAIN_FLOOR = 16; // How many blocks are at least filled in
 export const TERRAIN_HEIGHT = 64; // Can be wrong if multiple octaves are generated
 export const MAX_CHUNKS_GENERATING_SIMULTANEOUSLY = 10;
+export const MAX_PENDING_REQUESTS = 6;
 
 // PLAYER
 export const MAX_HORIZONTAL_VELOCITY = 20.0;

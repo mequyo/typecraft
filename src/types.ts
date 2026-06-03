@@ -1,9 +1,19 @@
 import type { Vec3 } from "wgpu-matrix";
+import { BlockProperty } from "./block-properties";
+import { Texture, TextureData, TextureName } from "./texture";
+import { Registry } from "./registry";
+import { RegistryManagerData } from "./registry-manager";
 
-export type WorkerMessageIn = {
+export type ChunkMessage = {
+  type: "chunk";
   offset: Vec3;
   neighbors: Sixtuple<Uint16Array | undefined>;
 };
+export type RegistryMessage = {
+  type: "registries";
+  manager: RegistryManagerData;
+};
+export type WorkerMessageIn = ChunkMessage | RegistryMessage;
 export type WorkerMessageOut = {
   offset: ArrayBuffer;
   key: number;
@@ -78,4 +88,39 @@ export type Stats = {
     avgGenTime: number;
   };
   vertices: number;
+};
+
+// Data for registries, testing for now
+
+export type BlockData = {
+  name: string;
+  display: string;
+  meshID: number;
+  textures: [TextureName] | Sixtuple<TextureName>;
+  hardness: number;
+  material:
+    | "none"
+    | "stone"
+    | "wood"
+    | "metal"
+    | "dirt"
+    | "sand"
+    | "wool"
+    | "leaves"
+    | "glass";
+  tool: "none" | "pickaxe" | "shovel" | "axe" | "sword" | "hoe";
+  properties: BlockProperty[];
+};
+
+export type IteName = string & { _: "item name" };
+export type ItemData = {
+  name: IteName;
+  display: string;
+  textureID: TextureName;
+};
+
+export type RecipeData = {
+  result: IteName;
+  amount: number;
+  input: IteName;
 };

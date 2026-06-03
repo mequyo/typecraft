@@ -115,6 +115,5 @@ export class PlayerSystem {
         }),
       )
       .join("\n");
-    console.log(hotbar, inventory);
   }
 }

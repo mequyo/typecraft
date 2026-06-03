@@ -3,11 +3,6 @@ import { Inventory, InventoryRow, ItemStack, Menu, Stats } from "../types";
 export { };
 
 declare global {
-  interface HTMLImageElement {
-    average(): [number, number, number, number]
-    load(url: string): Promise<HTMLImageElement>
-  }
-
   interface WindowEventMap {
     "resume": CustomEvent<>
     "stats": CustomEvent<Stats>
