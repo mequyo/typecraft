@@ -1,0 +1,40 @@
+import { app, BrowserWindow } from "electron";
+import path from "path";
+
+const isDev = process.env.NODE_ENV === "development";
+
+function createWindow() {
+  const win = new BrowserWindow({
+    width: 1920,
+    height: 1080,
+    icon: isDev
+      ? path.join(__dirname, "../public/icon.png")
+      : path.join(__dirname, "../dist/icon.png"),
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  win.setMenuBarVisibility(false);
+
+  if (isDev) {
+    win.loadURL("http://localhost:5173");
+    win.webContents.openDevTools();
+  } else {
+    win.loadFile(path.join(__dirname, "../dist/index.html"));
+  }
+}
+
+app.commandLine.appendSwitch("enable-unsafe-webgpu");
+
+app.whenReady().then(createWindow);
+
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") app.quit();
+});
+
+app.on("activate", () => {
+  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+});

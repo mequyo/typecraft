@@ -17,5 +17,6 @@ const crossOriginIsolationPlugin = () => ({
 
 export default defineConfig({
   logLevel: "error",
+  base: "./",
   plugins: [crossOriginIsolationPlugin(), react(), tailwindcss()],
 });
