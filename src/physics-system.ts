@@ -13,11 +13,19 @@ import {
 } from "./constants";
 import { collides } from "./lib";
 import { World } from "./world";
+import { RegistryData } from "./registry";
+import { BlockStateData } from "./blockstate";
 
 // Works on inputs and world events like gravity
 export class PhysicsSystem {
   // TODO query all entities with gravity, etc. instead of passing just player
-  tick(input: InputSystem, player: Player, dt: number, world: World) {
+  tick(
+    input: InputSystem,
+    player: Player,
+    dt: number,
+    world: World,
+    reg: RegistryData<BlockStateData>,
+  ) {
     const ground_friction_per_second = Math.pow(GROUND_FRICTION, 1 / dt);
 
     let move_dir = vec3.create(0, 0, 0);
@@ -79,17 +87,22 @@ export class PhysicsSystem {
     }
 
     // resolve collisions
-    this.resolve(player, world, dt);
+    this.resolve(player, world, dt, reg);
   }
 
   // stepwise axis resolution
-  resolve(player: Player, world: World, dt: number) {
+  resolve(
+    player: Player,
+    world: World,
+    dt: number,
+    reg: RegistryData<BlockStateData>,
+  ) {
     player.lastPosition = vec3.copy(player.position);
     player.grounded = false;
 
     for (let axis = 0; axis < 3; axis++) {
       player.position[axis] += player.velocity[axis] * dt;
-      const hit = collides(player.position, world);
+      const hit = collides(player.position, world, reg);
       if (!hit) continue;
 
       if (player.velocity[axis] > 0) {

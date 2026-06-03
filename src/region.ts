@@ -6,10 +6,9 @@ import {
   MINIMAP_CANVAS_SIZE,
   REGION_SIZE,
 } from "./constants";
-import { FACE, ORIENTATION_FACE_MAP } from "./mesh";
-import { BlockRegistry } from "./registries/block-registry";
-import { AIR } from "./registries/blocks";
-import { BlockStateRegistry } from "./registries/blockstate-registry";
+import { FACE, ORIENTATION, ORIENTATION_FACE_MAP } from "./mesh";
+import { Registry, RegistryData } from "./registry";
+import { BlockStateData, BlockStateHash } from "./blockstate";
 
 export class Region {
   public rx: number;
@@ -31,7 +30,13 @@ export class Region {
     this.wz = rz * REGION_SIZE;
   }
 
-  public updateBlock(wx: number, wy: number, wz: number, blockhash: number) {
+  public updateBlock(
+    wx: number,
+    wy: number,
+    wz: number,
+    blockhash: number,
+    reg: RegistryData<BlockStateData>,
+  ) {
     if (
       wx < this.wx ||
       wx >= this.wx + REGION_SIZE ||
@@ -46,9 +51,9 @@ export class Region {
 
     if (this.heightmap[index] > wy) return;
 
-    const blockstate = BlockStateRegistry.decode(blockhash);
-    const block = BlockRegistry.get(blockstate.blockID);
-    const orientation = blockstate.properties.orientation;
+    const blockstate = Registry.get(reg, "hash", blockhash as BlockStateHash);
+    const block = blockstate.block;
+    const orientation = blockstate.properties.orientation as ORIENTATION;
 
     // TODO fix this, for now assume air
     if (orientation == undefined) return;
@@ -68,22 +73,23 @@ export class Region {
     this.heightmap[index] = wy;
   }
 
-  public updateChunk(chunk: Chunk) {
+  public updateChunk(chunk: Chunk, reg: RegistryData<BlockStateData>) {
     const offset = vec3.mulScalar(chunk.offset, CHUNK_SIZE);
 
     for (let x = 0; x < CHUNK_SIZE; x++) {
       for (let z = 0; z < CHUNK_SIZE; z++) {
         for (let y = CHUNK_SIZE - 1; y >= 0; y--) {
           const index = Chunk.pack(x, y, z);
-          const blockstate = chunk.blocks[index];
-          const block = BlockStateRegistry.decode(blockstate).blockID;
+          const hash = chunk.blocks[index];
+          const blockstate = Registry.get(reg, "hash", hash as BlockStateHash);
+          const block = blockstate.block;
 
-          if (block == AIR.ID) continue;
+          if (block.ID == 0) continue;
 
           const wx = x + offset[0];
           const wy = y + offset[1];
           const wz = z + offset[2];
-          this.updateBlock(wx, wy, wz, chunk.blocks[index]);
+          this.updateBlock(wx, wy, wz, chunk.blocks[index], reg);
         }
       }
     }

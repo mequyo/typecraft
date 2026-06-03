@@ -14,10 +14,12 @@
     "@vitejs/plugin-react": "^5.2.0",
     "@webgpu/types": "^0.1.69",
     "autoprefixer": "^10.4.27",
+    "electron": "^42.3.2",
     "postcss": "^8.5.8",
     "tailwindcss": "^4.2.2",
     "typescript": "~5.9.3",
-    "vite": "^7.1.7"
+    "vite": "^7.1.7",
+    "vite-plugin-electron": "^1.0.1"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.2",

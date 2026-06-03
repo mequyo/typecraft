@@ -14,8 +14,6 @@ import {
   ROTATION,
 } from "../mesh";
 import { BlockRegistry } from "../registries/block-registry";
-import { BlockStateRegistry } from "../registries/blockstate-registry";
-import { ArrayUtils } from "../array-utils";
 
 export const GHOST_PIPELINE = (
   device: GPUDevice,

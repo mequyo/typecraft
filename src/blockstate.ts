@@ -3,28 +3,32 @@ import {
   BlockProperty,
   BlockPropertyNames,
 } from "./block-properties";
+import { RegEntry } from "./registry";
+import { BlockData } from "./block";
 
 export type BlockStateHash = number & { _: "blockstate hash" };
 export type BlockID = number & { _: "block ID" };
 export type BlockStateData = {
-  blockID: BlockID;
+  block: RegEntry<BlockData>;
   hash: BlockStateHash;
   properties: Record<BlockPropertyNames, boolean | number>;
 };
 
 export class BlockState {
   static encode(
-    properties: Record<BlockPropertyNames, boolean | number>,
+    blockID: number,
+    properties: Partial<Record<BlockPropertyNames, boolean | number>>,
   ): BlockStateHash {
-    const keys = Object.keys(properties) as BlockPropertyNames[];
-    let hash = 0;
+    const keys = Object.keys(properties).sort() as BlockPropertyNames[];
+    let hash = blockID;
+    let offset = 8;
 
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i];
       const property = properties[key] ?? 0;
 
-      hash |= +property << BlockProperties[key].bits;
-      hash |= 0; // Constrain to 32bit integer
+      hash |= +property << offset;
+      offset += BlockProperties[key].bits;
     }
 
     return hash as BlockStateHash;

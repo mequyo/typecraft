@@ -10,8 +10,6 @@ import {
 import { ORIENTATION } from "./mesh";
 import { Block } from "./registries/block-registry";
 import {
-  AIR,
-  BLUE_GLASS,
   COBBLESTONE,
   DEEPSLATE,
   DIRT,
@@ -28,10 +26,12 @@ import {
   STONE,
   TUFF,
 } from "./registries/blocks";
-import { BlockStateRegistry } from "./registries/blockstate-registry";
 import { Simplex2D } from "./classes/simplex2D";
 import { Vec3 } from "wgpu-matrix";
 import { Chunk } from "./chunk";
+import { RegistryManagerData } from "./registry-manager";
+import { Registry } from "./registry";
+import { BlockState } from "./blockstate";
 
 // ── Noise tuning ───────────────────────────────────────────────────────────────
 const DOMAIN_WARP_SCALE = 0.015;
@@ -207,6 +207,11 @@ export class TerrainGenerator {
   private simplex = new Simplex2D(NOISE_SEED);
   private erosionSimplex = new Simplex2D(NOISE_SEED ^ 0x8badf00d);
   private strataSimplex = new Simplex2D(NOISE_SEED ^ 0xdeadbeef);
+  private manager: RegistryManagerData;
+
+  constructor(manager: RegistryManagerData) {
+    this.manager = manager;
+  }
 
   // Standard FBM in [0,1]
   private fbm(wx: number, wz: number, octaves: number, scale: number): number {
@@ -392,18 +397,22 @@ export class TerrainGenerator {
     heightmap: Uint8Array;
     amount: number;
   } {
-    const blocks = new Uint16Array(CHUNK_SIZE ** 3).fill(
-      BlockStateRegistry.encode(AIR.ID, {
-        orientation: ORIENTATION.NX_0,
-      }),
-    );
+    const blocks = new Uint16Array(CHUNK_SIZE ** 3); // Air is 0 so no fill() is necessary
     const heightmap = new Uint8Array(CHUNK_SIZE * CHUNK_SIZE);
     let amount = 0;
 
     const chunkY0 = coffset[1] * CHUNK_SIZE;
-    const waterCode = BlockStateRegistry.encode(BLUE_GLASS.ID, {
-      orientation: ORIENTATION.NX_0,
-    });
+
+    const water = Registry.get(
+      this.manager.blockstates,
+      "hash",
+      BlockState.encode(
+        Registry.get(this.manager.blocks, "name", "blue_glass").ID,
+        { orientation: ORIENTATION.NX_0 },
+      ),
+    );
+
+    const waterCode = water.hash;
 
     for (let x = 0; x < CHUNK_SIZE; x++) {
       const wx = x + coffset[0] * CHUNK_SIZE;
@@ -447,9 +456,11 @@ export class TerrainGenerator {
             slope,
             here.erosion,
           );
-          blocks[index] = BlockStateRegistry.encode(block.ID, {
-            orientation: ORIENTATION.NX_0,
-          });
+          blocks[index] = Registry.get(
+            this.manager.blockstates,
+            "hash",
+            BlockState.encode(block.ID, { orientation: ORIENTATION.NX_0 }),
+          ).hash;
           amount++;
         }
       }

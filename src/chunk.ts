@@ -1,12 +1,13 @@
 import { CHUNK_SIZE, IMAGE_SIZE } from "./constants";
 import { FACE, ORIENTATION_FACE_MAP } from "./mesh";
-import { BlockStateRegistry } from "./registries/blockstate-registry";
-import { AIR } from "./registries/blocks";
 import { Vec3, vec3 } from "wgpu-matrix";
 import { Allocation, ArenaBuffer } from "./classes/arena-buffer";
 import { BlockRegistry } from "./registries/block-registry";
 import { Sixtuple } from "./types";
 import { createMeshes } from "./mesh-utils";
+import { RegistryManagerData } from "./registry-manager";
+import { Registry } from "./registry";
+import { BlockStateHash } from "./blockstate";
 
 // Reusable arrays for mesh generation
 const MESH_BUFFERS: Sixtuple<Uint32Array> = [
@@ -31,6 +32,7 @@ export class Chunk {
   public context: OffscreenCanvasRenderingContext2D; // Context to draw bitmap to
   public allocations: Sixtuple<Allocation>; // Allocated space in ArenaBuffer
   static chunkBuffer: ArenaBuffer;
+  public manager: RegistryManagerData;
 
   constructor(
     offset: Vec3,
@@ -38,6 +40,7 @@ export class Chunk {
     blockamount: number,
     allocations: Sixtuple<Allocation>,
     blocks: Uint16Array,
+    manager: RegistryManagerData,
   ) {
     this.offset = vec3.copy(offset);
     this.timestamp = timestamp;
@@ -45,6 +48,7 @@ export class Chunk {
     this.blocks = blocks;
     this.allocations = allocations;
     this.visible = false;
+    this.manager = manager;
 
     // Bitmap
     this.canvas = new OffscreenCanvas(CHUNK_SIZE, CHUNK_SIZE);
@@ -67,21 +71,23 @@ export class Chunk {
       for (let z = 0; z < CHUNK_SIZE; z++) {
         for (let y = CHUNK_SIZE - 1; y >= 0; y--) {
           const index = Chunk.pack(x, y, z);
+          const blockstate = Registry.get(
+            this.manager.blockstates,
+            "ID",
+            this.blocks[index],
+          );
+          const ID = blockstate.block.ID;
 
-          const blockstate = this.blocks[index];
-          const { blockID: ID, properties } =
-            BlockStateRegistry.decode(blockstate);
-          const orientation = properties.orientation;
+          if (ID === 0) continue;
 
-          if (ID == AIR.ID) continue;
-
-          const block = BlockRegistry.get(ID);
+          const orientation = blockstate.properties.orientation;
+          const block = blockstate.block;
           const texture =
             block.textures[
               ORIENTATION_FACE_MAP[orientation][FACE.PY] % block.textures.length
             ];
 
-          this.context.drawImage(texture.bitmap!, x, z, 1, 1);
+          this.context.drawImage(texture.bitmap, x, z, 1, 1);
 
           break;
         }
@@ -120,8 +126,8 @@ export class Chunk {
    * @param z The z coordinate.
    * @returns The block at the given position.
    */
-  get(x: number, y: number, z: number): number {
-    return this.blocks[Chunk.pack(x, y, z)];
+  get(x: number, y: number, z: number): BlockStateHash {
+    return this.blocks[Chunk.pack(x, y, z)] as BlockStateHash;
   }
 
   /**
@@ -135,34 +141,43 @@ export class Chunk {
     x: number,
     y: number,
     z: number,
-    blockstate: number,
+    blockstate: BlockStateHash,
     neighbors: Sixtuple<Uint16Array | undefined>,
   ) {
     const index = Chunk.pack(x, y, z);
     const oldstate = this.blocks[index];
-    const curblockID = BlockStateRegistry.decode(oldstate).blockID;
-    const newblockID = BlockStateRegistry.decode(blockstate).blockID;
+    const curblock = Registry.get(
+      this.manager.blockstates,
+      "hash",
+      oldstate as BlockStateHash,
+    );
+    const newblock = Registry.get(this.manager.blockstates, "hash", blockstate);
 
     // TODO Air should only be one state to avoid this check
     if (
       blockstate == oldstate ||
-      (curblockID == AIR.ID && newblockID == AIR.ID)
+      (curblock.block.ID == 0 && newblock.block.ID == 0)
     )
       return; // Nothing changed
 
-    if (curblockID == AIR.ID && newblockID != AIR.ID) this.blockamount++;
-    else if (curblockID != AIR.ID && newblockID == AIR.ID) this.blockamount--;
+    if (curblock.block.ID == 0 && newblock.block.ID != 0) this.blockamount++;
+    else if (curblock.block.ID != 0 && newblock.block.ID == 0)
+      this.blockamount--;
 
     this.blocks[index] = blockstate;
     this.dirty = true; // TODO update mesh immediately and efficiently to avoid needing a dirty flag
 
     // Check if the new block is the highest block in this column and draw into bitmap if that's the case
     for (let i = CHUNK_SIZE - 1; i >= 0; i--) {
-      const state = this.get(x, i, z);
-      const { blockID: ID, properties } = BlockStateRegistry.decode(state);
-      const orientation = properties.orientation;
+      const state = Registry.get(
+        this.manager.blockstates,
+        "hash",
+        this.get(x, i, z),
+      );
+      const ID = state.block.ID;
+      const orientation = state.properties.orientation as number;
 
-      if (ID == AIR.ID) continue; // Current highest block is higher than y
+      if (ID == 0) continue; // Current highest block is higher than y
       if (i > y) break; // Found block, but it's higher than y
 
       // Fetch top texture and draw into bitmap
@@ -176,7 +191,12 @@ export class Chunk {
     }
 
     // TEST update mesh
-    const meshes = createMeshes(MESH_BUFFERS, this.blocks, neighbors);
+    const meshes = createMeshes(
+      MESH_BUFFERS,
+      this.blocks,
+      neighbors,
+      this.manager.blockstates,
+    );
 
     for (let i = 0; i < this.allocations.length; i++) {
       Chunk.chunkBuffer.free(this.allocations[i]);

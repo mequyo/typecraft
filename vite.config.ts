@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react"
-import tailwindcss from "@tailwindcss/vite"
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
 // Custom plugin to enforce headers on all dev server responses
 const crossOriginIsolationPlugin = () => ({
@@ -17,7 +17,5 @@ const crossOriginIsolationPlugin = () => ({
 
 export default defineConfig({
   logLevel: "error",
-  plugins: [
-    crossOriginIsolationPlugin(), react(), tailwindcss(),
-  ]
+  plugins: [crossOriginIsolationPlugin(), react(), tailwindcss()],
 });

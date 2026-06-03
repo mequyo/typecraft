@@ -2,6 +2,7 @@ import { mat3, Mat3, Vec2, Vec3, vec3 } from "wgpu-matrix";
 import { FLOATS_PER_VERTEX } from "./constants";
 import { Sixtuple } from "./types";
 import { Block } from "./registries/block-registry";
+import { BlockData } from "./block";
 
 export enum FACE {
   PX = 0,
@@ -342,7 +343,7 @@ export class Mesh {
     z: number,
     normals: boolean,
     uv: boolean,
-    block: Block,
+    block: BlockData,
     orientation: number,
   ): Float32Array {
     const buf: number[] = [];

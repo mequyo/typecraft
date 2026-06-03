@@ -1,22 +1,24 @@
 import { CHUNK_SIZE } from "./constants";
-import { BlockStateRegistry } from "./registries/blockstate-registry";
 import { AIR } from "./registries/blocks";
 import { vec3 } from "wgpu-matrix";
 import { Chunk } from "./chunk";
-import { BlockRegistry } from "./registries/block-registry";
 import {
   FACE,
   FACE_NORMALS,
   FACE_OPPOSITE_BIT,
   MESHES,
+  ORIENTATION,
   ORIENTATION_FACE_MAP,
 } from "./mesh";
 import { Sixtuple } from "./types";
+import { Registry, RegistryData } from "./registry";
+import { BlockStateData, BlockStateHash } from "./blockstate";
 
 export function createMeshes(
   buffers: Sixtuple<Uint32Array>,
   blocks: Uint16Array,
   neighbors: Sixtuple<Uint16Array | undefined>,
+  reg: RegistryData<BlockStateData>,
 ): Sixtuple<Uint32Array> {
   let offsets: Sixtuple<number> = [0, 0, 0, 0, 0, 0];
   let n = vec3.create(); // Reuse
@@ -24,12 +26,12 @@ export function createMeshes(
   for (let x = 0; x < CHUNK_SIZE; x++) {
     for (let y = 0; y < CHUNK_SIZE; y++) {
       for (let z = 0; z < CHUNK_SIZE; z++) {
-        const blockstate = blocks[Chunk.pack(x, y, z)];
-        const { blockID, properties } = BlockStateRegistry.decode(blockstate);
-        const orientation = properties.orientation;
-        const block = BlockRegistry.get(blockID);
+        const hash = blocks[Chunk.pack(x, y, z)] as BlockStateHash;
+        const blockstate = Registry.get(reg, "hash", hash);
+        const orientation = blockstate.properties.orientation as ORIENTATION;
+        const block = blockstate.block;
 
-        if (blockID == AIR.ID) continue;
+        if (block.ID == 0) continue;
 
         const mesh = MESHES[block.meshID];
         vec3.set(0, 0, 0, n);
@@ -56,37 +58,37 @@ export function createMeshes(
             continue;
           }
 
-          let neighbor_state = -1;
+          let neighbor_hash = -1;
 
           if (n[0] >= CHUNK_SIZE) {
-            neighbor_state =
+            neighbor_hash =
               neighbors[FACE.PX]?.[Chunk.pack(n[0] - CHUNK_SIZE, n[1], n[2])] ||
               -1;
           } else if (n[0] < 0) {
-            neighbor_state =
+            neighbor_hash =
               neighbors[FACE.NX]?.[Chunk.pack(n[0] + CHUNK_SIZE, n[1], n[2])] ||
               -1;
           } else if (n[1] >= CHUNK_SIZE) {
-            neighbor_state =
+            neighbor_hash =
               neighbors[FACE.PY]?.[Chunk.pack(n[0], n[1] - CHUNK_SIZE, n[2])] ||
               -1;
           } else if (n[1] < 0) {
-            neighbor_state =
+            neighbor_hash =
               neighbors[FACE.NY]?.[Chunk.pack(n[0], n[1] + CHUNK_SIZE, n[2])] ||
               -1;
           } else if (n[2] >= CHUNK_SIZE) {
-            neighbor_state =
+            neighbor_hash =
               neighbors[FACE.PZ]?.[Chunk.pack(n[0], n[1], n[2] - CHUNK_SIZE)] ||
               -1;
           } else if (n[2] < 0) {
-            neighbor_state =
+            neighbor_hash =
               neighbors[FACE.NZ]?.[Chunk.pack(n[0], n[1], n[2] + CHUNK_SIZE)] ||
               -1;
           } else {
-            neighbor_state = blocks[Chunk.pack(n[0], n[1], n[2])];
+            neighbor_hash = blocks[Chunk.pack(n[0], n[1], n[2])];
           }
 
-          if (neighbor_state == -1) {
+          if (neighbor_hash == -1) {
             offsets[face] += mesh.writeFace(
               buffers[face],
               offsets[face],
@@ -100,15 +102,19 @@ export function createMeshes(
             continue;
           }
 
-          const { blockID: neighborBlockID, properties: neighborprop } =
-            BlockStateRegistry.decode(neighbor_state);
+          const neighborstate = Registry.get(
+            reg,
+            "hash",
+            neighbor_hash as BlockStateHash,
+          );
+          const { block: neighborBlock, properties: neighborprop } =
+            neighborstate;
           const neighborOrientation = neighborprop.orientation;
-          const neighborBlock = BlockRegistry.get(neighborBlockID);
           const neighborMesh = MESHES[neighborBlock.meshID];
 
           // Skip face only if BOTH the neighbor and the current face occlude
           const neighborOccludes =
-            (neighborMesh.cullingmasks[neighborOrientation] &
+            (neighborMesh.cullingmasks[neighborOrientation as ORIENTATION] &
               FACE_OPPOSITE_BIT[face]) !==
             0;
           const selfOccludes =

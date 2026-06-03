@@ -1,20 +1,24 @@
 import { CHUNK_SIZE } from "./constants";
 import { CAMERA_HEIGHT, PLAYER_HEIGHT, PLAYER_WIDTH } from "./constants";
 import { World } from "./world";
-import { BlockStateRegistry } from "./registries/blockstate-registry";
-import { AIR } from "./registries/blocks";
 import { vec2, Vec2, vec3, Vec3, vec4, Vec4 } from "wgpu-matrix";
 import { DynamicBuffer } from "./classes/dynamic-buffer";
 import { InventoryRow, ItemNames } from "./types";
 import { Rand } from "./classes/random";
 import { ROTATION } from "./mesh";
+import { Registry, RegistryData } from "./registry";
+import { BlockStateData } from "./blockstate";
 
 export function clamp(min: number, value: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
 // TODO more general method
-export function collides(pos: Vec3, world: World): Vec3 | null {
+export function collides(
+  pos: Vec3,
+  world: World,
+  reg: RegistryData<BlockStateData>,
+): Vec3 | null {
   const hitbox = {
     min: vec3.floor(
       vec3.create(
@@ -39,18 +43,17 @@ export function collides(pos: Vec3, world: World): Vec3 | null {
         const local = vec3ToLocalChunk(vec3.create(x, y, z)); // local position in chunk
         const offset = vec3.floor(
           vec3.divScalar(vec3.create(x, y, z), CHUNK_SIZE),
-        ); // chunk offset
+        );
         const chunk = world.getChunk(offset);
 
-        // TODO non-cube blocks
+        if (!chunk) continue;
 
-        if (
-          chunk &&
-          BlockStateRegistry.decode(chunk.get(local[0], local[1], local[2]))
-            .blockID != AIR.ID
-        ) {
-          return vec3.create(x, y, z);
-        }
+        const state = chunk.get(local[0], local[1], local[2]);
+        const ID = Registry.get(reg, "hash", state).block.ID;
+
+        if (ID == 0) continue;
+
+        return vec3.create(x, y, z);
       }
     }
   }

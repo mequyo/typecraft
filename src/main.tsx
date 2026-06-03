@@ -19,7 +19,7 @@ import {
 } from "./constants.ts";
 import { UISystem } from "./ui-system.ts";
 import { Profiler } from "./profiler.ts";
-import { BlockData, Devices, RegistryMessage } from "./types.ts";
+import { Devices, RegistryMessage } from "./types.ts";
 import { vec3 } from "wgpu-matrix";
 import { Camera } from "./camera.ts";
 import { update } from "./update.ts";
@@ -35,17 +35,13 @@ import { Root } from "./react/root.tsx";
 import { POST_PIPELINE } from "./pipeline-descriptors/post-pipeline.ts";
 import { LVH } from "./classes/lvh.ts";
 import { calculateSphereOffsets, MESH } from "./mesh.ts";
-import { BlockStateRegistry } from "./registries/blockstate-registry.ts";
 import { GHOST_PIPELINE } from "./pipeline-descriptors/ghost-pipeline.ts";
-import { RegEntry, Registry } from "./registry.ts";
+import { Registry, RegistryData } from "./registry.ts";
 import { Texture, TextureData, TextureName } from "./texture.ts";
 import { RegistryManager } from "./registry-manager.ts";
-import {
-  BlockProperties,
-  BlockProperty,
-  BlockPropertyNames,
-} from "./block-properties.ts";
-import { BlockID, BlockState, BlockStateData } from "./blockstate.ts";
+import { BlockProperties } from "./block-properties.ts";
+import { BlockState, BlockStateData } from "./blockstate.ts";
+import { Block, BlockData } from "./block.ts";
 
 window.onload = main;
 
@@ -61,10 +57,17 @@ async function main() {
 
   const { canvas, context, adapter, device, audio } = await initDevices();
 
-  BlockStateRegistry.build();
+  const registrymanager = RegistryManager.create();
+  await registerTextures(registrymanager.textures);
+  registerBlocks(registrymanager.textures, registrymanager.blocks);
+  registerBlockstates(registrymanager.blocks, registrymanager.blockstates);
+
   await TextureRegistry.awaitImages();
   await SoundRegistry.awaitSounds(audio);
-  const textures = TextureRegistry.getAll().map<ImageBitmap>((t) => t.bitmap!);
+  //const textures = TextureRegistry.getAll().map<ImageBitmap>((t) => t.bitmap!);
+  const textures = Registry.getAll(registrymanager.textures, "ID").map(
+    (t) => t.bitmap,
+  );
   const texturearray = await createTextureArray(
     device,
     IMAGE_SIZE,
@@ -128,7 +131,7 @@ async function main() {
       seconds: 0,
     },
     time_since_last_update: 0,
-    world: new World(new TerrainGenerator()),
+    world: new World(new TerrainGenerator(registrymanager), registrymanager),
     player,
     alpha: 0,
     render_distance: RENDER_DISTANCE,
@@ -164,16 +167,12 @@ async function main() {
       GHOST_PIPELINE(device, texturearray.createView()),
     ],
 
-    registrymanager: RegistryManager.create(),
+    registrymanager,
     profiler: new Profiler(),
     input,
     physics: new PhysicsSystem(),
     ui: new UISystem(player, input),
   };
-
-  await registerTextures(state);
-  registerBlocks(state);
-  registerBlockstates(state);
 
   // Send registries to workers
   for (let w = 0; w < state.world.workers.length; w++) {
@@ -363,8 +362,8 @@ async function createTextureArray(
   return texture;
 }
 
-async function registerTextures(state: State) {
-  RegistryManager.register(state.registrymanager, "textures", [
+async function registerTextures(registry: RegistryData<TextureData>) {
+  Registry.add(registry, [
     await Texture.create("/blocks/air.png"),
     await Texture.create("/blocks/andesite.png"),
     await Texture.create("/blocks/azalea_leaves.png"),
@@ -430,121 +429,112 @@ async function registerTextures(state: State) {
   ]);
 }
 
-function registerBlocks(state: State) {
-  RegistryManager.register(state.registrymanager, "blocks", [
-    {
+function registerBlocks(
+  texturereg: RegistryData<TextureData>,
+  registry: RegistryData<BlockData>,
+) {
+  Registry.add(registry, [
+    Block.create(texturereg, {
       name: "air",
-      display: "Air",
       meshID: MESH.CUBE,
       material: "none",
       tool: "none",
       properties: [],
       hardness: 0,
       textures: ["air" as TextureName],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "andesite",
-      display: "Andesite",
       meshID: MESH.CUBE,
       hardness: 3,
       tool: "pickaxe",
       material: "stone",
       textures: ["andesite" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "azalea_leaves",
-      display: "Azalea Leaves",
       meshID: MESH.OPAQUE_CUBE,
       hardness: 3,
       tool: "none",
       material: "leaves",
       textures: ["azalea_leaves" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "basalt",
-      display: "Basalt",
       meshID: MESH.CUBE,
       hardness: 3,
       tool: "pickaxe",
       material: "stone",
       textures: ["basalt" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "blackstone",
-      display: "Blackstone",
       meshID: MESH.CUBE,
       hardness: 3,
       tool: "pickaxe",
       material: "stone",
       textures: ["blackstone" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "calcite",
-      display: "Calcite",
       meshID: MESH.CUBE,
       hardness: 3,
       tool: "pickaxe",
       material: "stone",
       textures: ["calcite" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "clay",
-      display: "Clay",
       meshID: MESH.CUBE,
       hardness: 3,
       tool: "shovel",
       material: "dirt",
       textures: ["clay" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "coal_ore",
-      display: "Coal Ore",
       meshID: MESH.CUBE,
       hardness: 3,
       tool: "pickaxe",
       material: "stone",
       textures: ["coal_ore" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "coarse_dirt",
-      display: "Coarse Dirt",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "dirt",
       tool: "shovel",
       textures: ["coarse_dirt" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "cobblestone",
-      display: "Cobblestone",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "stone",
       tool: "pickaxe",
       textures: ["cobblestone" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "copper_ore",
-      display: "Copper Ore",
       meshID: MESH.CUBE,
       hardness: 3,
       tool: "pickaxe",
       material: "stone",
       textures: ["copper_ore" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "crafting_table",
-      display: "Crafting Table",
       meshID: MESH.CUBE,
       hardness: 3,
       tool: "axe",
@@ -558,190 +548,171 @@ function registerBlocks(state: State) {
         "crafting_table_side" as TextureName,
       ],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "deepslate_coal_ore",
-      display: "Deepslate Coal Ore",
       meshID: MESH.CUBE,
       hardness: 3,
       tool: "pickaxe",
       material: "stone",
       textures: ["deepslate_coal_ore" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "deepslate_copper_ore",
-      display: "Deepslate Copper Ore",
       meshID: MESH.CUBE,
       hardness: 3,
       tool: "pickaxe",
       material: "stone",
       textures: ["deepslate_copper_ore" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "deepslate_diamond_ore",
-      display: "Deepslate Diamond Ore",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "stone",
       tool: "pickaxe",
       textures: ["deepslate_diamond_ore" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "deepslate_emerald_ore",
-      display: "Deepslate Emerald Ore",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "stone",
       tool: "pickaxe",
       textures: ["deepslate_emerald_ore" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "deepslate_gold_ore",
-      display: "Deepslate Gold Ore",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "stone",
       tool: "pickaxe",
       textures: ["deepslate_gold_ore" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "deepslate_iron_ore",
-      display: "Deepslate Iron Ore",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "stone",
       tool: "pickaxe",
       textures: ["deepslate_iron_ore" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "deepslate_lapis_ore",
-      display: "Deepslate Lapis Lazuli Ore",
       meshID: MESH.CUBE,
       hardness: 3,
       tool: "pickaxe",
       material: "stone",
       textures: ["deepslate_lapis_ore" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "deepslate_redstone_ore",
-      display: "Deepslate Redstone Ore",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "stone",
       tool: "pickaxe",
       textures: ["deepslate_redstone_ore" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "deepslate",
-      display: "Deepslate",
       meshID: MESH.CUBE,
       hardness: 3,
       tool: "pickaxe",
       material: "stone",
       textures: ["deepslate" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "diorite",
-      display: "Diorite",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "stone",
       tool: "pickaxe",
       textures: ["diorite" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "dirt",
-      display: "Dirt",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "dirt",
       tool: "shovel",
       textures: ["dirt" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "dripstone",
-      display: "Dripstone",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "stone",
       tool: "pickaxe",
       textures: ["dripstone" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "emerald_ore",
-      display: "Emerald Ore",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "stone",
       tool: "pickaxe",
       textures: ["emerald_ore" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "flowering_azalea",
-      display: "Flowering Azalea",
       meshID: MESH.OPAQUE_CUBE,
       hardness: 3,
       material: "leaves",
       tool: "none",
       textures: ["flowering_azalea" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "glass",
-      display: "Glass",
       meshID: MESH.OPAQUE_CUBE,
       hardness: 3,
       material: "glass",
       tool: "none",
       textures: ["glass" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "blue_glass",
-      display: "Blue Glass",
       meshID: MESH.CUBE,
       hardness: 3,
       tool: "none",
       material: "glass",
       textures: ["blue_glass" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "gold_ore",
-      display: "Gold ore",
       meshID: MESH.CUBE,
       hardness: 3,
       tool: "pickaxe",
       material: "stone",
       textures: ["gold_ore" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "granite",
-      display: "Granite",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "stone",
       tool: "pickaxe",
       textures: ["granite" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "grass_block",
-      display: "Grass Block",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "dirt",
@@ -755,70 +726,63 @@ function registerBlocks(state: State) {
         "grass_side" as TextureName,
       ],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "gravel",
-      display: "Gravel",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "dirt",
       tool: "shovel",
       textures: ["gravel" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "iron_ore",
-      display: "Iron Ore",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "stone",
       tool: "pickaxe",
       textures: ["iron_ore" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "lapis_ore",
-      display: "Lapis Lazuli Ore",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "stone",
       tool: "pickaxe",
       textures: ["lapis_ore" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "moss_block",
-      display: "Moss Block",
       meshID: MESH.CUBE,
       hardness: 3,
       tool: "hoe",
       textures: ["moss_block" as TextureName],
       properties: [BlockProperties.orientation],
       material: "dirt",
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "mossy_cobblestone",
-      display: "Mossy Cobblestone",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "stone",
       tool: "pickaxe",
       textures: ["mossy_cobblestone" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "mud",
-      display: "Mud",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "dirt",
       tool: "shovel",
       textures: ["mud" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "oak_log",
-      display: "Oak Log",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "wood",
@@ -832,122 +796,114 @@ function registerBlocks(state: State) {
         "oak_log_side" as TextureName,
       ],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "oak_fence",
-      display: "Oak Fence",
       meshID: MESH.FENCE,
       hardness: 3,
       material: "wood",
       tool: "axe",
       textures: ["oak_planks" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "oak_slab",
-      display: "Oak Slab",
       meshID: MESH.SLAB,
       hardness: 3,
       material: "wood",
       tool: "axe",
       textures: ["oak_planks" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "oak_stairs",
-      display: "Oak Stairs",
       meshID: MESH.STAIRS,
       hardness: 3,
       material: "wood",
       tool: "axe",
       textures: ["oak_planks" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "podzol",
-      display: "Podzol",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "dirt",
       tool: "shovel",
       textures: ["podzol" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "red_sand",
-      display: "Red Sand",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "sand",
       tool: "shovel",
       textures: ["red_sand" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "redstone_ore",
-      display: "Redstone Ore",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "stone",
       tool: "pickaxe",
       textures: ["redstone_ore" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "sand",
-      display: "Sand",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "sand",
       tool: "shovel",
       textures: ["sand" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "sandstone",
-      display: "Sandstone",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "stone",
       tool: "pickaxe",
       textures: ["sandstone" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "snow",
-      display: "Snow Block",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "sand",
       tool: "shovel",
       textures: ["snow" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "stone",
-      display: "Stone",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "stone",
       tool: "pickaxe",
       textures: ["stone" as TextureName],
       properties: [BlockProperties.orientation],
-    },
-    {
+    }),
+    Block.create(texturereg, {
       name: "tuff",
-      display: "Tuff",
       meshID: MESH.CUBE,
       hardness: 3,
       material: "stone",
       textures: ["tuff" as TextureName],
       tool: "pickaxe",
       properties: [BlockProperties.orientation],
-    },
+    }),
   ]);
 }
 
-function registerBlockstates(state: State) {
-  const blocks = Registry.getAll(state.registrymanager.blocks, "ID");
+function registerBlockstates(
+  blockreg: RegistryData<BlockData>,
+  registry: RegistryData<BlockStateData>,
+) {
+  const blocks = Registry.getAll(blockreg, "ID");
   const entries: BlockStateData[] = [];
 
   for (let i = 0; i < blocks.length; i++) {
@@ -957,12 +913,12 @@ function registerBlockstates(state: State) {
 
     for (let c = 0; c < combinations.length; c++) {
       entries.push({
-        blockID: block.ID as BlockID,
-        hash: BlockState.encode(combinations[c]),
+        block,
+        hash: BlockState.encode(block.ID, combinations[c]),
         properties: combinations[c],
       });
     }
   }
 
-  RegistryManager.register(state.registrymanager, "blockstates", entries);
+  Registry.add(registry, entries);
 }

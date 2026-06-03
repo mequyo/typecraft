@@ -1,4 +1,4 @@
-import { BlockRegistry } from "./block-registry";
+/*import { BlockRegistry } from "./block-registry";
 import { BlockProperty } from "../block-properties";
 
 export type BlockStateHash = number;
@@ -223,3 +223,4 @@ export class BlockStateRegistry {
     return this.totalStates;
   }
 }
+*/

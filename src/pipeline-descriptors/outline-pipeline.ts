@@ -1,10 +1,10 @@
 import { mat4, vec2, vec3 } from "wgpu-matrix";
 import { DynamicBuffer } from "../classes/dynamic-buffer";
-import { MESHES } from "../mesh";
+import { MESHES, ORIENTATION } from "../mesh";
 import { RenderPipeline } from "../render-pipeline";
 import { BlockRegistry } from "../registries/block-registry";
-import { BlockStateRegistry } from "../registries/blockstate-registry";
 import code from "../shaders/outline.wgsl?raw";
+import { Registry } from "../registry";
 
 export const OUTLINE_PIPELINE = (device: GPUDevice) => {
   const outlinebuffer = new DynamicBuffer(
@@ -112,13 +112,17 @@ export const OUTLINE_PIPELINE = (device: GPUDevice) => {
       pass.setPipeline(self.pipeline);
       pass.setBindGroup(0, self.groups[0].group);
 
-      const blockstate = state.world.getBlockState(look);
-      const reg = BlockStateRegistry;
-      const { blockID, properties } = reg.decode(blockstate);
-      const block = BlockRegistry.get(blockID);
-      const orientation = properties.orientation;
+      const hash = state.world.getBlockState(look);
+      const blockstate = Registry.get(
+        state.registrymanager.blockstates,
+        "hash",
+        hash,
+      );
+      const { properties } = blockstate;
+      const block = blockstate.block;
+      const orientation = properties.orientation as ORIENTATION;
 
-      const meshType = MESHES[BlockRegistry.get(blockID).meshID];
+      const meshType = MESHES[BlockRegistry.get(block.ID).meshID];
       const mesh = meshType.getFullMesh(
         look[0],
         look[1],

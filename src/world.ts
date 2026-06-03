@@ -8,18 +8,11 @@ import {
   MAX_PENDING_REQUESTS,
 } from "./constants";
 import { TerrainGenerator } from "./terrain-generator";
-import {
-  ChunkMessage,
-  Sixtuple,
-  WorkerMessageIn,
-  WorkerMessageOut,
-} from "./types";
+import { ChunkMessage, Sixtuple, WorkerMessageOut } from "./types";
 import { Pair } from "./classes/pair";
 import { Mat4, mat4, Vec3, vec3 } from "wgpu-matrix";
 import { State } from "./state";
-import { BlockStateRegistry } from "./registries/blockstate-registry";
-import { AIR } from "./registries/blocks";
-import { FACE_NORMALS, ORIENTATION } from "./mesh";
+import { FACE_NORMALS } from "./mesh";
 import { vec3ToLocalChunk } from "./lib";
 import { BlockRegistry } from "./registries/block-registry";
 import { SoundRegistry } from "./registries/sound-registry";
@@ -27,9 +20,11 @@ import { Allocation } from "./classes/arena-buffer";
 import { SlotMap } from "./classes/slot-map";
 import { Player } from "./player";
 import { Region } from "./region";
-import { ArrayUtils } from "./array-utils";
 import { PlayerSystem } from "./player-system";
 import { Rand } from "./classes/random";
+import { RegistryManagerData } from "./registry-manager";
+import { BlockState, BlockStateHash } from "./blockstate";
+import { Registry } from "./registry";
 
 // TODO delete chunks that are too far away
 
@@ -60,8 +55,13 @@ export class World {
   public filtered: Chunk[] = [];
   private vp: Mat4 = mat4.create();
   private planes = new Float32Array(24);
+  public manager: RegistryManagerData;
 
-  constructor(terraingenerator: TerrainGenerator) {
+  constructor(
+    terraingenerator: TerrainGenerator,
+    manager: RegistryManagerData,
+  ) {
+    this.manager = manager;
     this.terraingenerator = terraingenerator;
     this.seconds = 0;
     this.rendered = 0;
@@ -82,9 +82,10 @@ export class World {
   damageBlock(wx: number, wy: number, wz: number, dt: number, player: Player) {
     const now = performance.now();
     const key = World.pack(wx, wy, wz);
-    const blockstate = this.getBlockState(vec3.create(wx, wy, wz));
-    const blockID = BlockStateRegistry.decode(blockstate).blockID;
-    const block = BlockRegistry.get(blockID);
+    const position = vec3.create(wx, wy, wz);
+    const hash = this.getBlockState(position);
+    const blockstate = Registry.get(this.manager.blockstates, "hash", hash);
+    const block = blockstate.block;
 
     let entry = this.damaged.get(key);
 
@@ -92,7 +93,7 @@ export class World {
     if (!entry) {
       entry = {
         damage: 0,
-        position: vec3.create(wx, wy, wz),
+        position,
         hardness: block.hardness,
         lastHitTime: now,
         nextSoundAt: 0,
@@ -107,13 +108,12 @@ export class World {
     if (now - entry.lastSoundTime > MINING_SOUND_INTERVAL) {
       entry.lastSoundTime = now;
       // TODO safety guard for possibly no mining sounds
-      SoundRegistry.play(Rand.array(block.sounds.mining).ID, 1.0);
+      // TODO play sound
     }
 
     // Destroy block
     if (entry.damage >= entry.hardness) {
-      const blockstate = this.getBlockState(vec3.create(wx, wy, wz));
-      const blockID = BlockStateRegistry.decode(blockstate).blockID;
+      const blockID = blockstate.block.ID;
 
       PlayerSystem.addToInventory(player, blockID, 1);
 
@@ -127,12 +127,9 @@ export class World {
         }),
       );
 
-      this.addBlock(
-        vec3.create(wx, wy, wz),
-        BlockStateRegistry.encode(AIR.ID, { orientation: ORIENTATION.NX_0 }),
-      );
+      this.addBlock(position, 0 as BlockStateHash); // AIR blockstate
       this.damaged.delete(key);
-      SoundRegistry.play(Rand.array(block.sounds.dig).ID, 1.0);
+      // Play destroy sound
     }
   }
 
@@ -246,7 +243,14 @@ export class World {
         state.chunkBuffer.write(5, meshes[5]),
       ];
 
-      const chunk = new Chunk(offset, time, amount, allocations, blocks);
+      const chunk = new Chunk(
+        offset,
+        time,
+        amount,
+        allocations,
+        blocks,
+        state.registrymanager,
+      );
 
       this.chunks.set(key, chunk);
       this.pending.delete(key);
@@ -254,7 +258,7 @@ export class World {
       const rkey = Region.pack(offset[0] * CHUNK_SIZE, offset[2] * CHUNK_SIZE);
       const region = this.regions.getOrSet(rkey, () => new Region(rkey));
 
-      region.updateChunk(chunk);
+      region.updateChunk(chunk, this.manager.blockstates);
 
       state.profiler.add("chunk generation", performance.now() - start);
     }
@@ -264,7 +268,7 @@ export class World {
     return this.chunks.get(World.pack(offset[0], offset[1], offset[2]));
   }
 
-  addBlock(worldpos: Vec3, block: number): boolean {
+  addBlock(worldpos: Vec3, block: BlockStateHash): boolean {
     const chunk = this.getChunk(
       vec3.floor(vec3.divScalar(worldpos, CHUNK_SIZE)),
     );
@@ -285,15 +289,12 @@ export class World {
     return true;
   }
 
-  getBlockState(position: Vec3): number {
+  getBlockState(position: Vec3): BlockStateHash {
     const chunk = this.getChunk(
       vec3.floor(vec3.divScalar(position, CHUNK_SIZE)),
     );
 
-    if (!chunk)
-      return BlockStateRegistry.encode(AIR.ID, {
-        orientation: ORIENTATION.NX_0,
-      });
+    if (!chunk) return 0 as BlockStateHash; // AIR
 
     const cpos = vec3ToLocalChunk(position);
 

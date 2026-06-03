@@ -5,6 +5,7 @@ export type RegMap<T> = {
 export type RegistryData<T extends object> = {
   elements: number;
   entries: RegMap<T>;
+  IDs: RegEntry<T>[];
 };
 
 /**
@@ -29,7 +30,7 @@ export type RegistryData<T extends object> = {
  */
 export class Registry {
   static create<T extends object>(): RegistryData<T> {
-    return { elements: 0, entries: {} as RegMap<T> };
+    return { elements: 0, entries: {} as RegMap<T>, IDs: [] };
   }
 
   /**
@@ -48,28 +49,27 @@ export class Registry {
    *          reference is stored in the indices, so mutations to the returned
    *          entry will be reflected in all lookups.
    */
-  static add<T extends object>(
-    registry: RegistryData<T>,
-    object: T,
-  ): RegEntry<T> {
-    const entry: RegEntry<T> = { ID: registry.elements++, ...object };
-    const properties = Object.keys(entry) as (keyof T)[];
+  static add<T extends object>(registry: RegistryData<T>, objects: T[]) {
+    for (let o = 0; o < objects.length; o++) {
+      const entry: RegEntry<T> = { ID: registry.elements++, ...objects[o] };
+      const properties = Object.keys(entry) as (keyof T)[];
 
-    for (let i = 0; i < properties.length; i++) {
-      const property = properties[i];
-      let map = registry.entries[property];
+      for (let i = 0; i < properties.length; i++) {
+        const property = properties[i];
+        let map = registry.entries[property];
 
-      if (!map) {
-        map = new Map();
-        registry.entries[property] = map;
+        if (!map) {
+          map = new Map();
+          registry.entries[property] = map;
+        }
+
+        const value = entry[property];
+        if (!map.has(value)) map.set(value, []);
+        map.get(value)!.push(entry);
       }
 
-      const value = entry[property];
-      if (!map.has(value)) map.set(value, []);
-      map.get(value)!.push(entry);
+      registry.IDs.push(entry);
     }
-
-    return entry;
   }
 
   /**
@@ -90,7 +90,7 @@ export class Registry {
     query: K,
     value?: RegEntry<T>[K],
   ): Readonly<RegEntry<T>>[] {
-    if (!value) {
+    if (value == undefined) {
       return Array.from(registry.entries[query].values()).flatMap((n) => n);
     }
     return registry.entries[query].get(value) || [];
@@ -116,6 +116,8 @@ export class Registry {
     query: K,
     value: RegEntry<T>[K],
   ): Readonly<RegEntry<T>> {
+    if (query == "ID") return registry.IDs[value as number];
+
     const entries = Registry.getAll(registry, query, value);
     if (entries.length === 0)
       throw new Error(`No entry with ${String(query)} = ${value} found`);

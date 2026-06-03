@@ -1,7 +1,5 @@
 import type { Vec3 } from "wgpu-matrix";
-import { BlockProperty } from "./block-properties";
-import { Texture, TextureData, TextureName } from "./texture";
-import { Registry } from "./registry";
+import { TextureName } from "./texture";
 import { RegistryManagerData } from "./registry-manager";
 
 export type ChunkMessage = {
@@ -91,26 +89,6 @@ export type Stats = {
 };
 
 // Data for registries, testing for now
-
-export type BlockData = {
-  name: string;
-  display: string;
-  meshID: number;
-  textures: [TextureName] | Sixtuple<TextureName>;
-  hardness: number;
-  material:
-    | "none"
-    | "stone"
-    | "wood"
-    | "metal"
-    | "dirt"
-    | "sand"
-    | "wool"
-    | "leaves"
-    | "glass";
-  tool: "none" | "pickaxe" | "shovel" | "axe" | "sword" | "hoe";
-  properties: BlockProperty[];
-};
 
 export type IteName = string & { _: "item name" };
 export type ItemData = {

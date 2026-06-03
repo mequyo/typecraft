@@ -1,11 +1,11 @@
 import { CHUNK_SIZE, TICKS_PER_SECOND } from "./constants";
 import { vec3 } from "wgpu-matrix";
 import { State } from "./state";
-import { BlockStateRegistry } from "./registries/blockstate-registry";
 import { MOUSE } from "./input-system";
 import { PlayerSystem } from "./player-system";
 import { BlockRegistry } from "./registries/block-registry";
-import { NORMAL_TO_ORIENTATION, ORIENTATION, ROTATION } from "./mesh";
+import { NORMAL_TO_ORIENTATION } from "./mesh";
+import { BlockState } from "./blockstate";
 
 /**
  * This function gets called every frame, updates state and renders it.
@@ -46,12 +46,7 @@ export function update(state: State) {
         state.player.placeoffset,
         state.player.lookatuv,
       );
-      state.world.addBlock(
-        position,
-        BlockStateRegistry.encode(block, {
-          orientation,
-        }),
-      );
+      state.world.addBlock(position, BlockState.encode(block, { orientation }));
       // TODO don't place if placing into entities
     } catch (_) {
       // No block selected, placing doesn't work
@@ -66,7 +61,13 @@ export function update(state: State) {
   }
 
   prof.measure("physics", () =>
-    state.physics.tick(state.input, state.player, dt, state.world),
+    state.physics.tick(
+      state.input,
+      state.player,
+      dt,
+      state.world,
+      state.registrymanager.blockstates,
+    ),
   );
 
   PlayerSystem.updateLookat(state.player, state.world);

@@ -3,9 +3,8 @@ import { Player } from "./player";
 import { World } from "./world";
 import { dda, vec3ToLocalChunk } from "./lib";
 import { CHUNK_SIZE, ITEM_STACK_SIZE, PLAYER_REACH } from "./constants";
-import { AIR } from "./registries/blocks";
-import { BlockStateRegistry } from "./registries/blockstate-registry";
 import { BlockRegistry } from "./registries/block-registry";
+import { Registry } from "./registry";
 
 export class PlayerSystem {
   static updateLookat(player: Player, world: World) {
@@ -22,8 +21,9 @@ export class PlayerSystem {
 
       const local = vec3ToLocalChunk(pos); // TODO replace with addScalar
       const blockstate = chunk.get(local[0], local[1], local[2]);
+      const hash = Registry.get(world.manager.blockstates, "hash", blockstate);
 
-      if (BlockStateRegistry.decode(blockstate).blockID == AIR.ID) continue;
+      if (hash.block.ID == 0) continue;
 
       player.lookat = pos;
       player.placeoffset = face;
