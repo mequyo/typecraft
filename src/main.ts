@@ -184,12 +184,12 @@ async function main() {
     // TODO update minimap as well
 
     // Update context
-    /*context.configure({
+    context.configure({
       device,
       format: navigator.gpu.getPreferredCanvasFormat(),
       alphaMode: "opaque",
       //size: [canvas.width, canvas.height],
-    });*/
+    });
 
     // Update camera's aspect ratio
     state.player.aspectratio = canvas.width / canvas.height;
@@ -211,6 +211,9 @@ async function main() {
         GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
     });
     state.outlineTexture = outlineTexture;
+
+    // Update post processing binding
+    state.pipelines[4].updateBinding(0, 1, outlineTexture.createView());
   };
 
   window.setInterval(() => {

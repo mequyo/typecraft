@@ -96,6 +96,23 @@ export class RenderPipeline {
     });
   }
 
+  public updateBinding(
+    groupIndex: number,
+    bindingIndex: number,
+    resource: GPUBindingResource,
+  ) {
+    const group = this.groups[groupIndex];
+    group.entries[bindingIndex].resource = resource;
+    group.group = this.device.createBindGroup({
+      layout: group.layout,
+      entries: group.entries.map<GPUBindGroupEntry>((e, i) => ({
+        binding: i,
+        resource:
+          e.resource instanceof DynamicBuffer ? e.resource.handle : e.resource,
+      })),
+    });
+  }
+
   // Update all buffers/groups
   public update(state: State) {
     for (const groupwrapper of this.groups) {
