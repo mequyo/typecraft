@@ -29,9 +29,7 @@ import { loadImage } from "./lib.ts";
 import { State } from "./state.ts";
 import { World } from "./world.ts";
 import { Chunk } from "./chunk.ts";
-import React from "react";
-import ReactDOM from "react-dom/client";
-import { Root } from "./react/root.tsx";
+
 import { POST_PIPELINE } from "./pipeline-descriptors/post-pipeline.ts";
 import { LVH } from "./classes/lvh.ts";
 import { calculateSphereOffsets, MESH } from "./mesh.ts";
@@ -47,13 +45,6 @@ window.onload = main;
 
 async function main() {
   // TODO pass registries
-  const root = document.createElement("div");
-  document.body.appendChild(root);
-  ReactDOM.createRoot(root).render(
-    <React.StrictMode>
-      <Root />
-    </React.StrictMode>,
-  );
 
   const { canvas, context, adapter, device, audio } = await initDevices();
 

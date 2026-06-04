@@ -8,8 +8,18 @@ import { Hand } from "./hand";
 import { Minimap } from "./minimap";
 import { StatsUI } from "./stats-ui";
 import { Hotbar } from "./hotbar";
+import React from "react";
+import ReactDOM from "react-dom/client";
 
-export function Root() {
+const root = document.createElement("div");
+document.body.appendChild(root);
+ReactDOM.createRoot(root).render(
+  <React.StrictMode>
+    <Main />
+  </React.StrictMode>,
+);
+
+export function Main() {
   const [inventory, setInventory] = useState<Inventory | null>(null);
   const [hand, setHand] = useState<ItemStack | null>(null);
   const [menu, setMenu] = useState<Menu | null>("pause");
