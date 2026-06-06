@@ -47,7 +47,7 @@ export class Player extends Camera {
       generateInventoryRow(),
       generateInventoryRow(),
       generateInventoryRow(),
-      generateInventoryRow(),
+      //generateInventoryRow(),
     ];
     this.grounded = true;
     this.creative = descriptor.creative ?? false;

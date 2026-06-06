@@ -62,7 +62,7 @@ export type Inventory = [
   InventoryRow,
   InventoryRow,
   InventoryRow,
-  InventoryRow,
+  //InventoryRow,
 ];
 
 export type Menu = "inventory" | "pause";
