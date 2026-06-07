@@ -1,21 +1,15 @@
 import { MOUSE } from "../input-system";
 import { Inventory, Menu } from "../types";
+import { onClick, onContextMenu } from "./functions";
 import { ItemStackUI } from "./itemstack-ui";
 import { NineSlice } from "./nine-slice";
 
 type Parameters = {
   inventory: Inventory;
-  click: (
-    button: MOUSE.LEFT | MOUSE.RIGHT,
-    menu: Menu,
-    row: number,
-    col: number,
-  ) => void;
 };
 
 export function InventoryMenu({
   inventory,
-  click,
   ...props
 }: Parameters & React.ComponentProps<"div">) {
   return (
@@ -47,8 +41,10 @@ export function InventoryMenu({
                 data-slot={JSON.stringify([ri, ci])}
               >
                 <ItemStackUI
-                  onClick={(_) => click(MOUSE.LEFT, "inventory", ri, ci)}
-                  onContextMenu={(_) => click(MOUSE.RIGHT, "inventory", ri, ci)}
+                  onClick={(_) => onClick(MOUSE.LEFT, "inventory", [ri, ci])}
+                  onContextMenu={(_) =>
+                    onContextMenu(MOUSE.RIGHT, "inventory", [ri, ci])
+                  }
                   amount={itemstack?.[0]}
                   item={itemstack?.[1]}
                 />

@@ -1,4 +1,4 @@
-import { Inventory, InventoryRow, ItemStack, Menu, Stats } from "../types";
+import { Inventory, InventoryRow, ItemStack, Menu, Stats, UIClick } from "../types";
 
 export { };
 
@@ -10,5 +10,7 @@ declare global {
 
     "hand-pickup": CustomEvent<{ menu: Menu, slot: [number, number], mode: "all" | "half" }>
     "hand-drop": CustomEvent<{ menu: Menu, slot: [number, number], mode: "all" | "one" }>
+
+    "uiclick": CustomEvent<UIClick>
   }
 }

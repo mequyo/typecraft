@@ -1,6 +1,7 @@
 import type { Vec3 } from "wgpu-matrix";
 import { TextureName } from "./texture";
 import { RegistryManagerData } from "./registry-manager";
+import { MOUSE } from "./input-system";
 
 export type ChunkMessage = {
   type: "chunk";
@@ -29,6 +30,12 @@ export type WorkerMessageOut = {
     ArrayBuffer,
   ];
   lengths: Sixtuple<number>;
+};
+
+export type UIClick = {
+  button: MOUSE.LEFT | MOUSE.MIDDLE | MOUSE.RIGHT;
+  menu: Menu;
+  slot: [number, number];
 };
 
 export type Devices = {
@@ -101,4 +108,12 @@ export type RecipeData = {
   result: IteName;
   amount: number;
   input: IteName;
+};
+
+export type GameStore = {
+  menu: Menu | null;
+  inventory: Inventory | null;
+  hotbar: InventoryRow | null;
+  hotbarSelection: number;
+  hand: ItemStack | null;
 };

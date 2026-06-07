@@ -1,6 +1,4 @@
-import { useEffect, useRef, useState } from "react";
-import { Inventory, InventoryRow, ItemStack, Menu } from "../types";
-import { MOUSE } from "../input-system";
+import { useEffect, useRef } from "react";
 import { PauseMenu } from "./pause-menu";
 import { InventoryMenu } from "./inventory-menu";
 import { Crosshair } from "./crosshair";
@@ -10,6 +8,8 @@ import { StatsUI } from "./stats-ui";
 import { Hotbar } from "./hotbar";
 import React from "react";
 import ReactDOM from "react-dom/client";
+import TestComponent from "./test-component";
+import { useStore } from "../store";
 
 const root = document.createElement("div");
 document.body.appendChild(root);
@@ -20,78 +20,24 @@ ReactDOM.createRoot(root).render(
 );
 
 export function Main() {
-  const [inventory, setInventory] = useState<Inventory | null>(null);
-  const [hand, setHand] = useState<ItemStack | null>(null);
-  const [menu, setMenu] = useState<Menu | null>("pause");
-  const [hotbar, setHotbar] = useState<InventoryRow | null>(null);
-  const [selected, setSelected] = useState<number>(0);
+  const inventory = useStore((s) => s.inventory);
+  const hand = useStore((s) => s.hand);
+  const menu = useStore((s) => s.menu);
+  const hotbar = useStore((s) => s.hotbar);
+  const selected = useStore((s) => s.hotbarSelection);
   const handref = useRef<HTMLDivElement>(null);
 
-  const click = (
-    button: MOUSE.LEFT | MOUSE.RIGHT,
-    menu: Menu,
-    row: number,
-    col: number,
-  ) => {
-    if (!hand) {
-      window.dispatchEvent(
-        new CustomEvent<WindowEventMap["hand-pickup"]["detail"]>(
-          "hand-pickup",
-          {
-            detail: {
-              menu,
-              slot: [row, col],
-              mode: button == MOUSE.LEFT ? "all" : "half",
-            },
-          },
-        ),
-      );
-    } else {
-      window.dispatchEvent(
-        new CustomEvent<WindowEventMap["hand-drop"]["detail"]>("hand-drop", {
-          detail: {
-            menu,
-            slot: [row, col],
-            mode: button == MOUSE.LEFT ? "all" : "one",
-          },
-        }),
-      );
-    }
-  };
-
   useEffect(() => {
-    const update = (
-      e: CustomEvent<{
-        menu?: Menu | null;
-        hand?: ItemStack | null;
-        inventory?: Inventory;
-        selected?: number;
-        hotbar?: InventoryRow;
-      }>,
-    ) => {
-      const m = e.detail.menu,
-        h = e.detail.hand,
-        i = e.detail.inventory,
-        s = e.detail.selected;
-      if (m !== undefined) setMenu(m);
-      if (h !== undefined) setHand(h == null ? null : [...h]);
-      if (i !== undefined) setInventory(i == null ? null : [...i]);
-      if (s !== undefined) setSelected(s);
-      if (e.detail.hotbar !== undefined) setHotbar([...e.detail.hotbar]);
+    const mousemove = (e: MouseEvent) => {
+      if (!handref.current) return;
+      handref.current.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
     };
 
-    const mousemove = (e: MouseEvent) =>
-      handref.current
-        ? (handref.current.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`)
-        : null;
-
-    window.addEventListener("ui-update", update);
     window.addEventListener("mousemove", mousemove);
     window.addEventListener("click", mousemove);
     window.addEventListener("contextmenu", mousemove);
 
     return () => {
-      window.removeEventListener("ui-update", update);
       window.removeEventListener("mousemove", mousemove);
       window.removeEventListener("click", mousemove);
       window.removeEventListener("contextmenu", mousemove);
@@ -111,9 +57,10 @@ export function Main() {
           <Hotbar selected={selected} inventory={hotbar} />
         )}
         {inventory && menu == "inventory" && (
-          <InventoryMenu inventory={inventory} click={click} />
+          <InventoryMenu inventory={inventory} />
         )}
         {hand && <Hand handref={handref} amount={hand[0]} item={hand[1]} />}
+        {/*<TestComponent inventory={inventory} hotbar={hotbar} />*/}
       </div>
     </div>
   );
