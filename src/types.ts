@@ -34,7 +34,7 @@ export type WorkerMessageOut = {
 
 export type UIClick = {
   button: MOUSE.LEFT | MOUSE.MIDDLE | MOUSE.RIGHT;
-  menu: Menu;
+  menu: SubMenu;
   slot: [number, number];
 };
 
@@ -65,14 +65,15 @@ export type InventoryRow = [
   ItemStack | null,
   ItemStack | null,
 ];
-export type Inventory = [
-  InventoryRow,
-  InventoryRow,
-  InventoryRow,
-  //InventoryRow,
-];
+export type PlayerInventory = [InventoryRow, InventoryRow, InventoryRow];
+export type PlayerHotbar = [InventoryRow];
 
 export type Menu = "inventory" | "pause";
+export type SubMenu =
+  | "player inventory"
+  | "player hotbar"
+  | "player armor slot"
+  | "player offhand";
 
 export type Stats = {
   time: number;
@@ -112,8 +113,8 @@ export type RecipeData = {
 
 export type GameStore = {
   menu: Menu | null;
-  inventory: Inventory | null;
-  hotbar: InventoryRow | null;
+  inventory: PlayerInventory;
+  hotbar: PlayerHotbar;
   hotbarSelection: number;
   hand: ItemStack | null;
 };

@@ -1,11 +1,11 @@
 import { MOUSE } from "../input-system";
-import { Inventory, Menu } from "../types";
+import { PlayerInventory } from "../types";
 import { onClick, onContextMenu } from "./functions";
 import { ItemStackUI } from "./itemstack-ui";
 import { NineSlice } from "./nine-slice";
 
 type Parameters = {
-  inventory: Inventory;
+  inventory: PlayerInventory;
 };
 
 export function InventoryMenu({

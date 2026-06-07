@@ -40,6 +40,7 @@ import { RegistryManager } from "./registry-manager.ts";
 import { BlockProperties } from "./block-properties.ts";
 import { BlockState, BlockStateData } from "./blockstate.ts";
 import { Block, BlockData } from "./block.ts";
+import { useStore } from "./store.ts";
 
 window.onload = main;
 
@@ -175,6 +176,14 @@ async function main() {
   }
 
   Chunk.chunkBuffer = state.chunkBuffer;
+
+  useStore.setState({
+    hand: player.hand,
+    hotbar: player.hotbar,
+    hotbarSelection: player.selectedSlot,
+    inventory: player.inventory,
+    menu: "pause",
+  });
 
   // LISTENERS
   window.onresize = () => {

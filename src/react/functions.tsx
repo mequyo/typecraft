@@ -1,7 +1,11 @@
 import { MOUSE } from "../input-system";
-import { Menu, UIClick } from "../types";
+import { SubMenu, UIClick } from "../types";
 
-export const onClick = (button: MOUSE, menu: Menu, slot: [number, number]) => {
+export const onClick = (
+  button: MOUSE,
+  menu: SubMenu,
+  slot: [number, number],
+) => {
   window.dispatchEvent(
     new CustomEvent<UIClick>("uiclick", { detail: { menu, slot, button } }),
   );

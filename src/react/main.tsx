@@ -1,6 +1,5 @@
 import { useEffect, useRef } from "react";
 import { PauseMenu } from "./pause-menu";
-import { InventoryMenu } from "./inventory-menu";
 import { Crosshair } from "./crosshair";
 import { Hand } from "./hand";
 import { Minimap } from "./minimap";
@@ -8,8 +7,8 @@ import { StatsUI } from "./stats-ui";
 import { Hotbar } from "./hotbar";
 import React from "react";
 import ReactDOM from "react-dom/client";
-import TestComponent from "./test-component";
 import { useStore } from "../store";
+import { Inventory } from "./inventory";
 
 const root = document.createElement("div");
 document.body.appendChild(root);
@@ -26,6 +25,7 @@ export function Main() {
   const hotbar = useStore((s) => s.hotbar);
   const selected = useStore((s) => s.hotbarSelection);
   const handref = useRef<HTMLDivElement>(null);
+  const scale = 4;
 
   useEffect(() => {
     const mousemove = (e: MouseEvent) => {
@@ -53,14 +53,13 @@ export function Main() {
       >
         {menu == null && <Crosshair width={2} height={16} />}
         {menu == "pause" && <PauseMenu />}
-        {inventory && (menu == null || menu == "inventory") && (
-          <Hotbar selected={selected} inventory={hotbar} />
-        )}
-        {inventory && menu == "inventory" && (
-          <InventoryMenu inventory={inventory} />
-        )}
+        {
+          //inventory && (menu == null || menu == "inventory") && (
+          //<Hotbar selected={selected} inventory={hotbar} />
+        }
+        {inventory && menu == "inventory" && <Inventory scale={scale} />}
         {hand && <Hand handref={handref} amount={hand[0]} item={hand[1]} />}
-        {/*<TestComponent inventory={inventory} hotbar={hotbar} />*/}
+        {/*<TestComponent />*/}
       </div>
     </div>
   );

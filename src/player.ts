@@ -1,7 +1,7 @@
 import { vec2, Vec2, vec3, Vec3 } from "wgpu-matrix";
 import { Camera, CameraDescriptor } from "./camera";
 import { PLAYER_HEIGHT, PLAYER_WIDTH } from "./constants";
-import { Inventory, InventoryRow, ItemStack } from "./types";
+import { PlayerInventory, ItemStack, PlayerHotbar } from "./types";
 import { generateInventoryRow } from "./lib";
 
 type PlayerDescriptor = {
@@ -10,8 +10,8 @@ type PlayerDescriptor = {
   min?: Vec3;
   max?: Vec3;
   creative?: boolean;
-  inventory?: Inventory;
-  hotbar?: InventoryRow;
+  inventory?: PlayerInventory;
+  hotbar?: PlayerHotbar;
 };
 
 export class Player extends Camera {
@@ -23,8 +23,8 @@ export class Player extends Camera {
   public lookat: Vec3 | null;
   public placeoffset: Vec3;
   public lookatuv: Vec2;
-  public inventory: Inventory;
-  public hotbar: InventoryRow;
+  public inventory: PlayerInventory;
+  public hotbar: PlayerHotbar;
   public hand: ItemStack | null;
   public selectedSlot: number;
 
@@ -42,24 +42,14 @@ export class Player extends Camera {
       descriptor.max ??
       vec3.create(PLAYER_WIDTH / 2, PLAYER_HEIGHT / 2, PLAYER_WIDTH / 2);
     this.hand = null;
-    this.hotbar = descriptor.hotbar ?? generateInventoryRow();
+    this.hotbar = descriptor.hotbar ?? [generateInventoryRow()];
     this.inventory = descriptor.inventory ?? [
       generateInventoryRow(),
       generateInventoryRow(),
       generateInventoryRow(),
-      //generateInventoryRow(),
     ];
     this.grounded = true;
     this.creative = descriptor.creative ?? false;
     this.lookat = null;
-
-    window.dispatchEvent(
-      new CustomEvent<WindowEventMap["ui-update"]["detail"]>("ui-update", {
-        detail: {
-          inventory: this.inventory,
-          hotbar: this.hotbar,
-        },
-      }),
-    );
   }
 }

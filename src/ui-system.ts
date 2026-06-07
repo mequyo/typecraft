@@ -3,7 +3,7 @@ import { InputSystem, MOUSE } from "./input-system.ts";
 import { Player } from "./player.ts";
 import { State } from "./state.ts";
 import { useStore } from "./store.ts";
-import { Inventory, ItemStack, Menu } from "./types.ts";
+import { PlayerInventory, ItemStack, Menu, PlayerHotbar } from "./types.ts";
 
 export class UISystem {
   private menu: Menu | null = "pause";
@@ -20,12 +20,27 @@ export class UISystem {
 
     window.addEventListener("uiclick", (e) => {
       const data = e.detail;
+      let source: PlayerInventory | PlayerHotbar | null = null;
+      switch (data.menu) {
+        case "player inventory":
+          source = player.inventory;
+          break;
+        case "player hotbar":
+          source = player.hotbar;
+          break;
+      }
 
-      if (data.menu == "inventory" && player.hand) {
-        this.drop(player, data.slot, data.button == MOUSE.LEFT ? "all" : "one");
-      } else if (data.menu == "inventory" && !player.hand) {
+      if (source && player.hand) {
+        this.drop(
+          player,
+          source,
+          data.slot,
+          data.button == MOUSE.LEFT ? "all" : "one",
+        );
+      } else if (source) {
         this.pickup(
           player,
+          source,
           data.slot,
           data.button == MOUSE.LEFT ? "all" : "half",
         );
@@ -34,19 +49,24 @@ export class UISystem {
   }
 
   // Picks up item from Inventory/Hotbar
-  private pickup(player: Player, slot: [number, number], mode: "all" | "half") {
+  private pickup(
+    player: Player,
+    source: PlayerInventory | PlayerHotbar,
+    slot: [number, number],
+    mode: "all" | "half",
+  ) {
     const [row, col] = slot;
-    const itemstack = player.inventory[row][col];
+    const itemstack = source[row][col];
 
     if (!itemstack) return;
 
     if (mode == "all") {
       player.hand = [...itemstack]; // Put whole stack into hand
-      player.inventory[row][col] = null;
+      source[row][col] = null;
     } else {
       player.hand = [Math.ceil(itemstack[0] / 2), itemstack[1]];
       const remain = Math.floor(itemstack[0] / 2);
-      player.inventory[row][col] = remain == 0 ? null : [remain, itemstack[1]];
+      source[row][col] = remain == 0 ? null : [remain, itemstack[1]];
     }
 
     useStore.setState({
@@ -56,34 +76,36 @@ export class UISystem {
   }
 
   // Drops item into Inventory/Hotbar
-  private drop(player: Player, slot: [number, number], mode: "all" | "one") {
+  private drop(
+    player: Player,
+    target: PlayerInventory | PlayerHotbar,
+    slot: [number, number],
+    mode: "all" | "one",
+  ) {
     if (!player.hand) return;
 
     const [row, col] = slot;
-    const itemstack = player.inventory[row][col];
+    const itemstack = target[row][col];
 
     // TODO only stack up to STACK_SIZE
     if (!itemstack) {
       if (mode == "all") {
-        player.inventory[row][col] = [...player.hand]; // Drop all into empty slot
+        target[row][col] = [...player.hand]; // Drop all into empty slot
         player.hand = null;
       } else if (mode == "one") {
-        player.inventory[row][col] = [1, player.hand[1]]; // Drop one into empty slot
+        target[row][col] = [1, player.hand[1]]; // Drop one into empty slot
         player.hand[0] -= 1;
       }
     } else if (itemstack[1] == player.hand[1]) {
       if (mode == "all") {
-        player.inventory[row][col] = [
-          itemstack[0] + player.hand[0],
-          player.hand[1],
-        ]; // Stack items
+        target[row][col] = [itemstack[0] + player.hand[0], player.hand[1]]; // Stack items
         player.hand = null;
       } else if (mode == "one") {
-        player.inventory[row][col] = [itemstack[0] + 1, player.hand[1]]; // Drop one from hand into inventory
+        target[row][col] = [itemstack[0] + 1, player.hand[1]]; // Drop one from hand into inventory
         player.hand[0] -= 1;
       }
     } else if (mode == "all") {
-      player.inventory[row][col] = [...player.hand]; // Swap inventory item and hand item
+      target[row][col] = [...player.hand]; // Swap inventory item and hand item
       player.hand = [...itemstack];
     }
 
@@ -138,7 +160,7 @@ export class UISystem {
     mode: "set" | "toggle",
     menu: Menu | null,
     input: InputSystem,
-    updateInventory?: { inventory: Inventory; hand: ItemStack | null },
+    updateInventory?: { inventory: PlayerInventory; hand: ItemStack | null },
   ) {
     this.menu = mode == "set" ? menu : this.menu == menu ? null : menu;
     this.menu == null ? input.requestPointerLock() : input.exitPointerLock();
