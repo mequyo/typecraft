@@ -51,6 +51,7 @@
     "@tailwindcss/vite": "^4.2.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "wgpu-matrix": "^3.4.0"
+    "wgpu-matrix": "^3.4.0",
+    "zustand": "^5.0.14"
   }
 }
