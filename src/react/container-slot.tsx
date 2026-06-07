@@ -2,12 +2,15 @@ import { ItemStack, SubMenu } from "../types";
 import { onClick, onContextMenu } from "./functions";
 
 type SlotProperties = {
-  itemstack: ItemStack | null;
+  itemstack?: ItemStack | null;
   col: number;
   row: number;
   scale: number;
   submenu: SubMenu;
 };
+// TODO outer pixels should not light up
+// TODO don't do pointer cursor when no itemstack
+// TODO slot should have a way to change color
 export function ContainerSlot({
   itemstack,
   col,

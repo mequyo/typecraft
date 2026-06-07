@@ -125,13 +125,7 @@ export class UISystem {
       const sel = state.player.selectedSlot;
       const dir = Math.sign(input.mouse.wheel);
       state.player.selectedSlot = (sel + dir + len) % len;
-      window.dispatchEvent(
-        new CustomEvent<WindowEventMap["ui-update"]["detail"]>("ui-update", {
-          detail: {
-            selected: state.player.selectedSlot,
-          },
-        }),
-      );
+      useStore.setState({ hotbarSelection: state.player.selectedSlot });
     }
 
     if (input.keypresses["c"]) state.player.creative = !state.player.creative;
@@ -148,6 +142,8 @@ export class UISystem {
       this.setMenu("set", "pause", input);
     } else if (input.keypresses["p"]) {
       this.setMenu("toggle", "pause", input);
+    } else if (input.keypresses["t"]) {
+      this.setMenu("toggle", "crafting table", input);
     } else if (input.keypresses["e"]) {
       this.setMenu("toggle", "inventory", input, {
         inventory: state.player.inventory,

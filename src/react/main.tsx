@@ -9,6 +9,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { useStore } from "../store";
 import { Inventory } from "./inventory";
+import { CraftingTable } from "./crafting-table";
 
 const root = document.createElement("div");
 document.body.appendChild(root);
@@ -18,12 +19,12 @@ ReactDOM.createRoot(root).render(
   </React.StrictMode>,
 );
 
+// TODO pressing number on slot swaps slots
+// TODO sort inventory
+
 export function Main() {
-  const inventory = useStore((s) => s.inventory);
   const hand = useStore((s) => s.hand);
   const menu = useStore((s) => s.menu);
-  const hotbar = useStore((s) => s.hotbar);
-  const selected = useStore((s) => s.hotbarSelection);
   const handref = useRef<HTMLDivElement>(null);
   const scale = 4;
 
@@ -57,8 +58,9 @@ export function Main() {
           //inventory && (menu == null || menu == "inventory") && (
           //<Hotbar selected={selected} inventory={hotbar} />
         }
-        {inventory && menu == "inventory" && <Inventory scale={scale} />}
-        {hand && <Hand handref={handref} amount={hand[0]} item={hand[1]} />}
+        {menu == "crafting table" && <CraftingTable scale={scale} />}
+        {menu == "inventory" && <Inventory scale={scale} />}
+        {hand && <Hand handref={handref} itemstack={hand} />}
         {/*<TestComponent />*/}
       </div>
     </div>

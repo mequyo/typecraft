@@ -68,7 +68,7 @@ export type InventoryRow = [
 export type PlayerInventory = [InventoryRow, InventoryRow, InventoryRow];
 export type PlayerHotbar = [InventoryRow];
 
-export type Menu = "inventory" | "pause";
+export type Menu = "inventory" | "pause" | "crafting table";
 export type SubMenu =
   | "player inventory"
   | "player hotbar"

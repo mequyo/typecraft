@@ -1,17 +1,22 @@
-import { ItemStackUI } from "./itemstack-ui";
+import { ItemStack } from "../types";
+import { ContainerSlot } from "./container-slot";
 
 export function Hand({
   handref,
-  amount,
-  item,
+  itemstack,
 }: {
   handref: React.RefObject<HTMLDivElement | null>;
-  amount: number;
-  item?: string;
+  itemstack: ItemStack;
 }) {
   return (
     <div ref={handref} className="fixed top-0 left-0 w-16 h-16 -translate-1/2">
-      <ItemStackUI amount={amount} item={item} />
+      <ContainerSlot
+        col={0}
+        row={0}
+        scale={1}
+        itemstack={itemstack}
+        submenu=""
+      />
     </div>
   );
 }
