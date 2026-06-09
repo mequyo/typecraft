@@ -4,8 +4,14 @@ type ScaledImageProps = {
   scale: number;
   url: string;
   children?: ReactNode;
-};
-export function ScaledImage({ scale, url, children }: ScaledImageProps) {
+} & React.ComponentProps<"div">;
+export function ScaledImage({
+  scale,
+  url,
+  children,
+  className,
+  style,
+}: ScaledImageProps) {
   const [size, setSize] = useState<[number, number]>([0, 0]);
 
   useEffect(() => {
@@ -16,13 +22,14 @@ export function ScaledImage({ scale, url, children }: ScaledImageProps) {
 
   return (
     <div
-      className="flex flex-col"
+      className={`flex flex-col ${className}`}
       style={{
-        padding: 8 * scale,
+        padding: 0 * scale,
         width: size[0] * scale,
         height: size[1] * scale,
         backgroundImage: `url(${url})`,
         backgroundSize: "100% 100%",
+        ...style,
       }}
     >
       {children}

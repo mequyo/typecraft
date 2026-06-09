@@ -115,7 +115,7 @@ export const GHOST_PIPELINE = (
       if (!lookat) return;
 
       //const blockstate = state.world.getBlockState(lookat);
-      const selected = state.player.hotbar[state.player.selectedSlot];
+      const selected = state.player.hotbar[0][state.player.selectedSlot];
       if (!selected || !selected[1]) return;
 
       let block = null;

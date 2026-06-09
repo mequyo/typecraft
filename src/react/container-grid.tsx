@@ -7,6 +7,7 @@ type GridProperties = {
   scale: number;
   paddingtop?: number;
   paddingleft?: number;
+  gap?: number;
   children?: React.ReactNode;
 } & React.ComponentProps<"div">;
 export function ContainerGrid({
@@ -16,15 +17,16 @@ export function ContainerGrid({
   children,
   paddingtop,
   paddingleft,
-  ...props
+  gap,
+  className,
 }: GridProperties) {
   return (
     <div
-      className={`grid w-fit h-fit ${props.className}`}
+      className={`grid w-fit h-fit ${className}`}
       style={{
         paddingTop: (paddingtop || 0) * scale,
         paddingLeft: (paddingleft || 0) * scale,
-        gap: 2 * scale,
+        gap: (gap ?? 2) * scale,
         gridColumn: cols,
         gridRow: rows,
         gridTemplateColumns: `repeat(${cols}, ${16 * scale}px)`,
@@ -75,20 +77,25 @@ export function ContainerGridHotbar({
   scale,
   paddingtop,
   paddingleft,
+  gap,
+  className,
 }: {
   scale: number;
   paddingtop: number;
   paddingleft: number;
-}) {
+  gap?: number;
+} & React.ComponentProps<"div">) {
   const hotbar = useStore((s) => s.hotbar);
 
   return (
     <ContainerGrid
-      rows={3}
+      rows={1}
       cols={9}
+      gap={gap ?? 0}
       scale={scale}
       paddingtop={paddingtop}
       paddingleft={paddingleft}
+      className={className}
     >
       {hotbar?.map((row, r) =>
         row.map((itemstack, c) => (

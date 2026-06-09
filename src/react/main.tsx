@@ -10,6 +10,7 @@ import ReactDOM from "react-dom/client";
 import { useStore } from "../store";
 import { Inventory } from "./inventory";
 import { CraftingTable } from "./crafting-table";
+import { Overlay } from "./overlay";
 
 const root = document.createElement("div");
 document.body.appendChild(root);
@@ -52,7 +53,7 @@ export function Main() {
       <div
         className={`w-screen h-screen absolute top-0 left-0 justify-center items-center flex flex-col pointer-events-none [image-rendering:pixelated] ${menu && "backdrop-blur-md"}`}
       >
-        {menu == null && <Crosshair width={2} height={16} />}
+        {menu == null && <Overlay scale={scale} />}
         {menu == "pause" && <PauseMenu />}
         {
           //inventory && (menu == null || menu == "inventory") && (
