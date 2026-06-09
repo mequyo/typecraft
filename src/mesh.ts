@@ -375,9 +375,9 @@ export class Mesh {
       vertex += FLOATS_PER_VERTEX
     ) {
       // world coordinates normalized to [0, 32] plus texture (10 bits)
-      const lx = (4 * (geometry[vertex + 0] + x)) & 511;
-      const ly = (4 * (geometry[vertex + 1] + y)) & 511;
-      const lz = (4 * (geometry[vertex + 2] + z)) & 511;
+      const lx = (16 * (geometry[vertex + 0] + x)) & 1023;
+      const ly = (16 * (geometry[vertex + 1] + y)) & 1023;
+      const lz = (16 * (geometry[vertex + 2] + z)) & 1023;
 
       const u8 = Math.min(
         255,
@@ -389,7 +389,7 @@ export class Mesh {
       );
 
       // [5 bits x, 5 bits y, 5 bits, z, 10 bits texture, ...]
-      buf[offset++] = (lx << 18) | (ly << 9) | (lz << 0);
+      buf[offset++] = (lx << 20) | (ly << 10) | (lz << 0);
       buf[offset++] = ((texture & 65535) << 16) | (v8 << 8) | (u8 << 0);
     }
 

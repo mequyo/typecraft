@@ -1,6 +1,6 @@
 struct VertexInput {
     @builtin(instance_index) iid: u32, // [3 bits face, 29 bits indirectionIndex]
-    @location(0) xyz: u32, // [9 bits local x, 9 bits local y, 9 bits local z]
+    @location(0) xyz: u32, // [10 bits local x, 10 bits local y, 10 bits local z]
     @location(1) uvt: u32, // [8 bits u, 8 bits v, 16 bits texture]
 }
 struct VertexOutput {
@@ -69,9 +69,9 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     var chunkIndex = indirection[indirectionID];
     var chunk = chunks[chunkIndex];
 
-    let local_z = f32(input.xyz & 511) / 4.0;
-    let local_y = f32((input.xyz >> 9) & 511) / 4.0;
-    let local_x = f32((input.xyz >> 18) & 511) / 4.0;
+    let local_z = f32((input.xyz >> 0) & 1023) / 16.0;
+    let local_y = f32((input.xyz >> 10) & 1023) / 16.0;
+    let local_x = f32((input.xyz >> 20) & 1023) / 16.0;
     let world_position = vec3f(chunk.origin * 32) + vec3f(local_x, local_y, local_z);
 
     output.position = projection * view * vec4f(f32(world_position.x), f32(world_position.y), f32(world_position.z), 1.0);
