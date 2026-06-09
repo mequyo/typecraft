@@ -26,12 +26,12 @@ export function update(state: State) {
     const position = vec3.sub(player.lookat, state.player.placeoffset);
 
     try {
-      let slot = player.hotbar[player.selectedSlot];
+      let slot = player.hotbar[0][player.selectedSlot];
       const block = BlockRegistry.getByName(slot?.[1] || "empty slot").ID;
 
       if (slot) {
         slot[0] -= 1;
-        if (slot[0] <= 0) player.hotbar[player.selectedSlot] = null;
+        if (slot[0] <= 0) player.hotbar[0][player.selectedSlot] = null;
         window.dispatchEvent(
           new CustomEvent<WindowEventMap["ui-update"]["detail"]>("ui-update", {
             detail: {

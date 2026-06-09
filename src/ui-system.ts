@@ -121,7 +121,7 @@ export class UISystem {
   // TODO move input logic to another system
   public tick(input: InputSystem, state: State) {
     if (this.menu == null && input.mouse.wheel != 0) {
-      const len = state.player.hotbar.length;
+      const len = state.player.hotbar[0].length;
       const sel = state.player.selectedSlot;
       const dir = Math.sign(input.mouse.wheel);
       state.player.selectedSlot = (sel + dir + len) % len;
