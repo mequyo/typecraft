@@ -8,11 +8,11 @@ import {
   MAX_PENDING_REQUESTS,
 } from "./constants";
 import { TerrainGenerator } from "./terrain-generator";
-import { ChunkMessage, Sixtuple, WorkerMessageOut } from "./types";
+import { ChunkMessage, Ray, Sixtuple, WorkerMessageOut } from "./types";
 import { Pair } from "./classes/pair";
-import { Mat4, mat4, Vec3, vec3 } from "wgpu-matrix";
+import { Mat4, mat4, Vec2, vec2, Vec3, vec3 } from "wgpu-matrix";
 import { State } from "./state";
-import { FACE_NORMALS } from "./mesh";
+import { FACE_NORMALS, MESHES } from "./mesh";
 import { vec3ToLocalChunk } from "./lib";
 import { BlockRegistry } from "./registries/block-registry";
 import { SoundRegistry } from "./registries/sound-registry";
@@ -25,6 +25,7 @@ import { Rand } from "./classes/random";
 import { RegistryManagerData } from "./registry-manager";
 import { BlockState, BlockStateHash } from "./blockstate";
 import { Registry } from "./registry";
+import { useStore } from "./store";
 
 // TODO delete chunks that are too far away
 
@@ -117,20 +118,90 @@ export class World {
 
       PlayerSystem.addToInventory(player, blockID, 1);
 
-      window.dispatchEvent(
-        new CustomEvent("ui-update", {
-          detail: {
-            inventory: player.inventory,
-            hand: player.hand,
-            hotbar: player.hotbar,
-          },
-        }),
-      );
+      useStore.setState({
+        hotbar: player.hotbar,
+        hand: player.hand,
+        inventory: player.inventory,
+      });
 
       this.addBlock(position, 0 as BlockStateHash); // AIR blockstate
       this.damaged.delete(key);
       // Play destroy sound
     }
+  }
+
+  public raycast(
+    ray: Ray,
+    distance: number,
+  ): { pos: Vec3; face: Vec3; uv: Vec2 } | null {
+    const { origin: start, direction: dir } = ray;
+    let x = Math.floor(start[0]);
+    let y = Math.floor(start[1]);
+    let z = Math.floor(start[2]);
+
+    const sx = Math.sign(dir[0]);
+    const sy = Math.sign(dir[1]);
+    const sz = Math.sign(dir[2]);
+
+    const dx = Math.abs(1 / dir[0]);
+    const dy = Math.abs(1 / dir[1]);
+    const dz = Math.abs(1 / dir[2]);
+
+    let mx = (sx > 0 ? x + 1 - start[0] : start[0] - x) * dx;
+    let my = (sy > 0 ? y + 1 - start[1] : start[1] - y) * dy;
+    let mz = (sz > 0 ? z + 1 - start[2] : start[2] - z) * dz;
+
+    let t = 0;
+
+    while (t < distance) {
+      const blockstateID = this.getBlockState(vec3.create(x, y, z));
+      const blockstate = Registry.get(
+        this.manager.blockstates,
+        "hash",
+        blockstateID,
+      );
+      const block = blockstate.block;
+      if (block && block.ID !== 0) {
+        const meshID = block.meshID;
+        const mesh = MESHES[meshID];
+        const orientation = blockstate.properties.orientation as number;
+        const hit = mesh.intersectRay(ray, vec3.create(x, y, z), orientation);
+
+        // REMOVED "&& hit.distance >= t" to avoid floating point precision misses
+        if (hit && hit.distance <= distance) {
+          return {
+            pos: vec3.create(x, y, z),
+            face: hit.normal,
+            uv: hit.uv,
+          };
+        }
+      }
+
+      // Advance to next cell
+      if (mx < my) {
+        if (mx < mz) {
+          t = mx;
+          mx += dx;
+          x += sx;
+        } else {
+          t = mz;
+          mz += dz;
+          z += sz;
+        }
+      } else {
+        if (my < mz) {
+          t = my;
+          my += dy;
+          y += sy;
+        } else {
+          t = mz;
+          mz += dz;
+          z += sz;
+        }
+      }
+    }
+
+    return null;
   }
 
   // -512 to 512 on each axis

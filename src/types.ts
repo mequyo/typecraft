@@ -1,4 +1,4 @@
-import type { Vec3 } from "wgpu-matrix";
+import type { Vec2, Vec3 } from "wgpu-matrix";
 import { TextureName } from "./texture";
 import { RegistryManagerData } from "./registry-manager";
 import { MOUSE } from "./input-system";
@@ -31,6 +31,23 @@ export type WorkerMessageOut = {
   ];
   lengths: Sixtuple<number>;
 };
+
+export type Ray = {
+  origin: Vec3;
+  direction: Vec3; // must be normalized
+};
+
+// Intersection result structure
+export type HitResult = {
+  distance: number; // ray t value
+  point: Vec3; // world space hit point
+  normal: Vec3; // normal at hit point (unit)
+  uv: Vec2; // texture coordinates (0..1) for the hit face
+};
+
+export type Shape =
+  | { type: "box"; pos: Vec3; size: Vec3 }
+  | { type: "sphere"; pos: Vec3; radius: number };
 
 export type UIClick = {
   button: MOUSE.LEFT | MOUSE.MIDDLE | MOUSE.RIGHT;

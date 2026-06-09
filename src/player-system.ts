@@ -9,8 +9,21 @@ import { Registry } from "./registry";
 export class PlayerSystem {
   static updateLookat(player: Player, world: World) {
     // TODO some blocks arent full blocks so one should take the uvs into considerations
-    player.lookat = null;
-    const positions = dda(player.eye, player.direction, PLAYER_REACH); // TODO move dda to a RaycastSystem
+
+    const hit = world.raycast(
+      { origin: player.eye, direction: player.direction },
+      5,
+    );
+    if (!hit) {
+      player.lookat = null;
+    } else {
+      player.lookat = hit.pos;
+      player.placeoffset = hit.face;
+      player.lookatuv = hit.uv;
+    }
+    /*const positions = dda(player.eye, player.direction, PLAYER_REACH); // TODO move dda to a RaycastSystem
+
+
 
     for (const hit of positions) {
       const { pos, face, uv } = hit;
@@ -30,7 +43,7 @@ export class PlayerSystem {
       player.lookatuv = uv;
 
       break;
-    }
+      }*/
   }
 
   static addToInventory(player: Player, blockID: number, amount: number): void {

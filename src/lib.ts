@@ -484,7 +484,13 @@ export function generateInventoryRow(): InventoryRow {
   return Array.from({ length: 9 }).map(() =>
     Rand.choice([
       [0.2, null],
-      [0.8, [Rand.range(1, 64), Rand.array(ItemNames)]],
+      [
+        0.8,
+        [
+          Rand.range(1, 64),
+          Rand.array(/*ItemNames*/ ["oak_stairs", "oak_fence"]),
+        ],
+      ],
     ]),
   ) as InventoryRow;
 }

@@ -6,6 +6,7 @@ import { PlayerSystem } from "./player-system";
 import { BlockRegistry } from "./registries/block-registry";
 import { NORMAL_TO_ORIENTATION } from "./mesh";
 import { BlockState } from "./blockstate";
+import { useStore } from "./store";
 
 /**
  * This function gets called every frame, updates state and renders it.
@@ -32,14 +33,7 @@ export function update(state: State) {
       if (slot) {
         slot[0] -= 1;
         if (slot[0] <= 0) player.hotbar[0][player.selectedSlot] = null;
-        window.dispatchEvent(
-          new CustomEvent<WindowEventMap["ui-update"]["detail"]>("ui-update", {
-            detail: {
-              inventory: state.player.inventory,
-              hotbar: state.player.hotbar,
-            },
-          }),
-        );
+        useStore.setState({ hotbar: state.player.hotbar });
       }
 
       const orientation = NORMAL_TO_ORIENTATION(

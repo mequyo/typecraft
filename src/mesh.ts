@@ -1,6 +1,6 @@
-import { mat3, Mat3, Vec2, Vec3, vec3 } from "wgpu-matrix";
+import { mat3, Mat3, vec2, Vec2, Vec3, vec3 } from "wgpu-matrix";
 import { FLOATS_PER_VERTEX } from "./constants";
-import { Sixtuple } from "./types";
+import { HitResult, Ray, Shape, Sixtuple } from "./types";
 import { Block } from "./registries/block-registry";
 import { BlockData } from "./block";
 
@@ -191,8 +191,13 @@ export class Mesh {
   public readonly bakedFaces: Float32Array[][] = []; // [orientation][face] -> Mesh
   public readonly cullingmasks: Uint8Array = new Uint8Array(24); // Returns the culling mask (e.g. 0b010010) for a given orientation
   private readonly edgeConnectivity: EdgeInfo[][] = new Array(24);
+  private readonly hitboxes: Shape[][] = []; // Maps hitboxes[orientation] -> shapes of mesh
 
-  constructor(cullingmask: number, base: Sixtuple<Float32Array>) {
+  constructor(
+    cullingmask: number,
+    hitbox: Shape[],
+    base: Sixtuple<Float32Array>,
+  ) {
     for (let orientation = 0; orientation < 24; orientation++) {
       const matrix = ORIENTATION_MATRICES[orientation];
       this.bakedFaces[orientation] = [];
@@ -210,7 +215,61 @@ export class Mesh {
         this.bakedFaces[orientation][worldface] = new Float32Array(mesh);
       }
 
+      this.hitboxes[orientation] = hitbox.map((shape) =>
+        this.rotateShape(shape, matrix),
+      );
+
       this.edgeConnectivity[orientation] = this.precomputeEdges(orientation);
+    }
+  }
+
+  // Helper method to rotate a shape using the orientation matrix
+  private rotateShape(shape: Shape, matrix: Mat3): Shape {
+    if (shape.type === "box") {
+      const [px, py, pz] = [shape.pos[0], shape.pos[1], shape.pos[2]];
+      const [sx, sy, sz] = [shape.size[0], shape.size[1], shape.size[2]];
+
+      // 1. Generate all 8 corners and shift them to center-relative space (-0.5 to 0.5)
+      const corners = [
+        [px, py, pz],
+        [px + sx, py, pz],
+        [px, py + sy, pz],
+        [px + sx, py + sy, pz],
+        [px, py, pz + sz],
+        [px + sx, py, pz + sz],
+        [px, py + sy, pz + sz],
+        [px + sx, py + sy, pz + sz],
+      ].map(([cx, cy, cz]) =>
+        vec3.transformMat3(vec3.create(cx - 0.5, cy - 0.5, cz - 0.5), matrix),
+      );
+
+      // 2. Find min/max across ALL 8 corners
+      const minX = Math.min(...corners.map((c) => c[0]));
+      const minY = Math.min(...corners.map((c) => c[1]));
+      const minZ = Math.min(...corners.map((c) => c[2]));
+
+      const maxX = Math.max(...corners.map((c) => c[0]));
+      const maxY = Math.max(...corners.map((c) => c[1]));
+      const maxZ = Math.max(...corners.map((c) => c[2]));
+
+      // 3. Add 0.5 back to restore local block space coordinates (0 to 1)
+      const newMin = vec3.create(minX + 0.5, minY + 0.5, minZ + 0.5);
+      const newMax = vec3.create(maxX + 0.5, maxY + 0.5, maxZ + 0.5);
+
+      return {
+        type: "box",
+        pos: newMin,
+        size: vec3.subtract(newMax, newMin),
+      };
+    } else {
+      // Sphere: Shift to center, rotate, shift back
+      const localCenter = vec3.subtract(shape.pos, vec3.create(0.5, 0.5, 0.5));
+      const rotatedCenter = vec3.transformMat3(localCenter, matrix);
+      return {
+        type: "sphere",
+        pos: vec3.add(rotatedCenter, vec3.create(0.5, 0.5, 0.5)),
+        radius: shape.radius,
+      };
     }
   }
 
@@ -443,73 +502,267 @@ export class Mesh {
 
     return new Float32Array(quads);
   }
+
+  // Intersect ray (in world space) against this mesh at blockPos with given orientation.
+  // Returns the hit distance squared (or distance) if hit, otherwise Infinity.
+  // Main intersection test against this mesh placed at blockPos with given orientation
+  public intersectRay(
+    ray: Ray,
+    blockPos: Vec3,
+    orientation: number,
+  ): HitResult | null {
+    const shapes = this.hitboxes[orientation];
+    let bestHit: HitResult | null = null;
+    let bestDist = Infinity;
+
+    for (const shape of shapes) {
+      // Transform ray from world space to block‑local space (subtract block origin)
+      const localOrigin = vec3.subtract(ray.origin, blockPos);
+      let hitDist: number;
+      let hitPointLocal: Vec3;
+      let normalLocal: Vec3;
+
+      if (shape.type === "box") {
+        const result = this.rayAABBIntersection(
+          localOrigin,
+          ray.direction,
+          shape.pos,
+          shape.size,
+        );
+        if (!result) continue;
+        hitDist = result.distance;
+        hitPointLocal = result.point;
+        normalLocal = result.normal;
+      } else {
+        // sphere
+        const result = this.raySphereIntersection(
+          localOrigin,
+          ray.direction,
+          shape.pos,
+          shape.radius,
+        );
+        if (!result) continue;
+        hitDist = result.distance;
+        hitPointLocal = result.point;
+        normalLocal = result.normal;
+      }
+
+      if (hitDist < bestDist && hitDist > 0) {
+        bestDist = hitDist;
+        const hitPointWorld = vec3.add(hitPointLocal, blockPos);
+        // Compute UV: project hit point onto the plane defined by normal.
+        // For boxes, this gives a (u,v) in [0,1] using the two axes perpendicular to normal.
+        // For spheres, we map using spherical coordinates (not perfect, but usable).
+        let uv: Vec2;
+        if (shape.type === "box") {
+          uv = this.computeUVForBox(
+            hitPointLocal,
+            normalLocal,
+            shape.pos,
+            shape.size,
+          );
+        } else {
+          uv = this.computeUVForSphere(
+            hitPointLocal,
+            normalLocal,
+            shape.radius,
+          );
+        }
+        bestHit = {
+          distance: hitDist,
+          point: hitPointWorld,
+          normal: normalLocal,
+          uv,
+        };
+      }
+    }
+    return bestHit;
+  }
+
+  // Ray vs AABB – returns distance, hit point, and normal
+  private rayAABBIntersection(
+    origin: Vec3,
+    dir: Vec3,
+    min: Vec3,
+    size: Vec3,
+  ): { distance: number; point: Vec3; normal: Vec3 } | null {
+    const max = vec3.add(min, size);
+    let tmin = -Infinity,
+      tmax = Infinity;
+    let normal = vec3.create();
+
+    for (let i = 0; i < 3; i++) {
+      if (Math.abs(dir[i]) < 1e-8) {
+        // Ray parallel to slab – no hit if origin outside
+        if (origin[i] < min[i] || origin[i] > max[i]) return null;
+      } else {
+        const invDir = 1 / dir[i];
+        let t1 = (min[i] - origin[i]) * invDir;
+        let t2 = (max[i] - origin[i]) * invDir;
+        if (t1 > t2) {
+          const tmp = t1;
+          t1 = t2;
+          t2 = tmp;
+        }
+        if (t1 > tmin) {
+          tmin = t1;
+          normal = vec3.create();
+          normal[i] = -Math.sign(dir[i]);
+        }
+        if (t2 < tmax) tmax = t2;
+        if (tmin > tmax) return null;
+      }
+    }
+    if (tmax < 0) return null;
+    const distance = tmin > 0 ? tmin : tmax;
+    const point = vec3.create(
+      origin[0] + dir[0] * distance,
+      origin[1] + dir[1] * distance,
+      origin[2] + dir[2] * distance,
+    );
+    return { distance, point, normal: vec3.negate(normal) };
+  }
+
+  // Ray vs sphere – returns distance, hit point, and normal
+  private raySphereIntersection(
+    origin: Vec3,
+    dir: Vec3,
+    center: Vec3,
+    radius: number,
+  ): { distance: number; point: Vec3; normal: Vec3 } | null {
+    const oc = vec3.subtract(origin, center);
+    const b = 2 * vec3.dot(oc, dir);
+    const c = vec3.dot(oc, oc) - radius * radius;
+    const disc = b * b - 4 * c;
+    if (disc < 0) return null;
+    const sqrtDisc = Math.sqrt(disc);
+    const t1 = (-b - sqrtDisc) * 0.5;
+    const t2 = (-b + sqrtDisc) * 0.5;
+    let t = t1 > 0 ? t1 : t2;
+    if (t <= 0) return null;
+    const point = vec3.create(
+      origin[0] + dir[0] * t,
+      origin[1] + dir[1] * t,
+      origin[2] + dir[2] * t,
+    );
+    const normal = vec3.normalize(vec3.subtract(point, center));
+    return { distance: t, point, normal };
+  }
+
+  // Compute UV for box hit: project point onto the face defined by normal.
+  private computeUVForBox(
+    pointLocal: Vec3,
+    normal: Vec3,
+    min: Vec3,
+    size: Vec3,
+  ): Vec2 {
+    const uAxis = Math.abs(normal[0]) > 0.5 ? 1 : 0; // if normal along X, use YZ plane
+    const vAxis =
+      Math.abs(normal[1]) > 0.5 ? 2 : Math.abs(normal[0]) > 0.5 ? 2 : 1;
+    // Map point from [min, max] to [0,1] on the two axes
+    let u = (pointLocal[uAxis] - min[uAxis]) / size[uAxis];
+    let v = (pointLocal[vAxis] - min[vAxis]) / size[vAxis];
+    // Clamp and flip if needed (normals point outward)
+    u = Math.min(1, Math.max(0, u));
+    v = Math.min(1, Math.max(0, v));
+    return vec2.create(u, v);
+  }
+
+  // For spheres: simple equirectangular mapping using normal direction.
+  private computeUVForSphere(
+    pointLocal: Vec3,
+    normal: Vec3,
+    radius: number,
+  ): Vec2 {
+    // Normal is already the direction from center to point
+    const theta = Math.atan2(normal[2], normal[0]); // -pi..pi
+    const phi = Math.asin(normal[1]); // -pi/2..pi/2
+    const u = (theta + Math.PI) / (2 * Math.PI);
+    const v = (phi + Math.PI / 2) / Math.PI;
+    return vec2.create(u, v);
+  }
 }
 
 // PX = 0, NX = 1, PY = 2, NY = 3, PZ = 4, NZ = 5
-const CUBE_MESH: Mesh = new Mesh(0b111111, [
-  new Float32Array([
-    //x  y  z  u  v  t
-    1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1,
-    1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0,
-  ]),
-  new Float32Array([
-    0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0,
-    1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
-  ]),
-  new Float32Array([
-    0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1,
-    1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0,
-  ]),
-  new Float32Array([
-    0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1,
-    0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0,
-  ]),
-  new Float32Array([
-    0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1,
-    1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0,
-  ]),
-  new Float32Array([
-    1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0,
-    1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0,
-  ]),
-]);
+const CUBE_MESH: Mesh = new Mesh(
+  0b111111,
+  [{ type: "box", pos: vec3.create(0, 0, 0), size: vec3.create(1, 1, 1) }],
+  [
+    new Float32Array([
+      //x  y  z  u  v  t
+      1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1,
+      1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0,
+    ]),
+    new Float32Array([
+      0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0,
+      1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+    ]),
+    new Float32Array([
+      0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1,
+      1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0,
+    ]),
+    new Float32Array([
+      0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1,
+      0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0,
+    ]),
+    new Float32Array([
+      0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1,
+      1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0,
+    ]),
+    new Float32Array([
+      1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0,
+      1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0,
+    ]),
+  ],
+);
 
-const FENCE_MESH = new Mesh(0b000000, [
-  new Float32Array([
-    //  x  y  z  n  n  n  u  v  t
-    0.625, 0, 0.375, 0.25, 1.0, 0, 0.625, 1, 0.375, 0.25, 0.0, 0, 0.625, 1,
-    0.625, 0.0, 0.0, 0, 0.625, 0, 0.375, 0.25, 1.0, 0, 0.625, 1, 0.625, 0.0,
-    0.0, 0, 0.625, 0, 0.625, 0.0, 1.0, 0,
-  ]),
-  new Float32Array([
-    0.375, 0, 0.625, 0.25, 1.0, 0, 0.375, 1, 0.625, 0.25, 0.0, 0, 0.375, 1,
-    0.375, 0.0, 0.0, 0, 0.375, 0, 0.625, 0.25, 1.0, 0, 0.375, 1, 0.375, 0.0,
-    0.0, 0, 0.375, 0, 0.375, 0.0, 1.0, 0,
-  ]),
-  new Float32Array([
-    0.375, 1, 0.375, 0.0, 0.25, 0, 0.375, 1, 0.625, 0.0, 0.0, 0, 0.625, 1,
-    0.625, 0.25, 0.0, 0, 0.375, 1, 0.375, 0.0, 0.25, 0, 0.625, 1, 0.625, 0.25,
-    0.0, 0, 0.625, 1, 0.375, 0.25, 0.25, 0,
-  ]),
-  new Float32Array([
-    0.375, 0, 0.625, 0.0, 0.25, 0, 0.375, 0, 0.375, 0.0, 0.0, 0, 0.625, 0,
-    0.375, 0.25, 0.0, 0, 0.375, 0, 0.625, 0.0, 0.25, 0, 0.625, 0, 0.375, 0.25,
-    0.0, 0, 0.625, 0, 0.625, 0.25, 0.25, 0,
-  ]),
-  new Float32Array([
-    0.375, 0, 0.625, 0.0, 1.0, 0, 0.625, 0, 0.625, 0.25, 1.0, 0, 0.625, 1,
-    0.625, 0.25, 0.0, 0, 0.375, 0, 0.625, 0.0, 1.0, 0, 0.625, 1, 0.625, 0.25,
-    0.0, 0, 0.375, 1, 0.625, 0.0, 0.0, 0,
-  ]),
-  new Float32Array([
-    0.625, 0, 0.375, 0.0, 1.0, 0, 0.375, 0, 0.375, 0.25, 1.0, 0, 0.375, 1,
-    0.375, 0.25, 0.0, 0, 0.625, 0, 0.375, 0.0, 1.0, 0, 0.375, 1, 0.375, 0.25,
-    0.0, 0, 0.625, 1, 0.375, 0.0, 0.0, 0,
-  ]),
-]);
+const FENCE_MESH = new Mesh(
+  0b000000,
+  [
+    {
+      type: "box",
+      pos: vec3.create(0.375, 0, 0.375),
+      size: vec3.create(0.25, 1, 0.25),
+    },
+  ],
+  [
+    new Float32Array([
+      //  x  y  z  n  n  n  u  v  t
+      0.625, 0, 0.375, 0.25, 1.0, 0, 0.625, 1, 0.375, 0.25, 0.0, 0, 0.625, 1,
+      0.625, 0.0, 0.0, 0, 0.625, 0, 0.375, 0.25, 1.0, 0, 0.625, 1, 0.625, 0.0,
+      0.0, 0, 0.625, 0, 0.625, 0.0, 1.0, 0,
+    ]),
+    new Float32Array([
+      0.375, 0, 0.625, 0.25, 1.0, 0, 0.375, 1, 0.625, 0.25, 0.0, 0, 0.375, 1,
+      0.375, 0.0, 0.0, 0, 0.375, 0, 0.625, 0.25, 1.0, 0, 0.375, 1, 0.375, 0.0,
+      0.0, 0, 0.375, 0, 0.375, 0.0, 1.0, 0,
+    ]),
+    new Float32Array([
+      0.375, 1, 0.375, 0.0, 0.25, 0, 0.375, 1, 0.625, 0.0, 0.0, 0, 0.625, 1,
+      0.625, 0.25, 0.0, 0, 0.375, 1, 0.375, 0.0, 0.25, 0, 0.625, 1, 0.625, 0.25,
+      0.0, 0, 0.625, 1, 0.375, 0.25, 0.25, 0,
+    ]),
+    new Float32Array([
+      0.375, 0, 0.625, 0.0, 0.25, 0, 0.375, 0, 0.375, 0.0, 0.0, 0, 0.625, 0,
+      0.375, 0.25, 0.0, 0, 0.375, 0, 0.625, 0.0, 0.25, 0, 0.625, 0, 0.375, 0.25,
+      0.0, 0, 0.625, 0, 0.625, 0.25, 0.25, 0,
+    ]),
+    new Float32Array([
+      0.375, 0, 0.625, 0.0, 1.0, 0, 0.625, 0, 0.625, 0.25, 1.0, 0, 0.625, 1,
+      0.625, 0.25, 0.0, 0, 0.375, 0, 0.625, 0.0, 1.0, 0, 0.625, 1, 0.625, 0.25,
+      0.0, 0, 0.375, 1, 0.625, 0.0, 0.0, 0,
+    ]),
+    new Float32Array([
+      0.625, 0, 0.375, 0.0, 1.0, 0, 0.375, 0, 0.375, 0.25, 1.0, 0, 0.375, 1,
+      0.375, 0.25, 0.0, 0, 0.625, 0, 0.375, 0.0, 1.0, 0, 0.375, 1, 0.375, 0.25,
+      0.0, 0, 0.625, 1, 0.375, 0.0, 0.0, 0,
+    ]),
+  ],
+);
 
 const SLAB_MESH: Mesh = new Mesh(
   0b001000, // only occludes bottom
+  [{ type: "box", pos: vec3.create(0, 0, 0), size: vec3.create(1, 0.5, 1) }],
   [
     new Float32Array([
       //x    y    z  u  v    t
@@ -539,167 +792,186 @@ const SLAB_MESH: Mesh = new Mesh(
   ],
 );
 
-const TRANSPARENT_CUBE_MESH: Mesh = new Mesh(0b000000, [
-  new Float32Array([
-    //x  y  z  u  v  t
-    1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1,
-    1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0,
-  ]),
-  new Float32Array([
-    0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0,
-    1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
-  ]),
-  new Float32Array([
-    0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1,
-    1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0,
-  ]),
-  new Float32Array([
-    0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1,
-    0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0,
-  ]),
-  new Float32Array([
-    0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1,
-    1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0,
-  ]),
-  new Float32Array([
-    1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0,
-    1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0,
-  ]),
-]);
+const TRANSPARENT_CUBE_MESH: Mesh = new Mesh(
+  0b000000,
+  [{ type: "box", pos: vec3.create(0, 0, 0), size: vec3.create(1, 1, 1) }],
+  [
+    new Float32Array([
+      //x  y  z  u  v  t
+      1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1,
+      1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0,
+    ]),
+    new Float32Array([
+      0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0,
+      1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+    ]),
+    new Float32Array([
+      0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1,
+      1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0,
+    ]),
+    new Float32Array([
+      0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1,
+      0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0,
+    ]),
+    new Float32Array([
+      0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1,
+      1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0,
+    ]),
+    new Float32Array([
+      1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0,
+      1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0,
+    ]),
+  ],
+);
 // PX = 0, NX = 1, PY = 2, NY = 3, PZ = 4, NZ = 5
-const STAIRS_MESH: Mesh = new Mesh(0b101000, [
-  new Float32Array([
-    1.0, 0.0, 0.0, 1.0, 0.0, 0,
-    //
-    1.0, 0.5, 1.0, 0.0, 0.5, 0,
-    //
-    1.0, 0.0, 1.0, 0.0, 0.0, 0,
-    //
-    1.0, 0.0, 0.0, 1.0, 0.0, 0,
-    //
-    1.0, 0.5, 0.0, 1.0, 0.5, 0,
-    //
-    1.0, 0.5, 1.0, 0.0, 0.5, 0,
+const STAIRS_MESH: Mesh = new Mesh(
+  0b101000,
+  [
+    {
+      type: "box",
+      pos: vec3.create(0.0, 0.0, 0.0),
+      size: vec3.create(1.0, 0.5, 1.0),
+    },
+    {
+      type: "box",
+      pos: vec3.create(0.5, 0.5, 0.0),
+      size: vec3.create(0.5, 0.5, 1.0),
+    },
+  ],
+  [
+    new Float32Array([
+      1.0, 0.0, 0.0, 1.0, 0.0, 0,
+      //
+      1.0, 0.5, 1.0, 0.0, 0.5, 0,
+      //
+      1.0, 0.0, 1.0, 0.0, 0.0, 0,
+      //
+      1.0, 0.0, 0.0, 1.0, 0.0, 0,
+      //
+      1.0, 0.5, 0.0, 1.0, 0.5, 0,
+      //
+      1.0, 0.5, 1.0, 0.0, 0.5, 0,
 
-    //
-    1.0, 1.0, 0.0, 1.0, 1.0, 0,
-    //
-    1.0, 1.0, 0.5, 0.5, 1.0, 0,
-    //
-    1.0, 0.5, 0.5, 0.5, 0.5, 0,
-    //
-    1.0, 1.0, 0.0, 1.0, 1.0, 0,
-    //
-    1.0, 0.5, 0.5, 0.5, 0.5, 0,
-    //
-    1.0, 0.5, 0.0, 1.0, 0.5, 0,
-  ]),
-  new Float32Array([
-    0.0, 0.0, 0.0, 0.0, 0.0, 0,
-    //
-    0.0, 0.0, 1.0, 1.0, 0.0, 0,
-    //
-    0.0, 0.5, 1.0, 1.0, 0.5, 0,
-    //
-    0.0, 0.0, 0.0, 0.0, 0.0, 0,
-    //
-    0.0, 0.5, 1.0, 1.0, 0.5, 0,
-    //
-    0.0, 0.5, 0.0, 0.0, 0.5, 0,
-    //
+      //
+      1.0, 1.0, 0.0, 1.0, 1.0, 0,
+      //
+      1.0, 1.0, 0.5, 0.5, 1.0, 0,
+      //
+      1.0, 0.5, 0.5, 0.5, 0.5, 0,
+      //
+      1.0, 1.0, 0.0, 1.0, 1.0, 0,
+      //
+      1.0, 0.5, 0.5, 0.5, 0.5, 0,
+      //
+      1.0, 0.5, 0.0, 1.0, 0.5, 0,
+    ]),
+    new Float32Array([
+      0.0, 0.0, 0.0, 0.0, 0.0, 0,
+      //
+      0.0, 0.0, 1.0, 1.0, 0.0, 0,
+      //
+      0.0, 0.5, 1.0, 1.0, 0.5, 0,
+      //
+      0.0, 0.0, 0.0, 0.0, 0.0, 0,
+      //
+      0.0, 0.5, 1.0, 1.0, 0.5, 0,
+      //
+      0.0, 0.5, 0.0, 0.0, 0.5, 0,
+      //
 
-    0.0, 0.5, 0.0, 0.0, 0.5, 0,
-    //
-    0.0, 0.5, 0.5, 0.5, 0.5, 0,
-    //
-    0.0, 1.0, 0.5, 0.5, 1.0, 0,
-    //
-    0.0, 0.5, 0.0, 0.0, 0.5, 0,
-    //
-    0.0, 1.0, 0.5, 0.5, 1.0, 0,
-    //
-    0.0, 1.0, 0.0, 0.0, 1.0, 0,
-  ]),
-  new Float32Array([
-    0.0, 1.0, 0.0, 0.0, 1.0, 0,
-    //
-    0.0, 1.0, 0.5, 0.0, 0.5, 0,
-    //
-    1.0, 1.0, 0.0, 1.0, 1.0, 0,
-    //
-    0.0, 1.0, 0.5, 0.0, 0.5, 0,
-    //
-    1.0, 1.0, 0.5, 1.0, 0.5, 0,
-    //
-    1.0, 1.0, 0.0, 1.0, 1.0, 0,
-    //
+      0.0, 0.5, 0.0, 0.0, 0.5, 0,
+      //
+      0.0, 0.5, 0.5, 0.5, 0.5, 0,
+      //
+      0.0, 1.0, 0.5, 0.5, 1.0, 0,
+      //
+      0.0, 0.5, 0.0, 0.0, 0.5, 0,
+      //
+      0.0, 1.0, 0.5, 0.5, 1.0, 0,
+      //
+      0.0, 1.0, 0.0, 0.0, 1.0, 0,
+    ]),
+    new Float32Array([
+      0.0, 1.0, 0.0, 0.0, 1.0, 0,
+      //
+      0.0, 1.0, 0.5, 0.0, 0.5, 0,
+      //
+      1.0, 1.0, 0.0, 1.0, 1.0, 0,
+      //
+      0.0, 1.0, 0.5, 0.0, 0.5, 0,
+      //
+      1.0, 1.0, 0.5, 1.0, 0.5, 0,
+      //
+      1.0, 1.0, 0.0, 1.0, 1.0, 0,
+      //
 
-    0.0, 0.5, 0.5, 0.0, 0.5, 0,
-    //
-    0.0, 0.5, 1.0, 0.0, 0.0, 0,
-    //
-    1.0, 0.5, 0.5, 1.0, 0.5, 0,
-    //
-    0.0, 0.5, 1.0, 0.0, 0.0, 0,
-    //
-    1.0, 0.5, 1.0, 1.0, 0.0, 0,
-    //
-    1.0, 0.5, 0.5, 1.0, 0.5, 0,
-  ]),
-  new Float32Array([
-    1.0, 0.0, 0.0, 1.0, 1.0, 0,
-    //
-    0.0, 0.0, 1.0, 0.0, 0.0, 0,
-    //
-    0.0, 0.0, 0.0, 0.0, 1.0, 0,
-    //
+      0.0, 0.5, 0.5, 0.0, 0.5, 0,
+      //
+      0.0, 0.5, 1.0, 0.0, 0.0, 0,
+      //
+      1.0, 0.5, 0.5, 1.0, 0.5, 0,
+      //
+      0.0, 0.5, 1.0, 0.0, 0.0, 0,
+      //
+      1.0, 0.5, 1.0, 1.0, 0.0, 0,
+      //
+      1.0, 0.5, 0.5, 1.0, 0.5, 0,
+    ]),
+    new Float32Array([
+      1.0, 0.0, 0.0, 1.0, 1.0, 0,
+      //
+      0.0, 0.0, 1.0, 0.0, 0.0, 0,
+      //
+      0.0, 0.0, 0.0, 0.0, 1.0, 0,
+      //
 
-    1.0, 0.0, 0.0, 1.0, 1.0, 0,
-    //
-    1.0, 0.0, 1.0, 1.0, 0.0, 0,
-    //
-    0.0, 0.0, 1.0, 0.0, 0.0, 0,
-  ]),
-  new Float32Array([
-    1.0, 1.0, 0.5, 1.0, 1.0, 0,
-    //
-    0.0, 1.0, 0.5, 0.0, 1.0, 0,
-    //
-    0.0, 0.5, 0.5, 0.0, 0.5, 0,
-    //
-    1.0, 1.0, 0.5, 1.0, 1.0, 0,
-    //
-    0.0, 0.5, 0.5, 0.0, 0.5, 0,
-    //
-    1.0, 0.5, 0.5, 1.0, 0.5, 0,
-    //
+      1.0, 0.0, 0.0, 1.0, 1.0, 0,
+      //
+      1.0, 0.0, 1.0, 1.0, 0.0, 0,
+      //
+      0.0, 0.0, 1.0, 0.0, 0.0, 0,
+    ]),
+    new Float32Array([
+      1.0, 1.0, 0.5, 1.0, 1.0, 0,
+      //
+      0.0, 1.0, 0.5, 0.0, 1.0, 0,
+      //
+      0.0, 0.5, 0.5, 0.0, 0.5, 0,
+      //
+      1.0, 1.0, 0.5, 1.0, 1.0, 0,
+      //
+      0.0, 0.5, 0.5, 0.0, 0.5, 0,
+      //
+      1.0, 0.5, 0.5, 1.0, 0.5, 0,
+      //
 
-    1.0, 0.5, 1.0, 1.0, 0.5, 0,
-    //
-    0.0, 0.5, 1.0, 0.0, 0.5, 0,
-    //
-    0.0, 0.0, 1.0, 0.0, 0.0, 0,
-    //
-    1.0, 0.5, 1.0, 1.0, 0.5, 0,
-    //
-    0.0, 0.0, 1.0, 0.0, 0.0, 0,
-    //
-    1.0, 0.0, 1.0, 1.0, 0.0, 0,
-  ]),
-  new Float32Array([
-    0.0, 0.0, 0.0, 1.0, 0.0, 0,
-    //
-    0.0, 1.0, 0.0, 1.0, 1.0, 0,
-    //
-    1.0, 0.0, 0.0, 0.0, 0.0, 0,
-    //
-    0.0, 1.0, 0.0, 1.0, 1.0, 0,
-    //
-    1.0, 1.0, 0.0, 0.0, 1.0, 0,
-    //
-    1.0, 0.0, 0.0, 0.0, 0.0, 0,
-  ]),
-]);
+      1.0, 0.5, 1.0, 1.0, 0.5, 0,
+      //
+      0.0, 0.5, 1.0, 0.0, 0.5, 0,
+      //
+      0.0, 0.0, 1.0, 0.0, 0.0, 0,
+      //
+      1.0, 0.5, 1.0, 1.0, 0.5, 0,
+      //
+      0.0, 0.0, 1.0, 0.0, 0.0, 0,
+      //
+      1.0, 0.0, 1.0, 1.0, 0.0, 0,
+    ]),
+    new Float32Array([
+      0.0, 0.0, 0.0, 1.0, 0.0, 0,
+      //
+      0.0, 1.0, 0.0, 1.0, 1.0, 0,
+      //
+      1.0, 0.0, 0.0, 0.0, 0.0, 0,
+      //
+      0.0, 1.0, 0.0, 1.0, 1.0, 0,
+      //
+      1.0, 1.0, 0.0, 0.0, 1.0, 0,
+      //
+      1.0, 0.0, 0.0, 0.0, 0.0, 0,
+    ]),
+  ],
+);
 
 export type MeshID = number;
 export const MESHES = [
