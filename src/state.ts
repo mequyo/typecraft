@@ -39,7 +39,7 @@ export type State = {
   gpuIndrectionChunkMap: Uint32Array;
   gpuIndirectionBufferOrigin: Vec3;
   minimap: Minimap;
-
+  block_use_map: Record<string, (pos: Vec3) => void>;
   chunkBuffer: ArenaBuffer;
   lvh: LVH;
   pipelines: RenderPipeline[];

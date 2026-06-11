@@ -1,5 +1,5 @@
 import { CHUNK_SIZE, TICKS_PER_SECOND } from "./constants";
-import { vec3 } from "wgpu-matrix";
+import { Vec3, vec3 } from "wgpu-matrix";
 import { State } from "./state";
 import { MOUSE } from "./input-system";
 import { PlayerSystem } from "./player-system";
@@ -7,6 +7,7 @@ import { BlockRegistry } from "./registries/block-registry";
 import { NORMAL_TO_ORIENTATION } from "./mesh";
 import { BlockState } from "./blockstate";
 import { useStore } from "./store";
+import { Registry } from "./registry";
 
 /**
  * This function gets called every frame, updates state and renders it.
@@ -24,26 +25,49 @@ export function update(state: State) {
 
   // PLACE BLOOK IF RIGHT CLICKED
   if (state.input.mouse.clicked[MOUSE.RIGHT] && player.lookat) {
-    const position = vec3.sub(player.lookat, state.player.placeoffset);
+    const hit = state.world.raycast(
+      { origin: player.eye, direction: player.direction },
+      5.0,
+    );
 
-    try {
-      let slot = player.hotbar[0][player.selectedSlot];
-      const block = BlockRegistry.getByName(slot?.[1] || "empty slot").ID;
-
-      if (slot) {
-        slot[0] -= 1;
-        if (slot[0] <= 0) player.hotbar[0][player.selectedSlot] = null;
-        useStore.setState({ hotbar: state.player.hotbar });
-      }
-
-      const orientation = NORMAL_TO_ORIENTATION(
-        state.player.placeoffset,
-        state.player.lookatuv,
+    if (hit) {
+      const blockstatehash = state.world.getBlockState(hit.pos);
+      const blockstate = Registry.get(
+        state.registrymanager.blockstates,
+        "hash",
+        blockstatehash,
       );
-      state.world.addBlock(position, BlockState.encode(block, { orientation }));
-      // TODO don't place if placing into entities
-    } catch (_) {
-      // No block selected, placing doesn't work
+      const name = blockstate.block.name;
+      const use: undefined | ((pos: Vec3) => void) = state.block_use_map[name];
+
+      if (use !== undefined && !state.input.keys["shift"]) {
+        use(hit.pos);
+      } else {
+        const position = vec3.sub(player.lookat, state.player.placeoffset);
+
+        try {
+          let slot = player.hotbar[0][player.selectedSlot];
+          const block = BlockRegistry.getByName(slot?.[1] || "empty slot").ID;
+
+          if (slot) {
+            slot[0] -= 1;
+            if (slot[0] <= 0) player.hotbar[0][player.selectedSlot] = null;
+            useStore.setState({ hotbar: state.player.hotbar });
+          }
+
+          const orientation = NORMAL_TO_ORIENTATION(
+            state.player.placeoffset,
+            state.player.lookatuv,
+          );
+          state.world.addBlock(
+            position,
+            BlockState.encode(block, { orientation }),
+          );
+          // TODO don't place if placing into entities
+        } catch (_) {
+          // No block selected, placing doesn't work
+        }
+      }
     }
   }
 

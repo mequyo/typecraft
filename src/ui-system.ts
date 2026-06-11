@@ -145,14 +145,18 @@ export class UISystem {
     } else if (input.keypresses["t"]) {
       this.setMenu("toggle", "crafting table", input);
     } else if (input.keypresses["e"]) {
-      this.setMenu("toggle", "inventory", input, {
-        inventory: state.player.inventory,
-        hand: state.player.hand,
-      });
+      if (!this.menu) {
+        this.setMenu("set", "inventory", input, {
+          inventory: state.player.inventory,
+          hand: state.player.hand,
+        });
+      } else {
+        this.setMenu("set", null, input);
+      }
     }
   }
 
-  private setMenu(
+  public setMenu(
     mode: "set" | "toggle",
     menu: Menu | null,
     input: InputSystem,

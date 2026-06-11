@@ -13,6 +13,7 @@ type Material =
   | "wool"
   | "leaves"
   | "glass";
+type Tool = "pickaxe" | "shovel" | "axe" | "sword" | "hoe";
 type BlockTexture = [RegEntry<TextureData>] | Sixtuple<RegEntry<TextureData>>;
 export type BlockData = {
   name: string;
@@ -21,7 +22,7 @@ export type BlockData = {
   textures: BlockTexture;
   hardness: number;
   material: Material;
-  tool: "none" | "pickaxe" | "shovel" | "axe" | "sword" | "hoe";
+  tool?: Tool;
   properties: BlockProperty[];
 };
 
@@ -34,7 +35,7 @@ export class Block {
       textures: [TextureName] | Sixtuple<TextureName>;
       hardness: number;
       material: Material;
-      tool: "none" | "pickaxe" | "shovel" | "axe" | "sword" | "hoe";
+      tool?: Tool;
       properties: BlockProperty[];
     },
   ): BlockData {

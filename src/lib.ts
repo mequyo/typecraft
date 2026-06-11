@@ -488,7 +488,7 @@ export function generateInventoryRow(): InventoryRow {
         0.8,
         [
           Rand.range(1, 64),
-          Rand.array(/*ItemNames*/ ["oak_stairs", "oak_fence"]),
+          Rand.array(/*ItemNames*/ ["crafting_table", "oak_planks"]),
         ],
       ],
     ]),

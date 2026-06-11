@@ -20,7 +20,7 @@ import {
 import { UISystem } from "./ui-system.ts";
 import { Profiler } from "./profiler.ts";
 import { Devices, RegistryMessage } from "./types.ts";
-import { vec3 } from "wgpu-matrix";
+import { Vec3, vec3 } from "wgpu-matrix";
 import { Camera } from "./camera.ts";
 import { update } from "./update.ts";
 import { render } from "./render.ts";
@@ -158,6 +158,10 @@ async function main() {
       POST_PIPELINE(device, outlineTexture.createView()),
       GHOST_PIPELINE(device, texturearray.createView()),
     ],
+    block_use_map: {
+      crafting_table: (pos) =>
+        state.ui.setMenu("set", "crafting table", state.input),
+    } as Record<string, (pos: Vec3) => void>,
 
     registrymanager,
     profiler: new Profiler(),
@@ -276,6 +280,8 @@ async function main() {
       }),
     );
   }, 250);
+
+  window.setInterval(() => state.profiler.log(), 15000);
 
   loop(state);
 }
@@ -441,7 +447,6 @@ function registerBlocks(
       name: "air",
       meshID: MESH.CUBE,
       material: "none",
-      tool: "none",
       properties: [],
       hardness: 0,
       textures: ["air" as TextureName],
@@ -459,7 +464,6 @@ function registerBlocks(
       name: "azalea_leaves",
       meshID: MESH.OPAQUE_CUBE,
       hardness: 3,
-      tool: "none",
       material: "leaves",
       textures: ["azalea_leaves" as TextureName],
       properties: [BlockProperties.orientation],
@@ -547,7 +551,7 @@ function registerBlocks(
         "crafting_table_side" as TextureName,
         "crafting_table_top" as TextureName,
         "crafting_table_side" as TextureName,
-        "crafting_table_top" as TextureName,
+        "crafting_table_side" as TextureName,
         "crafting_table_side" as TextureName,
       ],
       properties: [BlockProperties.orientation],
@@ -674,7 +678,6 @@ function registerBlocks(
       meshID: MESH.OPAQUE_CUBE,
       hardness: 3,
       material: "leaves",
-      tool: "none",
       textures: ["flowering_azalea" as TextureName],
       properties: [BlockProperties.orientation],
     }),
@@ -683,7 +686,6 @@ function registerBlocks(
       meshID: MESH.OPAQUE_CUBE,
       hardness: 3,
       material: "glass",
-      tool: "none",
       textures: ["glass" as TextureName],
       properties: [BlockProperties.orientation],
     }),
@@ -691,7 +693,6 @@ function registerBlocks(
       name: "blue_glass",
       meshID: MESH.CUBE,
       hardness: 3,
-      tool: "none",
       material: "glass",
       textures: ["blue_glass" as TextureName],
       properties: [BlockProperties.orientation],

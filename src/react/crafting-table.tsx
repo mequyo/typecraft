@@ -18,8 +18,8 @@ export function CraftingTable({ scale }: CraftingTableProps) {
         scale={scale}
         rows={3}
         cols={6}
-        paddingleft={18}
-        paddingtop={10}
+        paddingleft={26}
+        paddingtop={18}
       >
         {[
           ["", "carrot", ""],
@@ -39,8 +39,13 @@ export function CraftingTable({ scale }: CraftingTableProps) {
         <ContainerSlot col={5} row={1} scale={scale} submenu="" />
       </ContainerGrid>
 
-      <ContainerGridInventory scale={scale} paddingleft={0} paddingtop={16} />
-      <ContainerGridHotbar scale={scale} paddingleft={0} paddingtop={8} />
+      <ContainerGridInventory scale={scale} paddingleft={8} paddingtop={16} />
+      <ContainerGridHotbar
+        scale={scale}
+        paddingleft={8}
+        gap={2}
+        paddingtop={8}
+      />
     </ScaledImage>
   );
 }
