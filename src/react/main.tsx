@@ -61,7 +61,7 @@ export function Main() {
         }
         {menu == "crafting table" && <CraftingTable scale={scale} />}
         {menu == "inventory" && <Inventory scale={scale} />}
-        {hand && <Hand handref={handref} itemstack={hand} />}
+        {hand && <Hand handref={handref} itemstack={hand} scale={scale} />}
         {/*<TestComponent />*/}
       </div>
     </div>

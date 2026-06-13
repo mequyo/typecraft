@@ -66,6 +66,7 @@ export function ContainerGridInventory({
             scale={scale}
             submenu="player inventory"
             key={`inventory-${r}-${c}`}
+            theme="inventory"
           />
         )),
       )}
@@ -106,6 +107,7 @@ export function ContainerGridHotbar({
             scale={scale}
             submenu="player inventory"
             key={`inventory-${r}-${c}`}
+            theme="inventory"
           />
         )),
       )}

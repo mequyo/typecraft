@@ -40,7 +40,7 @@ function Hotbar({ scale }: { scale: number }) {
           url="/ui/hotbar_selection.png"
           style={{ gridColumnStart: selected + 1 }}
           className="row-start-1 -translate-x-4 -translate-y-3"
-        ></ScaledImage>
+        />
         {hotbar.map((row, r) =>
           row.map((itemstack, c) => (
             <ContainerSlot
@@ -48,6 +48,8 @@ function Hotbar({ scale }: { scale: number }) {
               row={r}
               scale={scale}
               itemstack={itemstack}
+              theme={c == selected ? "hotbar" : "inventory"}
+              submenu="player hotbar"
             />
           )),
         )}

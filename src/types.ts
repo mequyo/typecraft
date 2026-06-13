@@ -90,7 +90,10 @@ export type SubMenu =
   | "player inventory"
   | "player hotbar"
   | "player armor slot"
-  | "player offhand";
+  | "player offhand"
+  | "player hand"
+  | "crafting input"
+  | "crafting output";
 
 export type Stats = {
   time: number;
@@ -134,4 +137,10 @@ export type GameStore = {
   hotbar: PlayerHotbar;
   hotbarSelection: number;
   hand: ItemStack | null;
+};
+
+export type ColorScheme = {
+  light: string;
+  base: string;
+  dark: string;
 };

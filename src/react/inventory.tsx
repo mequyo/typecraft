@@ -1,5 +1,9 @@
 import { useStore } from "../store";
-import { ContainerGrid } from "./container-grid";
+import {
+  ContainerGrid,
+  ContainerGridHotbar,
+  ContainerGridInventory,
+} from "./container-grid";
 import { ContainerSlot } from "./container-slot";
 
 type InventoryProps = {
@@ -36,35 +40,15 @@ export function Inventory({ scale }: InventoryProps) {
         <div className="bg-red-600/30  col-start-8 row-start-4"></div>*/}
       </ContainerGrid>
       {/* Inventory */}
-      <ContainerGrid rows={3} cols={9} scale={scale} paddingtop={11}>
-        {inventory?.map((row, r) =>
-          row.map((itemstack, c) => (
-            <ContainerSlot
-              itemstack={itemstack}
-              col={c}
-              row={r}
-              scale={scale}
-              submenu="player inventory"
-              key={`inventory-${r}-${c}`}
-            />
-          )),
-        )}
-      </ContainerGrid>
+      <ContainerGridInventory scale={scale} paddingleft={0} paddingtop={11} />
+
       {/* Hotbar */}
-      <ContainerGrid rows={1} cols={9} scale={scale} paddingtop={8}>
-        {hotbar?.map((row, r) =>
-          row.map((itemstack, c) => (
-            <ContainerSlot
-              itemstack={itemstack}
-              col={c}
-              row={0}
-              scale={scale}
-              submenu="player hotbar"
-              key={`hotbarslot-${c}`}
-            />
-          )),
-        )}
-      </ContainerGrid>
+      <ContainerGridHotbar
+        scale={scale}
+        paddingleft={0}
+        paddingtop={8}
+        gap={2}
+      />
     </div>
   );
 }

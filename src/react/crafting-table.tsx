@@ -32,11 +32,18 @@ export function CraftingTable({ scale }: CraftingTableProps) {
               row={r}
               scale={scale}
               itemstack={name ? [3, name] : null}
-              submenu=""
+              submenu="crafting input"
+              theme="crafting"
             />
           )),
         )}
-        <ContainerSlot col={5} row={1} scale={scale} submenu="" />
+        <ContainerSlot
+          col={5}
+          row={1}
+          scale={scale}
+          submenu="crafting output"
+          theme="crafting"
+        />
       </ContainerGrid>
 
       <ContainerGridInventory scale={scale} paddingleft={8} paddingtop={16} />
