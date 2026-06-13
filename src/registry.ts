@@ -1,12 +1,57 @@
 export type RegEntry<T> = T & { ID: number };
-export type RegMap<T> = {
-  [K in keyof RegEntry<T>]: Map<RegEntry<T>[K], RegEntry<T>[]>;
-};
+export type RegMap<T> = Record<string, Map<unknown, RegEntry<T>[]>>;
 export type RegistryData<T extends object> = {
   elements: number;
   entries: RegMap<T>;
   IDs: RegEntry<T>[];
 };
+
+type IsPlainObject<T> = T extends object
+  ? T extends any[] | Function | Date | Map<any, any> | Set<any>
+    ? false
+    : true
+  : false;
+
+type Paths<T> = T extends object
+  ? {
+      [K in keyof T & string]:
+        | K
+        | (IsPlainObject<T[K]> extends true ? `${K}.${Paths<T[K]>}` : never);
+    }[keyof T & string]
+  : never;
+
+type PathValue<T, P extends string> = P extends `${infer K}.${infer Rest}`
+  ? K extends keyof T
+    ? PathValue<T[K], Rest>
+    : never
+  : P extends keyof T
+    ? T[P]
+    : never;
+
+function indexObject<T extends object>(
+  registry: RegistryData<T>,
+  entry: RegEntry<T>,
+  obj: Record<string, unknown>,
+  prefix = "",
+) {
+  for (const key of Object.keys(obj)) {
+    const path = prefix ? `${prefix}.${key}` : key;
+    const value = obj[key];
+
+    let map = registry.entries[path];
+    if (!map) {
+      map = new Map();
+      registry.entries[path] = map;
+    }
+
+    if (!map.has(value)) map.set(value, []);
+    map.get(value)!.push(entry);
+
+    if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+      indexObject(registry, entry, value as Record<string, unknown>, path);
+    }
+  }
+}
 
 /**
  * A multi-index registry that automatically creates lookup indices for every
@@ -50,24 +95,9 @@ export class Registry {
    *          entry will be reflected in all lookups.
    */
   static add<T extends object>(registry: RegistryData<T>, objects: T[]) {
-    for (let o = 0; o < objects.length; o++) {
-      const entry: RegEntry<T> = { ID: registry.elements++, ...objects[o] };
-      const properties = Object.keys(entry) as (keyof T)[];
-
-      for (let i = 0; i < properties.length; i++) {
-        const property = properties[i];
-        let map = registry.entries[property];
-
-        if (!map) {
-          map = new Map();
-          registry.entries[property] = map;
-        }
-
-        const value = entry[property];
-        if (!map.has(value)) map.set(value, []);
-        map.get(value)!.push(entry);
-      }
-
+    for (const obj of objects) {
+      const entry: RegEntry<T> = { ID: registry.elements++, ...obj };
+      indexObject(registry, entry, entry as unknown as Record<string, unknown>);
       registry.IDs.push(entry);
     }
   }
@@ -85,15 +115,17 @@ export class Registry {
    * @returns An array of all entries with the given property value.
    *          Returns an empty array `[]` if no matches found.
    */
-  static getAll<T extends object, K extends keyof RegEntry<T>>(
+  static getAll<T extends object, P extends Paths<RegEntry<T>>>(
     registry: RegistryData<T>,
-    query: K,
-    value?: RegEntry<T>[K],
+    query: P,
+    value?: PathValue<RegEntry<T>, P & string>,
   ): Readonly<RegEntry<T>>[] {
     if (value == undefined) {
-      return Array.from(registry.entries[query].values()).flatMap((n) => n);
+      return Array.from(registry.entries[query as string].values()).flatMap(
+        (n) => n,
+      );
     }
-    return registry.entries[query].get(value) || [];
+    return registry.entries[query as string].get(value) || [];
   }
 
   /**
@@ -111,12 +143,12 @@ export class Registry {
    *                type of the queried property.
    * @returns The first matching entry, or `undefined` if no match exists.
    */
-  static get<T extends object, K extends keyof RegEntry<T>>(
+  static get<T extends object, P extends Paths<RegEntry<T>>>(
     registry: RegistryData<T>,
-    query: K,
-    value: RegEntry<T>[K],
+    query: P,
+    value: PathValue<RegEntry<T>, P & string>,
   ): Readonly<RegEntry<T>> {
-    if (query == "ID") return registry.IDs[value as number];
+    if (query === "ID") return registry.IDs[value as number];
 
     const entries = Registry.getAll(registry, query, value);
     if (entries.length === 0)
