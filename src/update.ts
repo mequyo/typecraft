@@ -47,7 +47,7 @@ export function update(state: State) {
 
         try {
           let slot = player.hotbar[0][player.selectedSlot];
-          const block = BlockRegistry.getByName(slot?.[1] || "empty slot").ID;
+          const blockID = Registry.get(state.registrymanager.blocks, "name", slot?.[1] || "").ID;
 
           if (slot) {
             slot[0] -= 1;
@@ -59,9 +59,10 @@ export function update(state: State) {
             state.player.placeoffset,
             state.player.lookatuv,
           );
+
           state.world.addBlock(
             position,
-            Registry.get(state.registrymanager.blockstates, "hash", BlockState.encode(block, { orientation })).ID,
+            Registry.get(state.registrymanager.blockstates, "hash", BlockState.encode(blockID, { orientation })).ID,
           );
           // TODO don't place if placing into entities
         } catch (_) {

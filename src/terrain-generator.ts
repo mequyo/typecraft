@@ -8,30 +8,14 @@ import {
   TERRAIN_HEIGHT,
 } from "./constants";
 import { ORIENTATION } from "./mesh";
-import { Block } from "./registries/block-registry";
-import {
-  COBBLESTONE,
-  DEEPSLATE,
-  DIRT,
-  GRANITE,
-  GRASS_BLOCK,
-  GRAVEL,
-  MUD,
-  MOSS_BLOCK,
-  PODZOL,
-  RED_SAND,
-  SAND,
-  SANDSTONE,
-  SNOW,
-  STONE,
-  TUFF,
-} from "./registries/blocks";
 import { Simplex2D } from "./classes/simplex2D";
 import { Vec3 } from "wgpu-matrix";
 import { Chunk } from "./chunk";
 import { RegistryManagerData } from "./registry-manager";
 import { Registry } from "./registry";
 import { BlockState } from "./blockstate";
+import { BlockData } from "./block";
+
 
 // ── Noise tuning ───────────────────────────────────────────────────────────────
 const DOMAIN_WARP_SCALE = 0.015;
@@ -52,7 +36,7 @@ const SLOPE_DELTA = 2; // world-space sample distance for gradient
 
 // ── Strata layer ───────────────────────────────────────────────────────────────
 type StrataLayer = {
-  block: Block;
+  block: string;
   minDepth?: number;
   maxDepth?: number;
   strataHz?: number; // sine cycles across TERRAIN_HEIGHT
@@ -66,8 +50,8 @@ type BiomeDef = {
   amplitude: number; // fbm variation
   erosionStrength: number; // how aggressively the erosion mask cuts (0..1)
   continentalFactor: number; // how much continent noise boosts height (0..2)
-  surfaceBlock: Block; // top block on gentle ground
-  steepBlock: Block; // top block on cliffs
+  surfaceBlock: string; // top block on gentle ground
+  steepBlock: string; // top block on cliffs
   strata: StrataLayer[];
 };
 
@@ -86,13 +70,13 @@ const BIOMES: BiomeDef[] = [
     amplitude: 4,
     erosionStrength: 0.1,
     continentalFactor: 0.3,
-    surfaceBlock: SAND,
-    steepBlock: GRAVEL,
+    surfaceBlock: "sand",
+    steepBlock: "gravel",
     strata: [
-      { block: SAND, maxDepth: 2 },
-      { block: MUD, minDepth: 1, maxDepth: 5, strataHz: 5, strataAmp: 0.4 },
-      { block: GRAVEL, minDepth: 3, maxDepth: 8, strataHz: 4, strataAmp: 0.3 },
-      { block: STONE, minDepth: 6 },
+      { block: "sand", maxDepth: 2 },
+      { block: "mud", minDepth: 1, maxDepth: 5, strataHz: 5, strataAmp: 0.4 },
+      { block: "gravel", minDepth: 3, maxDepth: 8, strataHz: 4, strataAmp: 0.3 },
+      { block: "stone", minDepth: 6 },
     ],
   },
 
@@ -103,19 +87,19 @@ const BIOMES: BiomeDef[] = [
     amplitude: 8,
     erosionStrength: 0.3,
     continentalFactor: 0.8,
-    surfaceBlock: SAND,
-    steepBlock: SANDSTONE,
+    surfaceBlock: "sand",
+    steepBlock: "sandstone",
     strata: [
-      { block: RED_SAND, maxDepth: 0, strataHz: 6, strataAmp: 0.35 },
-      { block: SAND, maxDepth: 3 },
+      { block: "red_sand", maxDepth: 0, strataHz: 6, strataAmp: 0.35 },
+      { block: "sand", maxDepth: 3 },
       {
-        block: RED_SAND,
+        block: "red_sand",
         minDepth: 2,
         maxDepth: 6,
         strataHz: 8,
         strataAmp: 0.45,
       },
-      { block: SANDSTONE, minDepth: 4 },
+      { block: "sandstone", minDepth: 4 },
     ],
   },
 
@@ -126,15 +110,15 @@ const BIOMES: BiomeDef[] = [
     amplitude: 10,
     erosionStrength: 0.4,
     continentalFactor: 1.0,
-    surfaceBlock: GRASS_BLOCK,
-    steepBlock: GRAVEL,
+    surfaceBlock: "grass_block",
+    steepBlock: "gravel",
     strata: [
-      { block: GRASS_BLOCK, maxDepth: 0 },
-      { block: MOSS_BLOCK, maxDepth: 0, strataHz: 10, strataAmp: 0.25 },
-      { block: PODZOL, maxDepth: 0, strataHz: 6, strataAmp: 0.15 },
-      { block: DIRT, minDepth: 1, maxDepth: 4 },
-      { block: MUD, minDepth: 2, maxDepth: 6, strataHz: 5, strataAmp: 0.35 },
-      { block: STONE, minDepth: 5 },
+      { block: "grass_block", maxDepth: 0 },
+      { block: "moss_block", maxDepth: 0, strataHz: 10, strataAmp: 0.25 },
+      { block: "podzol", maxDepth: 0, strataHz: 6, strataAmp: 0.15 },
+      { block: "dirt", minDepth: 1, maxDepth: 4 },
+      { block: "mud", minDepth: 2, maxDepth: 6, strataHz: 5, strataAmp: 0.35 },
+      { block: "stone", minDepth: 5 },
     ],
   },
 
@@ -145,28 +129,28 @@ const BIOMES: BiomeDef[] = [
     amplitude: 35,
     erosionStrength: 0.85,
     continentalFactor: 1.6,
-    surfaceBlock: SNOW,
-    steepBlock: STONE,
+    surfaceBlock: "snow",
+    steepBlock: "stone",
     strata: [
-      { block: SNOW, maxDepth: 0 },
-      { block: GRAVEL, maxDepth: 1, strataHz: 8, strataAmp: 0.25 },
-      { block: STONE, minDepth: 1, maxDepth: 12 },
-      { block: TUFF, minDepth: 3, maxDepth: 14, strataHz: 14, strataAmp: 0.4 },
+      { block: "snow", maxDepth: 0 },
+      { block: "gravel", maxDepth: 1, strataHz: 8, strataAmp: 0.25 },
+      { block: "stone", minDepth: 1, maxDepth: 12 },
+      { block: "tuff", minDepth: 3, maxDepth: 14, strataHz: 14, strataAmp: 0.4 },
       {
-        block: COBBLESTONE,
+        block: "cobblestone",
         minDepth: 6,
         maxDepth: 20,
         strataHz: 10,
         strataAmp: 0.3,
       },
       {
-        block: GRANITE,
+        block: "granite",
         minDepth: 10,
         maxDepth: 30,
         strataHz: 7,
         strataAmp: 0.35,
       },
-      { block: DEEPSLATE, minDepth: 24 },
+      { block: "deepslate", minDepth: 24 },
     ],
   },
 
@@ -177,13 +161,13 @@ const BIOMES: BiomeDef[] = [
     amplitude: 18,
     erosionStrength: 0.6,
     continentalFactor: 1.3,
-    surfaceBlock: SNOW,
-    steepBlock: STONE,
+    surfaceBlock: "snow",
+    steepBlock: "stone",
     strata: [
-      { block: SNOW, maxDepth: 1 },
-      { block: STONE, minDepth: 1, maxDepth: 10 },
-      { block: TUFF, minDepth: 4, maxDepth: 14, strataHz: 12, strataAmp: 0.35 },
-      { block: DEEPSLATE, minDepth: 10 },
+      { block: "snow", maxDepth: 1 },
+      { block: "stone", minDepth: 1, maxDepth: 10 },
+      { block: "tuff", minDepth: 4, maxDepth: 14, strataHz: 12, strataAmp: 0.35 },
+      { block: "deepslate", minDepth: 10 },
     ],
   },
 ];
@@ -362,14 +346,14 @@ export class TerrainGenerator {
     warpNoise: number,
     slope: number,
     erosion: number,
-  ): Block {
+  ): string {
     // Slope scouring: cliffs strip surface layers and expose deeper material
     const slopeDepth = depth + Math.max(0, (slope - 0.6) * 3);
 
     // Surface block selection: slope and erosion override gentle topsoil
     if (depth <= 1) {
       if (slope > 0.75) return biome.steepBlock;
-      if (erosion > 0.7 && depth === 0) return GRAVEL; // scoured / alluvial
+      if (erosion > 0.7 && depth === 0) return "gravel"; // scoured / alluvial
       if (depth === 0) return biome.surfaceBlock;
     }
 
@@ -459,7 +443,7 @@ export class TerrainGenerator {
           blocks[index] = Registry.get(
             this.manager.blockstates,
             "hash",
-            BlockState.encode(block.ID, { orientation: ORIENTATION.NX_0 }),
+            BlockState.encode(Registry.get(this.manager.blocks, "name", block).ID, { orientation: ORIENTATION.NX_0 }),
           ).ID;
           amount++;
         }

@@ -14,6 +14,7 @@ import {
   ROTATION,
 } from "../mesh";
 import { BlockRegistry } from "../registries/block-registry";
+import { Registry } from "../registry";
 
 export const GHOST_PIPELINE = (
   device: GPUDevice,
@@ -120,7 +121,7 @@ export const GHOST_PIPELINE = (
 
       let block = null;
       try {
-        block = BlockRegistry.getByName(selected[1]);
+        block = Registry.get(state.registrymanager.blocks, "name", selected[1]);
       } catch (_) {
         return;
       }

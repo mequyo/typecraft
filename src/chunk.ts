@@ -53,7 +53,7 @@ export class Chunk {
     // Bitmap
     this.canvas = new OffscreenCanvas(CHUNK_SIZE, CHUNK_SIZE);
     this.context = this.canvas.getContext("2d")!;
-    //this.drawTopView(); // TODO optimize this with a heightmap
+    this.drawTopView(); // TODO optimize this with a heightmap
 
     // AABB
     const min = vec3.mulScalar(this.offset, CHUNK_SIZE);

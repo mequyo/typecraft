@@ -122,7 +122,7 @@ export const OUTLINE_PIPELINE = (device: GPUDevice) => {
       const block = blockstate.block;
       const orientation = properties.orientation as ORIENTATION;
 
-      const meshType = MESHES[BlockRegistry.get(block.ID).meshID];
+      const meshType = MESHES[block.meshID];
       const mesh = meshType.getFullMesh(
         look[0],
         look[1],

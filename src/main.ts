@@ -283,6 +283,11 @@ async function main() {
 
   window.setInterval(() => state.profiler.log(), 15000);
 
+
+  console.log(Registry.get(state.registrymanager.blocks, "name", "redstone_ore"))
+  console.log(Registry.get(state.registrymanager.blocks, "name", "sand"))
+
+
   loop(state);
 }
 
@@ -804,6 +809,15 @@ function registerBlocks(
     Block.create(texturereg, {
       name: "oak_fence",
       meshID: MESH.FENCE,
+      hardness: 3,
+      material: "wood",
+      tool: "axe",
+      textures: ["oak_planks" as TextureName],
+      properties: [BlockProperties.orientation],
+    }),
+    Block.create(texturereg, {
+      name: "oak_planks",
+      meshID: MESH.CUBE,
       hardness: 3,
       material: "wood",
       tool: "axe",
