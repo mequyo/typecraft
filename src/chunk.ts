@@ -53,7 +53,7 @@ export class Chunk {
     // Bitmap
     this.canvas = new OffscreenCanvas(CHUNK_SIZE, CHUNK_SIZE);
     this.context = this.canvas.getContext("2d")!;
-    this.drawTopView();
+    //this.drawTopView(); // TODO optimize this with a heightmap
 
     // AABB
     const min = vec3.mulScalar(this.offset, CHUNK_SIZE);
@@ -141,17 +141,17 @@ export class Chunk {
     x: number,
     y: number,
     z: number,
-    blockstate: BlockStateHash,
+    blockstate: number,
     neighbors: Sixtuple<Uint16Array | undefined>,
   ) {
     const index = Chunk.pack(x, y, z);
     const oldstate = this.blocks[index];
     const curblock = Registry.get(
       this.manager.blockstates,
-      "hash",
-      oldstate as BlockStateHash,
+      "ID",
+      oldstate,
     );
-    const newblock = Registry.get(this.manager.blockstates, "hash", blockstate);
+    const newblock = Registry.get(this.manager.blockstates, "ID", blockstate);
 
     // TODO Air should only be one state to avoid this check
     if (
@@ -171,7 +171,7 @@ export class Chunk {
     for (let i = CHUNK_SIZE - 1; i >= 0; i--) {
       const state = Registry.get(
         this.manager.blockstates,
-        "hash",
+        "ID",
         this.get(x, i, z),
       );
       const ID = state.block.ID;

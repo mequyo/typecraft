@@ -51,7 +51,7 @@ export class Region {
 
     if (this.heightmap[index] > wy) return;
 
-    const blockstate = Registry.get(reg, "hash", blockhash as BlockStateHash);
+    const blockstate = Registry.get(reg, "ID", blockhash);
     const block = blockstate.block;
     const orientation = blockstate.properties.orientation as ORIENTATION;
 
@@ -81,7 +81,7 @@ export class Region {
         for (let y = CHUNK_SIZE - 1; y >= 0; y--) {
           const index = Chunk.pack(x, y, z);
           const hash = chunk.blocks[index];
-          const blockstate = Registry.get(reg, "hash", hash as BlockStateHash);
+          const blockstate = Registry.get(reg, "ID", hash);
           const block = blockstate.block;
 
           if (block.ID == 0) continue;

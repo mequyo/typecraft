@@ -412,7 +412,7 @@ export class TerrainGenerator {
       ),
     );
 
-    const waterCode = water.hash;
+    const waterCode = water.ID;
 
     for (let x = 0; x < CHUNK_SIZE; x++) {
       const wx = x + coffset[0] * CHUNK_SIZE;
@@ -460,7 +460,7 @@ export class TerrainGenerator {
             this.manager.blockstates,
             "hash",
             BlockState.encode(block.ID, { orientation: ORIENTATION.NX_0 }),
-          ).hash;
+          ).ID;
           amount++;
         }
       }

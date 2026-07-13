@@ -85,7 +85,7 @@ export class World {
     const key = World.pack(wx, wy, wz);
     const position = vec3.create(wx, wy, wz);
     const hash = this.getBlockState(position);
-    const blockstate = Registry.get(this.manager.blockstates, "hash", hash);
+    const blockstate = Registry.get(this.manager.blockstates, "ID", hash);
     const block = blockstate.block;
 
     let entry = this.damaged.get(key);
@@ -157,7 +157,7 @@ export class World {
       const blockstateID = this.getBlockState(vec3.create(x, y, z));
       const blockstate = Registry.get(
         this.manager.blockstates,
-        "hash",
+        "ID",
         blockstateID,
       );
       const block = blockstate.block;
@@ -274,12 +274,21 @@ export class World {
       this.getChunk(vec3.add(offset, FACE_NORMALS[4]))?.blocks,
       this.getChunk(vec3.add(offset, FACE_NORMALS[5]))?.blocks,
     ];
+
+    const elements = CHUNK_SIZE ** 3;
+    const packedNeighbors = new Uint16Array(elements * 6);
+    for (let i = 0; i < 6; i++) {
+      const n = neighbors[i];
+      if (n !== undefined) packedNeighbors.set(n, i * elements);
+    }
+
     worker.addEventListener("message", message);
+
     worker.postMessage({
       type: "chunk",
       offset,
-      neighbors,
-    } as ChunkMessage);
+      neighborsBuffer: packedNeighbors.buffer,
+    } as ChunkMessage, [packedNeighbors.buffer]);
 
     this.pending.add(key);
     this.pendingOrder.push(key);
@@ -339,7 +348,7 @@ export class World {
     return this.chunks.get(World.pack(offset[0], offset[1], offset[2]));
   }
 
-  addBlock(worldpos: Vec3, block: BlockStateHash): boolean {
+  addBlock(worldpos: Vec3, block: number): boolean {
     const chunk = this.getChunk(
       vec3.floor(vec3.divScalar(worldpos, CHUNK_SIZE)),
     );

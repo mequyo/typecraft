@@ -49,7 +49,7 @@ export function collides(
         if (!chunk) continue;
 
         const state = chunk.get(local[0], local[1], local[2]);
-        const ID = Registry.get(reg, "hash", state).block.ID;
+        const ID = Registry.get(reg, "ID", state).block.ID;
 
         if (ID == 0) continue;
 

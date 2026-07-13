@@ -34,7 +34,7 @@ export function update(state: State) {
       const blockstatehash = state.world.getBlockState(hit.pos);
       const blockstate = Registry.get(
         state.registrymanager.blockstates,
-        "hash",
+        "ID",
         blockstatehash,
       );
       const name = blockstate.block.name;
@@ -61,7 +61,7 @@ export function update(state: State) {
           );
           state.world.addBlock(
             position,
-            BlockState.encode(block, { orientation }),
+            Registry.get(state.registrymanager.blockstates, "hash", BlockState.encode(block, { orientation })).ID,
           );
           // TODO don't place if placing into entities
         } catch (_) {

@@ -50,6 +50,7 @@ function Hotbar({ scale }: { scale: number }) {
               itemstack={itemstack}
               theme={c == selected ? "hotbar" : "inventory"}
               submenu="player hotbar"
+              key={`hotbarslot-${c}`}
             />
           )),
         )}

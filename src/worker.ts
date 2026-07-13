@@ -44,8 +44,19 @@ function createChunk(data: ChunkMessage) {
   if (!terraingen || !registrymanager)
     throw new Error("Terrain Generator or Registry not defined.");
 
-  const { offset, neighbors } = data;
+  const { offset, neighborsBuffer } = data;
   const { blocks, heightmap, amount } = terraingen!.generateBlocks(offset);
+
+  const CHUNK_ELEMS = CHUNK_SIZE ** 3;
+  const nBuffer = new Uint16Array(neighborsBuffer);
+  const neighbors: Sixtuple<Uint16Array> = [
+    new Uint16Array(nBuffer.buffer, 0 * CHUNK_ELEMS * 2, CHUNK_ELEMS),
+    new Uint16Array(nBuffer.buffer, 1 * CHUNK_ELEMS * 2, CHUNK_ELEMS),
+    new Uint16Array(nBuffer.buffer, 2 * CHUNK_ELEMS * 2, CHUNK_ELEMS),
+    new Uint16Array(nBuffer.buffer, 3 * CHUNK_ELEMS * 2, CHUNK_ELEMS),
+    new Uint16Array(nBuffer.buffer, 4 * CHUNK_ELEMS * 2, CHUNK_ELEMS),
+    new Uint16Array(nBuffer.buffer, 5 * CHUNK_ELEMS * 2, CHUNK_ELEMS),
+  ];
 
   const meshes = createMeshes(
     MESH_BUFFERS,

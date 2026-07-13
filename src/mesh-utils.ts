@@ -26,8 +26,8 @@ export function createMeshes(
   for (let x = 0; x < CHUNK_SIZE; x++) {
     for (let y = 0; y < CHUNK_SIZE; y++) {
       for (let z = 0; z < CHUNK_SIZE; z++) {
-        const hash = blocks[Chunk.pack(x, y, z)] as BlockStateHash;
-        const blockstate = Registry.get(reg, "hash", hash);
+        const hash = blocks[Chunk.pack(x, y, z)];
+        const blockstate = Registry.get(reg, "ID", hash);
         const orientation = blockstate.properties.orientation as ORIENTATION;
         const block = blockstate.block;
 
@@ -104,7 +104,7 @@ export function createMeshes(
 
           const neighborstate = Registry.get(
             reg,
-            "hash",
+            "ID",
             neighbor_hash as BlockStateHash,
           );
           const { block: neighborBlock, properties: neighborprop } =
@@ -138,7 +138,12 @@ export function createMeshes(
     }
   }
 
-  return buffers.map((buffer, i) =>
-    buffer.slice(0, offsets[i]),
-  ) as Sixtuple<Uint32Array>;
+  return [
+    buffers[0].slice(0, offsets[0]),
+    buffers[1].slice(0, offsets[1]),
+    buffers[2].slice(0, offsets[2]),
+    buffers[3].slice(0, offsets[3]),
+    buffers[4].slice(0, offsets[4]),
+    buffers[5].slice(0, offsets[5]),
+  ] as Sixtuple<Uint32Array>;
 }

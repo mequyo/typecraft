@@ -6,7 +6,7 @@ import { MOUSE } from "./input-system";
 export type ChunkMessage = {
   type: "chunk";
   offset: Vec3;
-  neighbors: Sixtuple<Uint16Array | undefined>;
+  neighborsBuffer: ArrayBuffer;
 };
 export type RegistryMessage = {
   type: "registries";

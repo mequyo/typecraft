@@ -115,7 +115,7 @@ export const OUTLINE_PIPELINE = (device: GPUDevice) => {
       const hash = state.world.getBlockState(look);
       const blockstate = Registry.get(
         state.registrymanager.blockstates,
-        "hash",
+        "ID",
         hash,
       );
       const { properties } = blockstate;
