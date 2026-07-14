@@ -144,11 +144,11 @@ async function main() {
 
     lvh: new LVH(device),
 
-    indirectBuffer: new DynamicBuffer(
+    indirectBuffer: new DynamicBuffer({
       device,
-      GPUBufferUsage.INDIRECT | GPUBufferUsage.COPY_DST,
-      64,
-    ),
+      usage:GPUBufferUsage.INDIRECT | GPUBufferUsage.COPY_DST,
+      sizeBytes: 64,
+    }),
 
     pipelines: [
       SKY_PIPELINE(device),

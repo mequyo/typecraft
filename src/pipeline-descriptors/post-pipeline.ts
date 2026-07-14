@@ -52,19 +52,19 @@ export const POST_PIPELINE = (
       [
         {
           buffer: { type: "uniform" },
-          resource: new DynamicBuffer(
+          resource: new DynamicBuffer({
             device,
-            GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
-            vec3.create(1.0, 1.0, 1.0),
-          ),
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+            data: vec3.create(1.0, 1.0, 1.0),
+            }),
         },
         {
           buffer: { type: "uniform" },
-          resource: new DynamicBuffer(
+          resource: new DynamicBuffer({
             device,
-            GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
-            new Float32Array([2.0]),
-          ),
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+            data: new Float32Array([2.0]),
+            }),
         },
       ],
     ],

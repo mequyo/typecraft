@@ -1,64 +1,52 @@
 import { BUFFER_GROW_FACTOR, BUFFER_MIN_SIZE } from "../constants";
 
 export class DynamicBuffer {
+  public bytesUsed = 0; // Bytes currently in use (being drawn)
   private device: GPUDevice;
+  public growFactor: number;
   public handle: GPUBuffer;
-  private usage: GPUBufferUsageFlags;
-  public capacity = 0; // Bytes currently in use (being drawn)
-  public readback?: GPUBuffer;
   private sizeBytes = 0; // Actual GPU buffer size in bytes
+  private usage: GPUBufferUsageFlags;
 
-  constructor(
+  public constructor(options: {
     device: GPUDevice,
     usage: GPUBufferUsageFlags,
-    dataOrSize?: ArrayBufferView | number,
-    readback?: boolean,
-  ) {
-    // Compute initial size in bytes (must be multiple of 4 for copies)
-    const initialBytes =
-      dataOrSize == undefined
-        ? BUFFER_MIN_SIZE
-        : typeof dataOrSize == "number"
-          ? dataOrSize
-          : dataOrSize.byteLength;
-    const aligned = initialBytes + ((4 - (initialBytes % 4)) % 4);
+    data?: ArrayBufferView,
+    sizeBytes?: number,
+    growFactor?: number,
+  }) {
+    const { device, usage, data, sizeBytes, growFactor } = options;
 
+    // Compute initial size in bytes (must be multiple of 4 for copies)
+    const initialBytes = Math.max(BUFFER_MIN_SIZE, sizeBytes ?? 0, data?.byteLength ?? 0);
+    const aligned = initialBytes + (4 - (initialBytes % 4));
+
+    this.growFactor = growFactor ?? BUFFER_GROW_FACTOR;
     this.device = device;
     this.usage = usage;
     this.sizeBytes = Math.max(BUFFER_MIN_SIZE, aligned);
     this.handle = this.device.createBuffer({ size: this.sizeBytes, usage });
 
-    // Optionally create a same-sized readback buffer for GPU->CPU reads
-    if (readback) {
-      this.readback = this.device.createBuffer({
-        size: this.sizeBytes,
-        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-      });
-    }
-
-    if (dataOrSize && typeof dataOrSize != "number") this.write(dataOrSize);
+    if (data) this.write(data);
   }
 
   /**
    * Uploads data to the GPU buffer. Automatically grows or shrinks
    * depending on usage. Offsets are in bytes.
    */
-  write(data: ArrayBufferView, bufferoffset = 0): void {
+  public write(data: ArrayBufferView, bufferoffset = 0): void {
     const bytes = data.byteLength;
 
     // Grow if too small or shrink if buffer is way too big for data
     if (
       !this.handle ||
-      this.sizeBytes < bytes + bufferoffset //||
-      //(bufferoffset === 0 && this.sizeBytes * BUFFER_SHRINK_THRESHOLD > bytes)
+      this.sizeBytes < bytes + bufferoffset
     ) {
-      const hadReadback = !!this.readback;
 
       this.handle?.destroy();
-      this.readback?.destroy();
 
-      let newSize = Math.floor((bytes + bufferoffset) * BUFFER_GROW_FACTOR);
-      newSize = newSize + ((4 - (newSize % 4)) % 4);
+      let newSize = Math.floor((bytes + bufferoffset) * this.growFactor);
+      newSize = newSize + (4 - (newSize % 4));
       newSize = Math.max(newSize, BUFFER_MIN_SIZE);
 
       this.sizeBytes = newSize;
@@ -66,19 +54,10 @@ export class DynamicBuffer {
         size: this.sizeBytes,
         usage: this.usage,
       });
-
-      if (hadReadback) {
-        this.readback = this.device.createBuffer({
-          size: this.sizeBytes,
-          usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-        });
-      } else {
-        this.readback = undefined;
-      }
     }
 
     // Write CPU data → GPU buffer
-    this.capacity = bytes;
+    this.bytesUsed = bytes;
     this.device.queue.writeBuffer(
       this.handle,
       bufferoffset,
@@ -86,5 +65,9 @@ export class DynamicBuffer {
       data.byteOffset,
       data.byteLength,
     );
+  }
+
+  public destroy() {
+    this.handle.destroy();
   }
 }

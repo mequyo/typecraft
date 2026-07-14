@@ -7,10 +7,10 @@ import code from "../shaders/outline.wgsl?raw";
 import { Registry } from "../registry";
 
 export const OUTLINE_PIPELINE = (device: GPUDevice) => {
-  const outlinebuffer = new DynamicBuffer(
+  const outlinebuffer = new DynamicBuffer({
     device,
-    GPUBufferUsage.COPY_DST | GPUBufferUsage.VERTEX,
-  );
+    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.VERTEX,
+  });
   return new RenderPipeline({
     device,
     module: device.createShaderModule({ code }),
@@ -66,39 +66,39 @@ export const OUTLINE_PIPELINE = (device: GPUDevice) => {
       [
         {
           buffer: { type: "uniform" }, // projection
-          resource: new DynamicBuffer(
+          resource: new DynamicBuffer({
             device,
-            GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
-            mat4.create(),
-          ),
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+            data:mat4.create(),
+            }),
           update: (state, buffer) => buffer.write(state.player.projection),
         },
         {
           buffer: { type: "uniform" }, // view
-          resource: new DynamicBuffer(
+          resource: new DynamicBuffer({
             device,
-            GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
-            mat4.create(),
-          ),
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+            data: mat4.create(),
+            }),
           update: (state, buffer) =>
             buffer.write(state.player.view(state.alpha)),
         },
         {
           buffer: { type: "uniform" }, // camera position
-          resource: new DynamicBuffer(
+          resource: new DynamicBuffer({
             device,
-            GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
-            vec3.create(),
-          ),
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+            data: vec3.create(),
+            }),
           update: (state, buffer) => buffer.write(state.player.placeoffset),
         },
         {
           buffer: { type: "uniform" }, // screen space
-          resource: new DynamicBuffer(
+          resource: new DynamicBuffer({
             device,
-            GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
-            vec2.create(1920, 1080),
-          ),
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+            data: vec2.create(1920, 1080),
+            }),
           update: (state, buffer) =>
             buffer.write(vec2.create(state.canvas.width, state.canvas.height)),
         },
@@ -135,7 +135,7 @@ export const OUTLINE_PIPELINE = (device: GPUDevice) => {
       outlinebuffer.write(mesh);
 
       pass.setVertexBuffer(0, outlinebuffer.handle);
-      pass.draw(outlinebuffer.capacity / Float32Array.BYTES_PER_ELEMENT / 4); // p1 p2 quadCoord (u, v)
+      pass.draw(outlinebuffer.bytesUsed / Float32Array.BYTES_PER_ELEMENT / 4); // p1 p2 quadCoord (u, v)
     },
   });
 };

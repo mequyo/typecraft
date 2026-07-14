@@ -240,9 +240,9 @@ export class World {
     const playerChunkPos = vec3.floor(
       vec3.divScalar(player.position, CHUNK_SIZE),
     );
-
+    const chunkpos = vec3.create();
     for (let i = 0; i < state.sphere_offsets.length; i += 1) {
-      const chunkpos = vec3.add(playerChunkPos, state.sphere_offsets[i]);
+      vec3.add(playerChunkPos, state.sphere_offsets[i], chunkpos);
 
       this.queueChunk(chunkpos);
     }

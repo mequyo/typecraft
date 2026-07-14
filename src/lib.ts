@@ -67,32 +67,32 @@ const GB = 1024 * 1024 * 1024;
 type Size = `${number}${"KB" | "MB" | "GB"}`;
 
 export function ReadOnlyStorage(device: GPUDevice, size?: Size): DynamicBuffer {
-  let bytes: undefined | number = undefined;
+  let sizeBytes: undefined | number = undefined;
   const match = size?.match(/(\d+)(.+)/);
 
   if (match) {
     const num = Number(match[1]);
     const type = match[2];
     const mult = type == "KB" ? KB : type == "MB" ? MB : GB;
-    bytes = num * mult;
+    sizeBytes = num * mult;
   }
 
-  return new DynamicBuffer(
+  return new DynamicBuffer({
     device,
-    GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
-    bytes,
-  );
+    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
+    sizeBytes,
+  });
 }
 
 export function Uniform(
   device: GPUDevice,
   data: ArrayBufferView,
 ): DynamicBuffer {
-  return new DynamicBuffer(
+  return new DynamicBuffer({
     device,
-    GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
     data,
-  );
+    });
 }
 
 export function u32(...values: number[]) {

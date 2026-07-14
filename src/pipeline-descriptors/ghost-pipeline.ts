@@ -20,10 +20,10 @@ export const GHOST_PIPELINE = (
   device: GPUDevice,
   textureview: GPUTextureView,
 ): RenderPipeline => {
-  const buffer = new DynamicBuffer(
+  const buffer = new DynamicBuffer({
     device,
-    GPUBufferUsage.COPY_DST | GPUBufferUsage.VERTEX,
-  );
+    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.VERTEX,
+  });
 
   return new RenderPipeline({
     device,
@@ -91,20 +91,20 @@ export const GHOST_PIPELINE = (
       [
         {
           buffer: { type: "uniform" },
-          resource: new DynamicBuffer(
+          resource: new DynamicBuffer({
             device,
-            GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
-            mat4.create(),
-          ),
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+            data: mat4.create(),
+            }),
           update: (state, buffer) => buffer.write(state.player.projection),
         },
         {
           buffer: { type: "uniform" },
-          resource: new DynamicBuffer(
+          resource: new DynamicBuffer({
             device,
-            GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
-            mat4.create(),
-          ),
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+            data: mat4.create(),
+          }),
           update: (state, buffer) =>
             buffer.write(state.player.view(state.alpha)),
         },
@@ -146,7 +146,7 @@ export const GHOST_PIPELINE = (
 
       pass.setPipeline(self.pipeline);
       pass.setVertexBuffer(0, buffer.handle);
-      pass.draw(buffer.capacity / 9 / Float32Array.BYTES_PER_ELEMENT);
+      pass.draw(buffer.bytesUsed / 9 / Float32Array.BYTES_PER_ELEMENT);
     },
   });
 };

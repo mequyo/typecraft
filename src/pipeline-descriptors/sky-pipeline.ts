@@ -28,11 +28,11 @@ export const SKY_PIPELINE = (device: GPUDevice): RenderPipeline =>
       [
         {
           buffer: { type: "uniform" },
-          resource: new DynamicBuffer(
+          resource: new DynamicBuffer({
             device,
-            GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
-            mat4.create(),
-          ),
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+            data: mat4.create(),
+            }),
           update: (state, buffer) => {
             const copy = mat4.clone(state.player.view(state.alpha));
             copy[12] = 0;

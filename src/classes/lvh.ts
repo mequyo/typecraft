@@ -3,6 +3,7 @@ import { Mat4, Vec3, vec3 } from "wgpu-matrix";
 import { CHUNK_SIZE } from "../constants";
 import { Chunk } from "../chunk";
 import { Sixtuple } from "../types";
+import { DynamicBuffer } from "./dynamic-buffer";
 
 // GPU-friendly structures (align to 16 bytes for uniform buffers)
 export interface BLASInstance {
@@ -77,11 +78,10 @@ interface LVHChunkInfo {
 }
 
 export class LVH {
-  private device: GPUDevice;
   private chunks: Map<number, LVHChunkInfo> = new Map();
   private blasList: LVHChunkInfo[] = [];
-  private blasBuffer: GPUBuffer | null = null;
-  private tlasBuffer: GPUBuffer | null = null;
+  private blasBuffer: DynamicBuffer;
+  private tlasBuffer: DynamicBuffer;
   private tlasNodes: TLASNode[] = [];
   private root: BVHNode | null = null;
   private needsRebuild: boolean = true;
@@ -90,16 +90,13 @@ export class LVH {
   private maxChunksPerNode: number = 8;
   private nodePool: BVHNode[] = []; // Pooling for node reuse
 
-  // Capacity trackers
-  private maxBlasByteCapacity = 0;
-  private maxTlasByteCapacity = 0;
-
   // Reusable buffers for SAH sweep (avoid allocations)
   private rightBoundsMinBuffer: Vec3[] = [];
   private rightBoundsMaxBuffer: Vec3[] = [];
 
   constructor(device: GPUDevice) {
-    this.device = device;
+    this.blasBuffer = new DynamicBuffer({ device, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST, sizeBytes: 2048 * 64, growFactor: 2.0 });
+    this.tlasBuffer = new DynamicBuffer({ device, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST, sizeBytes: 2048 * 64, growFactor: 2.0 })
   }
 
   /**
@@ -402,21 +399,6 @@ export class LVH {
     if (instanceCount === 0) return;
 
     const requiredByteLength = instanceCount * 80;
-
-    if (!this.blasBuffer || requiredByteLength > this.maxBlasByteCapacity) {
-      if (this.blasBuffer) this.blasBuffer.destroy();
-
-      this.maxBlasByteCapacity = Math.max(
-        requiredByteLength,
-        this.maxBlasByteCapacity * 2 || 1024 * 80,
-      );
-      this.blasBuffer = this.device.createBuffer({
-        size: this.maxBlasByteCapacity,
-        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-        mappedAtCreation: false,
-      });
-    }
-
     const instanceData = new Uint8Array(requiredByteLength);
     const view = new DataView(instanceData.buffer);
 
@@ -424,18 +406,12 @@ export class LVH {
       const chunk = this.blasList[i];
       const offset = i * 80;
 
-      // meshID (4 bytes)
-      view.setUint32(offset, chunk.chunk.allocations[0]?.region ?? 0, true);
-
-      // faceMask (4 bytes)
-      view.setUint32(offset + 4, chunk.faceMask, true);
-
-      // padding (8 bytes)
-      view.setUint32(offset + 8, 0, true);
+      view.setUint32(offset, chunk.chunk.allocations[0]?.region ?? 0, true); // meshID (4 bytes)
+      view.setUint32(offset + 4, chunk.faceMask, true); // faceMask (4 bytes)
+      view.setUint32(offset + 8, 0, true);  // padding (8 bytes)
       view.setUint32(offset + 12, 0, true);
 
-      // model matrix (64 bytes) - identity with translation
-      const matrixOffset = offset + 16;
+      const matrixOffset = offset + 16; // model matrix (64 bytes) - identity with translation
 
       view.setFloat32(matrixOffset, 1, true);
       view.setFloat32(matrixOffset + 4, 0, true);
@@ -470,7 +446,7 @@ export class LVH {
       view.setFloat32(matrixOffset + 60, 1, true);
     }
 
-    this.device.queue.writeBuffer(this.blasBuffer, 0, instanceData);
+    this.blasBuffer.write(instanceData);
   }
 
   /**
@@ -481,21 +457,6 @@ export class LVH {
     if (nodeCount === 0) return;
 
     const requiredByteLength = nodeCount * 64;
-
-    if (!this.tlasBuffer || requiredByteLength > this.maxTlasByteCapacity) {
-      if (this.tlasBuffer) this.tlasBuffer.destroy();
-
-      this.maxTlasByteCapacity = Math.max(
-        requiredByteLength,
-        this.maxTlasByteCapacity * 2 || 2048 * 64,
-      );
-      this.tlasBuffer = this.device.createBuffer({
-        size: this.maxTlasByteCapacity,
-        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-        mappedAtCreation: false,
-      });
-    }
-
     const nodeData = new Uint8Array(requiredByteLength);
     const view = new DataView(nodeData.buffer);
 
@@ -522,15 +483,9 @@ export class LVH {
       view.setUint32(offset + 44, node.leafCount, true);
     }
 
-    this.device.queue.writeBuffer(this.tlasBuffer, 0, nodeData);
+    this.tlasBuffer.write(nodeData);
   }
 
-  public getBLASBuffer(): GPUBuffer | null {
-    return this.blasBuffer;
-  }
-  public getTLASBuffer(): GPUBuffer | null {
-    return this.tlasBuffer;
-  }
   public getChunkCount(): number {
     return this.blasList.length;
   }
@@ -613,8 +568,8 @@ export class LVH {
    * Cleanup
    */
   public destroy(): void {
-    this.blasBuffer?.destroy();
-    this.tlasBuffer?.destroy();
+    this.blasBuffer.destroy();
+    this.tlasBuffer.destroy();
     this.chunks.clear();
     this.blasList = [];
     this.tlasNodes = [];
@@ -622,7 +577,5 @@ export class LVH {
     this.rightBoundsMinBuffer = [];
     this.rightBoundsMaxBuffer = [];
     this.root = null;
-    this.maxBlasByteCapacity = 0;
-    this.maxTlasByteCapacity = 0;
   }
 }
