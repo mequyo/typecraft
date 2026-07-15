@@ -8,6 +8,8 @@ import { Rand } from "./classes/random";
 import { ROTATION } from "./mesh";
 import { Registry, RegistryData } from "./registry";
 import { BlockStateData } from "./blockstate";
+import { State } from "./state";
+import { EntryDescriptor } from "./render-pipeline";
 
 export function clamp(min: number, value: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -66,7 +68,11 @@ const MB = 1024 * 1024;
 const GB = 1024 * 1024 * 1024;
 type Size = `${number}${"KB" | "MB" | "GB"}`;
 
-export function ReadOnlyStorage(device: GPUDevice, size?: Size): DynamicBuffer {
+export function ReadOnlyStorage(
+  device: GPUDevice,
+  size?: Size,
+  update?: (state: State, buffer: DynamicBuffer) => void,
+): EntryDescriptor {
   let sizeBytes: undefined | number = undefined;
   const match = size?.match(/(\d+)(.+)/);
 
@@ -77,22 +83,61 @@ export function ReadOnlyStorage(device: GPUDevice, size?: Size): DynamicBuffer {
     sizeBytes = num * mult;
   }
 
-  return new DynamicBuffer({
-    device,
-    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
-    sizeBytes,
-  });
+  return {
+    buffer: { type: "read-only-storage" },
+    resource: new DynamicBuffer({
+      device,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
+      sizeBytes,
+    }),
+    update,
+  };
 }
 
 export function Uniform(
   device: GPUDevice,
   data: ArrayBufferView,
-): DynamicBuffer {
-  return new DynamicBuffer({
-    device,
-    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
-    data,
-    });
+  update?: (state: State, buffer: DynamicBuffer) => void,
+): EntryDescriptor {
+  return {
+    buffer: { type: "uniform" },
+    resource: new DynamicBuffer({
+      device,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+      data,
+    }),
+    update,
+  };
+}
+
+export function Sampler(options: {
+  device: GPUDevice;
+  type: GPUSamplerBindingType;
+}) {
+  const { device, type } = options;
+
+  return {
+    sampler: { type },
+    resource: device.createSampler(),
+  };
+}
+
+export function Texture(options: {
+  viewDimension?: GPUTextureViewDimension;
+  sampleType?: GPUTextureSampleType;
+  multisampled?: GPUTextureBindingLayout["multisampled"];
+  resource: DynamicBuffer | GPUBindingResource;
+}) {
+  const { viewDimension, sampleType, multisampled, resource } = options;
+
+  return {
+    texture: {
+      sampleType,
+      viewDimension,
+      multisampled,
+    },
+    resource,
+  };
 }
 
 export function u32(...values: number[]) {

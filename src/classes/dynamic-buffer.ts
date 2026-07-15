@@ -9,23 +9,30 @@ export class DynamicBuffer {
   private usage: GPUBufferUsageFlags;
 
   public constructor(options: {
-    device: GPUDevice,
-    usage: GPUBufferUsageFlags,
-    data?: ArrayBufferView,
-    sizeBytes?: number,
-    growFactor?: number,
+    device: GPUDevice;
+    usage: GPUBufferUsageFlags;
+    data?: ArrayBufferView;
+    sizeBytes?: number;
+    growFactor?: number;
   }) {
     const { device, usage, data, sizeBytes, growFactor } = options;
 
     // Compute initial size in bytes (must be multiple of 4 for copies)
-    const initialBytes = Math.max(BUFFER_MIN_SIZE, sizeBytes ?? 0, data?.byteLength ?? 0);
+    const initialBytes = Math.max(
+      BUFFER_MIN_SIZE,
+      sizeBytes ?? 0,
+      data?.byteLength ?? 0,
+    );
     const aligned = initialBytes + (4 - (initialBytes % 4));
 
     this.growFactor = growFactor ?? BUFFER_GROW_FACTOR;
     this.device = device;
-    this.usage = usage;
+    this.usage = usage | GPUBufferUsage.COPY_SRC;
     this.sizeBytes = Math.max(BUFFER_MIN_SIZE, aligned);
-    this.handle = this.device.createBuffer({ size: this.sizeBytes, usage });
+    this.handle = this.device.createBuffer({
+      size: this.sizeBytes,
+      usage: this.usage,
+    });
 
     if (data) this.write(data);
   }
@@ -37,23 +44,27 @@ export class DynamicBuffer {
   public write(data: ArrayBufferView, bufferoffset = 0): void {
     const bytes = data.byteLength;
 
-    // Grow if too small or shrink if buffer is way too big for data
-    if (
-      !this.handle ||
-      this.sizeBytes < bytes + bufferoffset
-    ) {
-
-      this.handle?.destroy();
-
-      let newSize = Math.floor((bytes + bufferoffset) * this.growFactor);
+    // Grow if buffer is too small for data
+    if (!this.handle || this.sizeBytes < bytes + bufferoffset) {
+      let newSize = Math.ceil((bytes + bufferoffset) * this.growFactor);
       newSize = newSize + (4 - (newSize % 4));
       newSize = Math.max(newSize, BUFFER_MIN_SIZE);
 
-      this.sizeBytes = newSize;
-      this.handle = this.device.createBuffer({
-        size: this.sizeBytes,
+      const newBuffer = this.device.createBuffer({
+        size: newSize,
         usage: this.usage,
       });
+
+      // Copy old contents
+      const encoder = this.device.createCommandEncoder();
+      encoder.copyBufferToBuffer(this.handle, 0, newBuffer, 0, this.sizeBytes);
+      this.device.queue.submit([encoder.finish()]);
+
+      this.handle?.destroy();
+      this.handle = newBuffer;
+      this.sizeBytes = newSize;
+
+      console.log("grow");
     }
 
     // Write CPU data → GPU buffer

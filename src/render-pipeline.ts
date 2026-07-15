@@ -12,7 +12,7 @@ type EntryWrapper = {
   update?: (state: State, buffer: DynamicBuffer) => void;
 };
 
-type EntryDescriptor = Omit<GPUBindGroupLayoutEntry, "visibility" | "binding"> &
+export type EntryDescriptor = Omit<GPUBindGroupLayoutEntry, "visibility" | "binding"> &
   EntryWrapper;
 
 type GroupWrapper = {

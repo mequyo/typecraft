@@ -1,10 +1,23 @@
 import { RenderPipeline } from "../render-pipeline";
 import mainvertex from "../shaders/main.wgsl?raw";
-import { mat4, vec3 } from "wgpu-matrix";
+import { vec3 } from "wgpu-matrix";
 import { World } from "../world";
-import { CHUNK_SIZE, RENDER_DISTANCE } from "../constants";
-import { f32, i32, ReadOnlyStorage, u32, Uniform } from "../lib";
-import { AIR } from "../registries/blocks";
+import {
+  AMBIENT_COLOR,
+  CHUNK_SIZE,
+  CONE_ANGLE,
+  CONE_DISTANCE,
+  CONE_ITERATIONS,
+  FADE_IN_DURATION,
+  FOG_COLOR,
+  FOG_END,
+  FOG_START,
+  CONE_INDIRECT_SAMPLE_COUNT,
+  SKY_RADIANCE,
+  SUN_COLOR,
+  SUN_DIRECTION,
+} from "../constants";
+import { ReadOnlyStorage, Sampler, Texture, Uniform } from "../lib";
 
 export const MAIN_PIPELINE = (
   device: GPUDevice,
@@ -67,143 +80,117 @@ export const MAIN_PIPELINE = (
     groups: [
       // TEXTURES
       [
-        {
-          sampler: { type: "filtering" },
-          resource: device.createSampler(),
-        },
-        {
-          texture: {
-            sampleType: "float",
-            viewDimension: "2d-array",
-            multisampled: false,
-          },
+        Sampler({ device, type: "filtering" }),
+        Texture({
+          sampleType: "float",
+          viewDimension: "2d-array",
           resource: textureview,
-        },
+        }),
       ],
+
       // STORAGE BUFFERS
       [
         // Chunk Buffer
-        {
-          buffer: { type: "read-only-storage" },
-          resource: ReadOnlyStorage(device, "500MB"),
-          update: (state, buffer) => {
-            const chunks = state.world.chunks.values;
-            const data = new Int32Array(STRIDE);
+        ReadOnlyStorage(device, "1GB", (state, buffer) => {
+          const chunks = state.world.chunks.values;
+          const data = new Int32Array(STRIDE);
 
-            for (let i = 0; i < chunks.length; i++) {
-              const chunk = chunks[i];
-              const offset = chunk.offset;
-              const ID = World.pack(offset[0], offset[1], offset[2]);
+          for (let i = 0; i < chunks.length; i++) {
+            const chunk = chunks[i];
+            const offset = chunk.offset;
+            const ID = World.pack(offset[0], offset[1], offset[2]);
 
-              if (GPUChunks.get(ID) !== undefined) continue;
+            if (GPUChunks.get(ID) !== undefined) continue;
 
-              data.set(chunk.blocks, 0);
-              data[BLOCKS + 0] = chunk.offset[0];
-              data[BLOCKS + 1] = chunk.offset[1];
-              data[BLOCKS + 2] = chunk.offset[2];
-              data[BLOCKS + 3] = 1000 * chunk.timestamp;
+            data.set(chunk.blocks, 0);
+            data[BLOCKS + 0] = chunk.offset[0];
+            data[BLOCKS + 1] = chunk.offset[1];
+            data[BLOCKS + 2] = chunk.offset[2];
+            data[BLOCKS + 3] = 1000 * chunk.timestamp;
 
-              buffer.write(data, slot * STRIDE * Int32Array.BYTES_PER_ELEMENT);
-              GPUChunks.set(ID, slot);
-              slot++;
-            }
-          },
-        },
+            buffer.write(data, slot * STRIDE * Int32Array.BYTES_PER_ELEMENT);
+            GPUChunks.set(ID, slot);
+            slot++;
+          }
+        }),
         // Indirection
-        {
-          buffer: { type: "read-only-storage" },
-          resource: ReadOnlyStorage(device),
-          update: (state, buffer) => {
-            state.gpuIndrectionChunkMap.fill(0xffffffff);
+        ReadOnlyStorage(device, "100MB", (state, buffer) => {
+          state.gpuIndrectionChunkMap.fill(0xffffffff);
 
-            const chunks = state.world.chunks.values;
+          const chunks = state.world.chunks.values;
 
-            // 2. Rebuild the map using the chunk's actual SSBO slot
-            for (let i = 0; i < chunks.length; i++) {
-              const chunk = chunks[i];
-              const ID = World.pack(
-                chunk.offset[0],
-                chunk.offset[1],
-                chunk.offset[2],
+          // 2. Rebuild the map using the chunk's actual SSBO slot
+          for (let i = 0; i < chunks.length; i++) {
+            const chunk = chunks[i];
+            const ID = World.pack(
+              chunk.offset[0],
+              chunk.offset[1],
+              chunk.offset[2],
+            );
+            const chunkSlot = GPUChunks.get(ID);
+
+            if (chunkSlot !== undefined) {
+              const trnsf = vec3.sub(
+                chunk.offset,
+                state.gpuIndirectionBufferOrigin,
               );
-              const chunkSlot = GPUChunks.get(ID);
+              const indirectionID = World.packIndirection(
+                trnsf[0],
+                trnsf[1],
+                trnsf[2],
+                state.render_distance,
+              );
 
-              if (chunkSlot !== undefined) {
-                const trnsf = vec3.sub(
-                  chunk.offset,
-                  state.gpuIndirectionBufferOrigin,
-                );
-                const indirectionID = World.packIndirection(
-                  trnsf[0],
-                  trnsf[1],
-                  trnsf[2],
-                  state.render_distance,
-                );
-
-                if (indirectionID !== 0xffffffff) {
-                  state.gpuIndrectionChunkMap[indirectionID] = chunkSlot;
-                }
+              if (indirectionID !== 0xffffffff) {
+                state.gpuIndrectionChunkMap[indirectionID] = chunkSlot;
               }
             }
+          }
 
-            buffer.write(state.gpuIndrectionChunkMap);
-          },
-        },
+          buffer.write(state.gpuIndrectionChunkMap);
+        }),
       ],
+
       // UNIFORMS
       [
-        {
-          buffer: { type: "uniform" },
-          resource: Uniform(device, mat4.create()),
-          update: (state, buffer) => buffer.write(state.player.projection),
-        },
-        {
-          buffer: { type: "uniform" },
-          resource: Uniform(device, mat4.create()),
-          update: (state, buffer) =>
-            buffer.write(state.player.view(state.alpha)),
-        },
-        {
-          buffer: { type: "uniform" },
-          resource: Uniform(device, vec3.create()),
-          update: (state, buffer) =>
-            buffer.write(state.player.interpolate(state.alpha)),
-        },
-        {
-          buffer: { type: "uniform" },
-          resource: Uniform(device, f32(0)),
-          update: (state, buffer) => buffer.write(f32(state.time.seconds)),
-        },
-        {
-          buffer: { type: "uniform" },
-          resource: Uniform(device, vec3.create()),
-          update: (state, buffer) => {
-            const look = state.player.lookat;
-            buffer.write(look ? f32(...look) : f32(0, 0, 0));
-          },
-        },
-        {
-          buffer: { type: "uniform" },
-          resource: Uniform(device, u32(2 * RENDER_DISTANCE + 1)),
-          update: (state, buffer) =>
-            buffer.write(u32(2 * state.render_distance + 1)),
-        },
-        {
-          buffer: { type: "uniform" },
-          resource: Uniform(device, vec3.create()),
-          update: (state, buffer) =>
-            buffer.write(
-              i32(
-                ...vec3.floor(
-                  vec3.divScalar(state.player.position, CHUNK_SIZE),
-                ),
-              ),
-            ),
-        },
-        {
-          buffer: { type: "uniform" },
-          resource: Uniform(device, i32(AIR.ID)),
-        },
+        Uniform(device, new Float32Array(68), (state, buffer) => {
+          const look = state.player.lookat;
+          const data = new Float32Array(68);
+
+          data.set(state.player.projection, 0);
+          data.set(state.player.view(state.alpha), 16);
+          data.set(state.player.interpolate(state.alpha), 32);
+          data.set(look ?? [0, 0, 0], 36);
+          data.set(
+            [state.time.seconds, FADE_IN_DURATION, FOG_START, FOG_END],
+            39,
+          );
+          data.set(FOG_COLOR, 44);
+          data.set(SUN_DIRECTION, 48);
+          data.set(SUN_COLOR, 52);
+          data.set(AMBIENT_COLOR, 56);
+          data.set(SKY_RADIANCE, 60);
+          data.set([CONE_ANGLE, CONE_DISTANCE], 63);
+
+          buffer.write(data);
+        }),
+        Uniform(device, new Int32Array(8), (state, buffer) => {
+          const origin = vec3.floor(
+            vec3.divScalar(state.player.position, CHUNK_SIZE),
+          );
+          const data = new Int32Array([
+            origin[0],
+            origin[1],
+            origin[2],
+            2 * state.render_distance + 1,
+            0, // air ID
+            CHUNK_SIZE,
+            CONE_ITERATIONS, // cone iterations
+            CONE_INDIRECT_SAMPLE_COUNT, // indirect sample count
+          ]);
+
+          buffer.write(data);
+        }),
       ],
     ],
 

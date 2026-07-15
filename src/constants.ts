@@ -19,7 +19,7 @@ export const PLAYER_WIDTH = 0.6;
 export const CAMERA_HEIGHT = 1.6;
 export const PLAYER_HEIGHT = 1.8;
 export const JUMP_FORCE = 2 * Math.sqrt(-GRAVITY[1]);
-export const RENDER_DISTANCE = 8;
+export const RENDER_DISTANCE = 7;
 export const PLAYER_REACH = 5;
 
 // TEXTURES
@@ -115,3 +115,22 @@ export const VERTEX_STRIDES: Record<GPUVertexFormat, number> = {
   float32x3: 12,
   float32x4: 16,
 };
+
+export const FADE_IN_DURATION = 0.5;
+
+// FOG
+export const FOG_COLOR = vec3.create(0.73, 0.94, 1.0);
+export const FOG_START = 100.0; // At what distance fog starts appearing
+export const FOG_END = 500.0; // At what distance fog is maxed
+
+// DURING DAY
+export const SUN_DIRECTION = vec3.create(0.2, 1.0, 0.4); // TODO move during day light cycle
+export const SUN_COLOR = vec3.create(1.0, 0.95, 0.85); // TODO change during the day and night
+export const AMBIENT_COLOR = vec3.create(0.3, 0.3, 0.4); // TODO change during the day
+export const CONE_ANGLE = 0.1; // 5.7°  smaller = sharper edges, larger = very soft shadows
+
+// GI
+export const SKY_RADIANCE = vec3.create(0.8, 0.6, 1.0); // sky light color
+export const CONE_INDIRECT_SAMPLE_COUNT = 8; // number of cone directions per pixel
+export const CONE_DISTANCE = 20.0;
+export const CONE_ITERATIONS = 64;

@@ -15,6 +15,7 @@ import {
 } from "../mesh";
 import { BlockRegistry } from "../registries/block-registry";
 import { Registry } from "../registry";
+import { Sampler, Texture, Uniform } from "../lib";
 
 export const GHOST_PIPELINE = (
   device: GPUDevice,
@@ -74,40 +75,21 @@ export const GHOST_PIPELINE = (
     groups: [
       // TEXTURES
       [
-        {
-          sampler: { type: "filtering" },
-          resource: device.createSampler(),
-        },
-        {
-          texture: {
-            sampleType: "float",
-            viewDimension: "2d-array",
-            multisampled: false,
-          },
+        Sampler({ device, type: "filtering" }),
+        Texture({
+          sampleType: "float",
+          viewDimension: "2d-array",
           resource: textureview,
-        },
+        }),
       ],
       // UNIFORMS
       [
-        {
-          buffer: { type: "uniform" },
-          resource: new DynamicBuffer({
-            device,
-            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
-            data: mat4.create(),
-            }),
-          update: (state, buffer) => buffer.write(state.player.projection),
-        },
-        {
-          buffer: { type: "uniform" },
-          resource: new DynamicBuffer({
-            device,
-            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
-            data: mat4.create(),
-          }),
-          update: (state, buffer) =>
-            buffer.write(state.player.view(state.alpha)),
-        },
+        Uniform(device, mat4.create(), (state, buffer) =>
+          buffer.write(state.player.projection),
+        ),
+        Uniform(device, mat4.create(), (state, buffer) =>
+          buffer.write(state.player.view(state.alpha)),
+        ),
       ],
     ],
 

@@ -6,15 +6,44 @@ struct VertexInput {
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) normal: vec3<f32>,
-    @location(1) texture_uv: vec3<f32>,
-    @location(2) player_position: vec3<f32>,
-    @location(3) world_position: vec3<f32>,
-    @location(4) delta_time: f32,
+    @location(1) textureUV: vec3<f32>,
+    @location(2) cameraPosition: vec3<f32>,
+    @location(3) worldPosition: vec3<f32>,
+    @location(4) deltaTime: f32,
 }
 struct Chunk {
     blocks: array<i32, 32768>,
     origin: vec3<i32>,
     time: i32, // in milliseconds
+}
+struct FloatInputs {
+    projection: mat4x4<f32>, // Projection matrix
+    view: mat4x4<f32>, // View matrix
+    cameraPosition: vec3<f32>, // Position of the camera
+    lookat: vec3<f32>, // Look-at matrix of camera
+    timeInSeconds: f32, // Global time of world
+    fadeInDuration: f32, // Time it takes for a chunk to reach opacity 100% in seconds
+    // FOG
+    fogStart: f32, // Distance at which fog starts accumulating
+    fogEnd: f32, // Distance at which fog reaches max strength
+    fogColor: vec3<f32>, // Fog color
+    // GI
+    sunDirection: vec3<f32>, // Direction of the sun
+    sunColor: vec3<f32>, // Tint of sun
+    ambientColor: vec3<f32>, // Ambient color
+    // CONE TRACING
+    skyRadiance: vec3<f32>, // sky light color
+    coneAngle: f32, // smaller = sharper edges, larger = very soft shadows
+    coneDistance: f32, // How far a cone can look
+}
+struct IntegerInputs {
+    indirectionOrigin: vec3<i32>, // Center of the indirection grid
+    indirectionGridSize: i32, // The indirection grid size
+    airID: i32, // Blockstate ID of air
+    chunkSize: i32, // size of a chunk on one axis, 32
+    // CONE TRACING
+    coneTracingIterations: i32, // Amount of iterations per cone
+    indirectSampleCount: i32, // number of cone directions per pixel
 }
 
 @group(0) @binding(0) var mySampler: sampler;
@@ -23,16 +52,9 @@ struct Chunk {
 @group(1) @binding(0) var<storage, read> chunks: array<Chunk>;
 @group(1) @binding(1) var<storage, read> indirection: array<u32>; // Maps xyz -> index in chunks
 
-@group(2) @binding(0) var<uniform> projection: mat4x4<f32>;
-@group(2) @binding(1) var<uniform> view: mat4x4<f32>;
-@group(2) @binding(2) var<uniform> player_position: vec3<f32>;
-@group(2) @binding(3) var<uniform> time: f32;
-@group(2) @binding(4) var<uniform> lookat: vec3<f32>;
-@group(2) @binding(5) var<uniform> indirectionGridSize: u32; // Is the indirection grid size
-@group(2) @binding(6) var<uniform> indirectionOrigin: vec3<i32>;
-@group(2) @binding(7) var<uniform> air_ID: i32;
+@group(2) @binding(0) var<uniform> floats: FloatInputs;
+@group(2) @binding(1) var<uniform> integers: IntegerInputs;
 
-const FADE_IN_DURATION = 0.5;
 const FACE_NORMALS = array<vec3<f32>, 6>(
     vec3<f32>(1, 0, 0),
     vec3<f32>(-1, 0, 0),
@@ -41,40 +63,27 @@ const FACE_NORMALS = array<vec3<f32>, 6>(
     vec3<f32>(0, 0, 1),
     vec3<f32>(0, 0, -1),
 );
-const CHUNK_SIZE = 32;
 const INVALID_CHUNK = 0xffffffffu;
-
-// FOG
-const FOG_COLOR = vec3<f32>(0.73, 0.94, 1.00);
-const FOG_START = 100.0; // At what distance fog starts appearing
-const FOG_END = 500.0; // At what distance fog is maxed
-
-// DURING DAY
-const SUN_DIRECTION = vec3<f32>(0.2, 1.0, 0.4); // TODO move during day light cycle
-const SUN_COLOR = vec3<f32>(1.0, 0.95, 0.85); // TODO change during the day and night
-const AMBIENT_COLOR = vec3<f32>(0.3, 0.3, 0.4); // TODO change during the day
-const CONE_ANGLE = 0.1; // 5.7°  smaller = sharper edges, larger = very soft shadows
-const CONE_TRACING_ITERATIONS = 64;
-
-// GI
-const SKY_RADIANCE = vec3<f32>(0.8, 0.6, 1.0);      // sky light color
-const INDIRECT_SAMPLE_COUNT = 8u;                  // number of cone directions per pixel
-const MAX_CONE_DIST = 20.0;                        // max distance for indirect tracing
 
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
+    let projection = floats.projection;
+    let view = floats.view;
+    let cameraPosition = floats.cameraPosition;
+    let time = floats.timeInSeconds;
+
     var output: VertexOutput;
     var face = input.iid & 7;
     var indirectionID = input.iid >> 3;
     var chunkIndex = indirection[indirectionID];
     var chunk = chunks[chunkIndex];
 
-    let local_z = f32((input.xyz >> 0) & 1023) / 16.0;
-    let local_y = f32((input.xyz >> 10) & 1023) / 16.0;
-    let local_x = f32((input.xyz >> 20) & 1023) / 16.0;
-    let world_position = vec3f(chunk.origin * 32) + vec3f(local_x, local_y, local_z);
+    let localZ = f32((input.xyz >> 0) & 1023) / 16.0;
+    let localY = f32((input.xyz >> 10) & 1023) / 16.0;
+    let localX = f32((input.xyz >> 20) & 1023) / 16.0;
+    let worldPosition = vec3f(chunk.origin * 32) + vec3f(localX, localY, localZ);
 
-    output.position = projection * view * vec4f(f32(world_position.x), f32(world_position.y), f32(world_position.z), 1.0);
+    output.position = projection * view * vec4f(f32(worldPosition.x), f32(worldPosition.y), f32(worldPosition.z), 1.0);
     output.normal = FACE_NORMALS[face]; // Derive normal from face
 
     // unpack: high 16 bits = U, low 16 bits = V, normalize to [0,1], texture index in xyzt bits
@@ -82,67 +91,69 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     let v8 = (input.uvt >> 8u) & 255u;
     let tex16 = (input.uvt >> 16u) & 65535u;
 
-    output.texture_uv = vec3(f32(u8) / 255.0, f32(v8) / 255.0, f32(tex16));
-    output.player_position = player_position;
-    output.world_position = world_position;
-    output.delta_time = clamp((time - f32(chunk.time) / 1000.0) / FADE_IN_DURATION, 0.0, 1.0);;
+    output.textureUV = vec3(f32(u8) / 255.0, f32(v8) / 255.0, f32(tex16));
+    output.cameraPosition = cameraPosition;
+    output.worldPosition = worldPosition;
+    output.deltaTime = clamp((time - f32(chunk.time) / 1000.0) / floats.fadeInDuration, 0.0, 1.0);;
 
     return output;
 }
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4f {
-    let uv = input.texture_uv;
-
+    let uv = input.textureUV;
+    let cameraPosition = floats.cameraPosition;
     let albedo = getAlbedo(i32(round(uv.z)), uv.xy);
 
     if albedo.a < 0.05 { discard; }
 
     let N = normalize(input.normal);
-    let direct = computeDirectLighting(input.world_position, N, albedo.rgb);
-    //let indirect = computeIndirectLighting(input.world_position, N);
+    let direct = computeDirectLighting(input.worldPosition, N, albedo.rgb);
     let color = direct;
 
     // FOG
-    var dist = distance(input.world_position, player_position);
-    var fogfactor = clamp((dist - FOG_START) / (FOG_END - FOG_START), 0.0, 1.0);
-    var final_color = mix(color, FOG_COLOR, fogfactor);
+    var dist = distance(input.cameraPosition, cameraPosition);
+    var fogFactor = clamp((dist - floats.fogStart) / (floats.fogEnd - floats.fogStart), 0.0, 1.0);
+    var finalColor = mix(color, floats.fogColor, fogFactor);
 
-    return vec4f(final_color, input.delta_time);
+    return vec4f(finalColor, input.deltaTime);
 }
 
 fn saturate(x: f32) -> f32 {
     return clamp(x, 0.0, 1.0);
 }
 
-fn pack_chunk_coord(chunkPos: vec3<i32>) -> u32 {
-    let half = i32(indirectionGridSize >> 1);
-    let relative = chunkPos - indirectionOrigin + half;
+fn packChunkCoord(chunkPos: vec3<i32>) -> u32 {
+    let size = integers.indirectionGridSize;
+    let half = size >> 1;
+    let relative = chunkPos - integers.indirectionOrigin + half;
 
     if relative.x < 0 || relative.y < 0 || relative.z < 0 { return INVALID_CHUNK; }
-    if relative.x >= i32(indirectionGridSize) || relative.y >= i32(indirectionGridSize) || relative.z >= i32(indirectionGridSize) { return INVALID_CHUNK; }
+    if relative.x >= size || relative.y >= size || relative.z >= size { return INVALID_CHUNK; }
 
-    let x = u32(relative.x) * indirectionGridSize * indirectionGridSize;
-    let y = u32(relative.y) * indirectionGridSize;
-    let z = u32(relative.z);
-    return x + y + z;
+    let x = relative.x * size * size;
+    let y = relative.y * size;
+    let z = relative.z;
+    return u32(x + y + z);
 }
 
 // return 0 if air
 fn getVoxel(pos: vec3<i32>) -> i32 {
+    let chunkSize = integers.chunkSize;
+
     // Convert world position to chunk + local
-    let chunkPos = vec3<i32>(floor(vec3<f32>(pos)) / f32(CHUNK_SIZE));
-    let localPos = pos - chunkPos * CHUNK_SIZE;
+    let chunkPos = vec3<i32>(floor(vec3<f32>(pos)) / f32(chunkSize));
+    let localPos = pos - chunkPos * chunkSize;
 
     // Pack chunk coordinates for indirection lookup
-    let packed = pack_chunk_coord(chunkPos);
+    let packed = packChunkCoord(chunkPos);
     if packed == INVALID_CHUNK { return 0; }
 
     let chunkIndex = indirection[packed];
     if chunkIndex == INVALID_CHUNK { return 0; }
 
     // Index into chunk's block array
-    let blockIndex = localPos.x * CHUNK_SIZE * CHUNK_SIZE + localPos.y * CHUNK_SIZE + localPos.z;
+    let blockIndex = localPos.x * chunkSize * chunkSize + localPos.y * chunkSize + localPos.z;
     return chunks[chunkIndex].blocks[blockIndex];
 }
 
@@ -151,7 +162,7 @@ fn traceConeShadow(origin: vec3<f32>, direction: vec3<f32>, coneAngle: f32) -> f
     var occlusion = 0.0;
     var coneRadius = 0.0;
 
-    for (var i = 0; i < CONE_TRACING_ITERATIONS; i++) {
+    for (var i = 0; i < integers.coneTracingIterations; i++) {
         let dist = f32(i) * 0.5;
         coneRadius = dist * tan(coneAngle);
 
@@ -161,7 +172,7 @@ fn traceConeShadow(origin: vec3<f32>, direction: vec3<f32>, coneAngle: f32) -> f
 
         // Simple: check center voxel, weighted by cone size
         // TODO every block currently has 24 orientations, including air
-        if getVoxel(voxelPos) != air_ID {
+        if getVoxel(voxelPos) != integers.airID {
             let coverage = min(1.0, sampleRadius);
             occlusion += coverage * 0.1;
             if occlusion >= 1.0 {
@@ -176,12 +187,12 @@ fn traceConeShadow(origin: vec3<f32>, direction: vec3<f32>, coneAngle: f32) -> f
 }
 
 fn computeDirectLighting(worldPos: vec3<f32>, normal: vec3<f32>, albedo: vec3<f32>) -> vec3<f32> {
-    let L = normalize(SUN_DIRECTION);
+    let L = normalize(floats.sunDirection);
     let N = normalize(normal);
     let diff = max(dot(N, L), 0.0);
-    let shadow = traceConeShadow(worldPos, L, CONE_ANGLE);
+    let shadow = traceConeShadow(worldPos, L, floats.coneAngle);
 
-    return albedo * (AMBIENT_COLOR + SUN_COLOR * shadow * diff);
+    return albedo * (floats.ambientColor + floats.sunColor * shadow * diff);
 }
 
 // Improved cone trace that returns the radiance (color) coming from a given direction.
@@ -190,9 +201,9 @@ fn computeDirectLighting(worldPos: vec3<f32>, normal: vec3<f32>, albedo: vec3<f3
 fn traceConeRadiance(origin: vec3<f32>, direction: vec3<f32>, coneAngle: f32) -> vec3<f32> {
     var pos = origin + direction * 0.1;
     var coneRadius = 0.0;
-    for (var i = 0; i < CONE_TRACING_ITERATIONS; i++) {
+    for (var i = 0; i < integers.coneTracingIterations; i++) {
         let dist = f32(i) * 0.5;
-        if dist > MAX_CONE_DIST { break; }
+        if dist > floats.coneDistance { break; }
         coneRadius = dist * tan(coneAngle);
         let voxelPos = vec3<i32>(floor(pos));
         let blockType = getVoxel(voxelPos);
@@ -211,7 +222,7 @@ fn traceConeRadiance(origin: vec3<f32>, direction: vec3<f32>, coneAngle: f32) ->
         pos += direction * max(0.5, coneRadius * 0.5);
     }
     // No hit – return sky radiance
-    return SKY_RADIANCE;
+    return floats.skyRadiance;
 }
 
 fn getAlbedo(blockID: i32, uv: vec2<f32>) -> vec4<f32> {
@@ -220,7 +231,7 @@ fn getAlbedo(blockID: i32, uv: vec2<f32>) -> vec4<f32> {
 
 // Generates a set of directions distributed over the hemisphere around N.
 // Uses the Fibonacci spiral method.
-fn getHemisphereDirection(index: u32, count: u32, N: vec3<f32>) -> vec3<f32> {
+fn getHemisphereDirection(index: i32, count: i32, N: vec3<f32>) -> vec3<f32> {
     let phi = 2.0 * 3.1415926 * f32(index) / f32(count);
     let cosTheta = 1.0 - f32(index) / f32(count);  // bias toward horizon
     let sinTheta = sqrt(1.0 - cosTheta * cosTheta);
@@ -235,10 +246,10 @@ fn getHemisphereDirection(index: u32, count: u32, N: vec3<f32>) -> vec3<f32> {
 // Indirect diffuse lighting: average radiance over hemisphere
 fn computeIndirectLighting(pos: vec3<f32>, N: vec3<f32>) -> vec3<f32> {
     var totalRadiance = vec3<f32>(0.0);
-    for (var i = 0u; i < INDIRECT_SAMPLE_COUNT; i++) {
-        let dir = getHemisphereDirection(i, INDIRECT_SAMPLE_COUNT, N);
-        let radiance = traceConeRadiance(pos + N * 0.05, dir, CONE_ANGLE);
+    for (var i = 0; i < integers.indirectSampleCount; i++) {
+        let dir = getHemisphereDirection(i, integers.indirectSampleCount, N);
+        let radiance = traceConeRadiance(pos + N * 0.05, dir, floats.coneAngle);
         totalRadiance += radiance;
     }
-    return totalRadiance / f32(INDIRECT_SAMPLE_COUNT);
+    return totalRadiance / f32(integers.indirectSampleCount);
 }
