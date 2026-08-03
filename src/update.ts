@@ -21,7 +21,7 @@ export function update(state: State) {
 
   state.world.queueChunks(state.player, state); // Queues chunks around the player and generates one each tick
 
-  prof.measure("chunk culling", () => state.world.filterChunks(state.player));
+  prof.measure("chunk culling", () => state.world.updatePlanes(state.player));
 
   // PLACE BLOOK IF RIGHT CLICKED
   if (state.input.mouse.clicked[MOUSE.RIGHT] && player.lookat) {
@@ -47,7 +47,11 @@ export function update(state: State) {
 
         try {
           let slot = player.hotbar[0][player.selectedSlot];
-          const blockID = Registry.get(state.registrymanager.blocks, "name", slot?.[1] || "").ID;
+          const blockID = Registry.get(
+            state.registrymanager.blocks,
+            "name",
+            slot?.[1] || "",
+          ).ID;
 
           if (slot) {
             slot[0] -= 1;
@@ -62,7 +66,11 @@ export function update(state: State) {
 
           state.world.addBlock(
             position,
-            Registry.get(state.registrymanager.blockstates, "hash", BlockState.encode(blockID, { orientation })).ID,
+            Registry.get(
+              state.registrymanager.blockstates,
+              "hash",
+              BlockState.encode(blockID, { orientation }),
+            ).ID,
           );
           // TODO don't place if placing into entities
         } catch (_) {

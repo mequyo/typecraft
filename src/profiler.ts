@@ -14,6 +14,7 @@ const BUFFERS = [
   "gpu frame time",
   "physics",
   "ui",
+  "culling",
 ] as const;
 const BUFFER_SIZE = 300;
 

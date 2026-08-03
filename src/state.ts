@@ -11,6 +11,7 @@ import { Profiler } from "./profiler.ts";
 import { LVH } from "./classes/lvh.ts";
 import { Vec3 } from "wgpu-matrix";
 import { RegistryManagerData } from "./registry-manager.ts";
+import { CullResources } from "./cull-pipeline.ts";
 
 export type State = {
   canvas: HTMLCanvasElement;
@@ -43,6 +44,8 @@ export type State = {
   chunkBuffer: ArenaBuffer;
   lvh: LVH;
   pipelines: RenderPipeline[];
+
+  cullResources: CullResources;
 
   indirectBuffer: DynamicBuffer;
 

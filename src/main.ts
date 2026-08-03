@@ -41,6 +41,7 @@ import { BlockProperties } from "./block-properties.ts";
 import { BlockState, BlockStateData } from "./blockstate.ts";
 import { Block, BlockData } from "./block.ts";
 import { useStore } from "./store.ts";
+import { createCullPipeline } from "./cull-pipeline.ts";
 
 window.onload = main;
 
@@ -56,7 +57,6 @@ async function main() {
 
   await TextureRegistry.awaitImages();
   await SoundRegistry.awaitSounds(audio);
-  //const textures = TextureRegistry.getAll().map<ImageBitmap>((t) => t.bitmap!);
   const textures = Registry.getAll(registrymanager.textures, "ID").map(
     (t) => t.bitmap,
   );
@@ -107,6 +107,14 @@ async function main() {
   const input = new InputSystem(canvas);
 
   // TODO resizing kills texture
+  const indirectBuffer = device.createBuffer({
+    label: "Indirect Buffer",
+    size: 1024 * 1024 * 20,
+    usage:
+      GPUBufferUsage.STORAGE |
+      GPUBufferUsage.COPY_DST |
+      GPUBufferUsage.INDIRECT,
+  });
 
   const state: State = {
     canvas,
@@ -133,7 +141,7 @@ async function main() {
       vec3.divScalar(player.position, CHUNK_SIZE),
     ),
     minimap: new Minimap(minimap_arrow),
-
+    cullResources: createCullPipeline(device, indirectBuffer, 4000),
     chunkBuffer: new ArenaBuffer(
       device,
       1000 * 1024 * 1024,
@@ -146,7 +154,7 @@ async function main() {
 
     indirectBuffer: new DynamicBuffer({
       device,
-      usage:GPUBufferUsage.INDIRECT | GPUBufferUsage.COPY_DST,
+      usage: GPUBufferUsage.INDIRECT | GPUBufferUsage.COPY_DST,
       sizeBytes: 64,
     }),
 
@@ -159,7 +167,7 @@ async function main() {
       GHOST_PIPELINE(device, texturearray.createView()),
     ],
     block_use_map: {
-      crafting_table: (pos) =>
+      crafting_table: (_) =>
         state.ui.setMenu("set", "crafting table", state.input),
     } as Record<string, (pos: Vec3) => void>,
 
@@ -283,10 +291,10 @@ async function main() {
 
   window.setInterval(() => state.profiler.log(), 15000);
 
-
-  console.log(Registry.get(state.registrymanager.blocks, "name", "redstone_ore"))
-  console.log(Registry.get(state.registrymanager.blocks, "name", "sand"))
-
+  console.log(
+    Registry.get(state.registrymanager.blocks, "name", "redstone_ore"),
+  );
+  console.log(Registry.get(state.registrymanager.blocks, "name", "sand"));
 
   loop(state);
 }

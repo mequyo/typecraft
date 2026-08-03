@@ -111,6 +111,22 @@ export const MAIN_PIPELINE = (
             buffer.write(data, slot * STRIDE * Int32Array.BYTES_PER_ELEMENT);
             GPUChunks.set(ID, slot);
             slot++;
+
+            // Add metadata for culling
+            const metadata = new Float32Array(32);
+            metadata.set(chunk.AABB.min, 0);
+            metadata.set(chunk.AABB.max, 4);
+            metadata.set(chunk.offset, 24); // ADD THIS — chunk-space offset for indirection packing
+            const metaU32 = new Uint32Array(metadata.buffer);
+            for (let face = 0; face < 6; face++) {
+              metaU32[8 + face] = chunk.allocations[face].size / 8;
+              metaU32[8 + 8 + face] = chunk.allocations[face].start / 8;
+            }
+            device.queue.writeBuffer(
+              state.cullResources.chunkMetaBuffer,
+              slot * 128,
+              metadata.buffer,
+            );
           }
         }),
         // Indirection
@@ -203,42 +219,12 @@ export const MAIN_PIPELINE = (
 
       pass.setVertexBuffer(0, state.chunkBuffer.buffer);
 
-      const chunks = state.world.chunks.values;
-      const indirect = new Uint32Array(4 * 6 * state.world.filtered.length);
-
-      for (let i = 0, offset = 0; i < chunks.length; i++) {
-        const chunk = chunks[i];
-
-        if (!chunk.visible) continue;
-
-        const relative = vec3.sub(
-          chunk.offset,
-          state.gpuIndirectionBufferOrigin,
-        );
-        const packed = World.packIndirection(
-          relative[0],
-          relative[1],
-          relative[2],
-          state.render_distance,
-        );
-
-        if (packed == 0xffffffff) continue;
-
-        for (let face = 0; face < 6; face += 1) {
-          // allocations.size/start are in bytes; each vertex is 8 bytes (two u32), so divide by 8
-          indirect[offset++] = chunk.allocations[face].size / 8; // vertexCount
-          indirect[offset++] = 1; // instanceCount
-          indirect[offset++] = chunk.allocations[face].start / 8; // firstVertex
-          indirect[offset++] = (packed << 3) | (face << 0); // firstInstance (29 bits chunkIndex, 3 bits face 0-5)
-        }
-      }
-
-      if (indirect.length === 0) return;
-
-      const buffer = state.indirectBuffer;
-      buffer.write(indirect);
       // @ts-ignore, only available through extension
-      pass.multiDrawIndirect(buffer.handle, 0, indirect.length / 4);
+      pass.multiDrawIndirect(
+        state.cullResources.indirectBuffer,
+        0,
+        state.cullResources.maxChunkSlots * 6,
+      );
     },
   });
 };

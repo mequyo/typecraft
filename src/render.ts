@@ -26,6 +26,31 @@ export function render(state: State) {
 
   const encoder = device.createCommandEncoder({ label: "Command Encoder" });
 
+  // COMPUTE SHADERS, for now just frustum culling
+  prof.measure("culling", () => {
+    //state.world.updateFrustumPlanes(state.player); // Automatically happens
+    device.queue.writeBuffer(
+      state.cullResources.planesBuffer,
+      0,
+      state.world.planes.buffer,
+    );
+
+    const origin = state.gpuIndirectionBufferOrigin;
+    device.queue.writeBuffer(
+      state.cullResources.originBuffer,
+      0,
+      new Int32Array([origin[0], origin[1], origin[2], state.render_distance]),
+    );
+
+    const cullPass = encoder.beginComputePass({ label: "Culling Pass" });
+    cullPass.setPipeline(state.cullResources.pipeline);
+    cullPass.setBindGroup(0, state.cullResources.bindGroup);
+    cullPass.dispatchWorkgroups(
+      Math.ceil(state.cullResources.maxChunkSlots / 64),
+    );
+    cullPass.end();
+  });
+
   const swapchainPass = encoder.beginRenderPass({
     label: "Swapchain Renderpass",
     colorAttachments: [

@@ -3,27 +3,23 @@ import { Chunk } from "./chunk";
 import {
   CHUNK_SIZE,
   AMOUNT_CHUNK_WORKERS,
-  RENDER_DISTANCE,
   MINING_SOUND_INTERVAL,
   MAX_PENDING_REQUESTS,
 } from "./constants";
 import { TerrainGenerator } from "./terrain-generator";
 import { ChunkMessage, Ray, Sixtuple, WorkerMessageOut } from "./types";
 import { Pair } from "./classes/pair";
-import { Mat4, mat4, Vec2, vec2, Vec3, vec3 } from "wgpu-matrix";
+import { Mat4, mat4, Vec2, Vec3, vec3 } from "wgpu-matrix";
 import { State } from "./state";
 import { FACE_NORMALS, MESHES } from "./mesh";
 import { vec3ToLocalChunk } from "./lib";
-import { BlockRegistry } from "./registries/block-registry";
-import { SoundRegistry } from "./registries/sound-registry";
 import { Allocation } from "./classes/arena-buffer";
 import { SlotMap } from "./classes/slot-map";
 import { Player } from "./player";
 import { Region } from "./region";
 import { PlayerSystem } from "./player-system";
-import { Rand } from "./classes/random";
 import { RegistryManagerData } from "./registry-manager";
-import { BlockState, BlockStateHash } from "./blockstate";
+import { BlockStateHash } from "./blockstate";
 import { Registry } from "./registry";
 import { useStore } from "./store";
 
@@ -55,7 +51,7 @@ export class World {
   public damaged: Map<number, DamagedBlock>;
   public filtered: Chunk[] = [];
   private vp: Mat4 = mat4.create();
-  private planes = new Float32Array(24);
+  public planes = new Float32Array(24);
   public manager: RegistryManagerData;
 
   constructor(
@@ -284,11 +280,14 @@ export class World {
 
     worker.addEventListener("message", message);
 
-    worker.postMessage({
-      type: "chunk",
-      offset,
-      neighborsBuffer: packedNeighbors.buffer,
-    } as ChunkMessage, [packedNeighbors.buffer]);
+    worker.postMessage(
+      {
+        type: "chunk",
+        offset,
+        neighborsBuffer: packedNeighbors.buffer,
+      } as ChunkMessage,
+      [packedNeighbors.buffer],
+    );
 
     this.pending.add(key);
     this.pendingOrder.push(key);
@@ -385,13 +384,12 @@ export class World {
     return this.chunks.delete(World.pack(offset[0], offset[1], offset[2]));
   }
 
-  filterChunks(camera: Camera) {
-    this.filtered.length = 0;
-    mat4.multiply(camera.projection, camera.view(), this.vp); // Update view projection
-
-    // Extract frustum planes
+  updatePlanes(camera: Camera) {
     const vp = this.vp;
     const planes = this.planes;
+
+    mat4.multiply(camera.projection, camera.view(), vp); // Update view projection
+
     planes[0] = vp[3] + vp[0];
     planes[1] = vp[7] + vp[4];
     planes[2] = vp[11] + vp[8];
@@ -416,70 +414,5 @@ export class World {
     planes[21] = vp[7] - vp[6];
     planes[22] = vp[11] - vp[10];
     planes[23] = vp[15] - vp[14]; // Far
-
-    // Check each chunk against the frustum
-    const CHUNK_HALF_DIAGONAL = (Math.sqrt(3) * CHUNK_SIZE) / 2;
-    const chunks = this.chunks;
-    const renderdistance = (RENDER_DISTANCE * CHUNK_SIZE) ** 2;
-    const close = (3 * CHUNK_SIZE) ** 2;
-
-    for (let i = 0; i < chunks.size; i++) {
-      const chunk = chunks.values[i];
-      chunk.visible = false;
-
-      if (chunk.blockamount == 0) continue;
-
-      const aabb = chunk.AABB;
-      const min = aabb.min;
-      const max = aabb.max;
-
-      // Check whether chunk is behind the player
-      const cx = chunk.center[0] - camera.position[0];
-      const cy = chunk.center[1] - camera.position[1];
-      const cz = chunk.center[2] - camera.position[2];
-      const dot =
-        cx * camera.direction[0] +
-        cy * camera.direction[1] +
-        cz * camera.direction[2];
-
-      if (dot < -CHUNK_HALF_DIAGONAL) continue; // Chunk is behind camera
-
-      // Check whether chunk is within render distance or very close
-      const dx = min[0] - camera.position[0];
-      const dy = min[1] - camera.position[1];
-      const dz = min[2] - camera.position[2];
-      const distance = dx * dx + dy * dy + dz * dz; // squared
-
-      if (distance > renderdistance) continue;
-      if (distance < close) {
-        this.filtered.push(chunk);
-        chunk.visible = true;
-        continue;
-      }
-
-      // Find the corner most inside the frustum. To check if the WHOLE box is outside, we test the "positive" vertex
-      let outside = false;
-      for (let p = 0; p < 24; p += 4) {
-        const a = planes[p + 0];
-        const b = planes[p + 1];
-        const c = planes[p + 2];
-        const d = planes[p + 3];
-        const x = a >= 0 ? max[0] : min[0];
-        const y = b >= 0 ? max[1] : min[1];
-        const z = c >= 0 ? max[2] : min[2];
-
-        if (a * x + b * y + c * z + d < 0) {
-          outside = true;
-          break;
-        }
-      }
-
-      if (!outside) {
-        this.filtered.push(chunk);
-        chunk.visible = true;
-      }
-    }
-
-    this.rendered = this.filtered.length;
   }
 }
